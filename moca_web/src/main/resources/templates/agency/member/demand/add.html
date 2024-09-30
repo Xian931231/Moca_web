@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+	<th:block layout:fragment="content">
+	   	<main class="main-panel">
+			<div class="pagePath">
+	        	회원관리<span>&gt;</span>광고주 계정 관리<span>&gt;</span>광고주 계정 생성
+	      	</div>
+	    	<div class="join-all">
+	      		<div class="formWrap formInputInfo">
+	      			<form class="join-form" onsubmit="return false">
+	          			<h2>사업자 정보</h2>
+	          			<div class="innerForm join">
+	            			<ul class="join-center">
+	              				<li class="join-corporate">
+	                				<span class="form-label">상호(법인명)</span>
+	                				<input type="text" class="form-control" name="corporate" id="companyName" placeholder="">
+	              				</li>
+	              				<li class="join-business_number box">
+	                				<span class="form-label">사업자등록번호 <span style="color:#f15a22;">[법인]</span></span>
+	                				<input type="text" class="form-control" name="business_number" id="companyRegnum" placeholder="" data-src="demandAdd" data-act="changeBiznum" maxlength="20">
+                                    <p id="regnumNotice"></p>
+	              				</li>
+	              				<li class="join-representative">
+					                <span class="form-label">대표자 성명</span>
+					                <input type="text" class="form-control" name="representative" id="ceoName" placeholder="">
+	              				<li class="join-occupation">
+				          			<span class="form-label">업태</span>
+					                <input type="text" class="form-control" name="occupation" id="bizType" placeholder="">
+	              				</li>
+	              				<li class="join-business">
+				                	<span class="form-label">업종</span>
+					                <input type="text" class="form-control" name="business" id="bizKind" placeholder="">
+	              				</li>
+	              				<li class="join-address">
+	                				<span class="form-label">사업장 주소</span>
+	                				<div>
+	                  					<input type="text" class="form-control" name="address" id="address1">
+	                  					<input type="hidden" class="form-control" name="zipcode" id="zipcode">
+	                  					<button type="button" class="userId-btn" data-src="demandAdd" data-act="searchPostcode" id ="postcodeBtn">주소 찾기</button>
+	                				</div>
+	              				</li>
+	              				<li class="join-detailed_add">
+					                <span class="form-label">상세주소</span>
+					                <input type="text" class="form-control" name="detailed_add" id="address2">
+	              				</li>
+	              				<li class="join-license">
+					                <span class="form-label">사업자등록증</span>
+					                <div class="addFile">
+	                  					<input type="file" class="custom-file-input" id="companyRegnumImage" name="filename" accept=".jpg,.pdf,.png" data-src="demandAdd" data-act="changeFile"><label class="custom-file-label form-control selected" for="companyRegnumImage"></label>
+	                				</div>
+	                				<p id="fileAlert"> </p>
+	              				</li>
+	            			</ul>
+	          			</div>
+	          			<h2>기본 정보</h2>
+	          			<div class="innerForm join">
+	            			<ul class="join-center">
+	              				<li class="join-userId">
+	                				<span class="form-label">아이디</span>
+	                				<input type="text" class="form-control" name="userId" id="uid" placeholder="영문,숫자 혼용 6~15자 입력">
+	                				<button type="button" class="userId-btn" data-src="demandAdd" data-act="clickIdCheck">사용가능 여부 확인</button>
+              					</li>
+	              				<li class="join-email">
+	                				<span class="form-label">이메일</span>
+	                				<div>
+	                  					<input type="text" name="strEmail01" id="companyEmail1" class="form-control email" placeholder="">
+	                  					<span>@</span>
+	                  					<input type="text" name="strEmail02" id="companyEmail2" class="form-control email" >
+	                  					<select name="selectEmail" id="selectDomain" class="selectpicker" data-src="demandAdd" data-act="changeDomain">
+					          				<option value="directInput" selected>직접 입력</option>
+						                  	<option value="naver.com">naver.com</option>
+						                  	<option value="gmail.com">gmail.com</option>
+						                  	<option value="nate.com">nate.com</option>
+						                  	<option value="daum.com">daum.com</option>
+						                  	<option value="hanmail.com">hanmail.com</option>
+	                  					</select>
+	                				</div>
+	              				</li>
+	              				<li class="join-contact-Name-customer">
+	                				<span class="form-label">담당자 이름</span>
+	                				<input type="text" class="form-control" name="contact-Name" id="uname" placeholder="">
+	              				</li>
+	                			<li class="join-phone">
+					                <span class="form-label">담당자 연락처</span>
+					                <input type="tel" class="form-control" name="phone" id="mobile" placeholder="" data-src="demandAdd" data-act="autoHypenPhone">
+	              				</li>
+	              			</ul>
+	            		</div>
+	          			<ul class="join-box ag">
+	            			<li>
+		              			<button type="button" class="previous-btn" data-src="demandAdd" data-act="prevPage">이전 페이지로</button>
+		              			<button type="button" class="license-btn" data-src="demandAdd" data-act="addDemand">계정 생성</button>
+	            			</li>
+	          			</ul>
+	      			</form>
+	    		</div>
+    		</div>
+	    	<!--아이디 사용가능 여부 확인 모달-->
+	    	<div class="modal fade" id="login-modal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+	      		<div class="modal-dialog">
+	        		<div class="modal-content">
+	          			<div class="modal-header">
+	            			<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	              				<span aria-hidden="true">&times;</span>
+	            			</button>
+	          			</div>
+	          			<div class="modal-body">
+	            			<!--모달 내용 케이스 1-->
+	            			<p>영문과 숫자를 포함해<br />4자 이상 15자 이하로 입력해주세요.</p>
+	          			</div>
+	          			<div class="modal-footer">
+	            			<button type="button" class="modal-close-btn" data-dismiss="modal">확인</button>
+	          			</div>
+	        		</div>
+	      		</div>
+	    	</div>
+	    	<!--계정생성 임시 비밀번호 안내  모달-->
+	    	<div class="modal fade" id="pw-join-modal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+	      		<div class="modal-dialog">
+	        		<div class="modal-content">
+	          			<div class="modal-header">
+	            			<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	              				<span aria-hidden="true">&times;</span>
+	            			</button>
+	          			</div>
+	          			<div class="modal-body">
+	            			<!--모달 내용 케이스 1-->
+	            			<p>이메일로 임시 비밀번호<br>
+	              			전달했습니다.</p>
+	          			</div>
+	          			<div class="modal-footer">
+	            			<button type="button" class="modal-close-btn" data-dismiss="modal">확인</button>
+	          			</div>
+	        		</div>
+	      		</div>
+	    	</div>
+		</main>
+	</th:block>
+	<th:block layout:fragment="script">
+        <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+		<script th:src="@{/js/page/agency/member/demand/add.js}"></script>
+		<script type="text/javascript">
+			layout.setCallback(demandAdd.init);
+		</script>
+	</th:block>
+</html>

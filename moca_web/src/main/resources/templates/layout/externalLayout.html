@@ -1,0 +1,37 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+	<head>
+		<!-- 공통 헤더 -->
+		<title>MoCafe 관리자 플랫폼</title>
+		<!-- 공통 CSS -->
+		<th:block th:replace="fragments/headerScript :: headerScriptFragment"></th:block>     
+		<!-- 별도 페이지 CSS -->   
+        <th:block th:replace="fragments/headerScript :: externalHeaderScriptFragment"></th:block>
+        <!-- 페이지별 css -->
+        <th:block layout:fragment="css"></th:block>
+    </head>
+	<body>
+		<!-- 로딩 -->
+		<th:block th:replace="fragments/loading :: loadingFragment"></th:block>
+		<div class="wrapper">
+			<!-- header -->
+			<th:block th:replace="fragments/header :: externalHeaderFragment"></th:block>
+			<!-- content -->
+			<th:block layout:fragment="content"></th:block>
+		</div>
+	</body>
+	
+	<!-- 공통 스크립트 -->
+	<th:block th:replace="fragments/footerScript :: footerScriptFragment"></th:block>
+	<!-- 별도 페이지 스크립트 -->
+	<th:block th:replace="fragments/footerScript :: externalFooterScriptFragment"></th:block>
+	
+	<!-- 페이지별 스크립트 -->
+	<th:block layout:fragment="script"></th:block>
+	
+	<script>
+		$(document).ready(function(){
+			externalLayout.init();
+		});
+	</script>
+</html>

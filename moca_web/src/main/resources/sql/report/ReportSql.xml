@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.report.ReportMapper">
+	<!-- 사용자 상세 정보 조회 -->
+	<select id="getMemberDetail" parameterType="int" resultType="HashMap">
+		SELECT
+			m.id AS member_id 
+			, m.uid
+			, m.uname
+			, m.company_name
+			, m.agency_id 
+			, (SELECT company_name FROM member.member m2 WHERE m2.id = m.agency_id) AS agency_company_name
+		FROM
+			member.member m
+		<where>
+		AND m.id = #{member_id}
+		AND m.status = 'A'
+		</where>
+	</select>
+	
+	<!-- 광고주의 대행사 목록 조회 -->
+	<select id="getAgencyListByDemand" resultType="HashMap">
+		SELECT
+			A.member_id
+			, A.uid
+			, A.uname
+			, COALESCE(A.company_name, '-') AS company_name
+			, A.insert_date
+		FROM (
+			SELECT
+				m1.id AS member_id 
+				, m1.uid
+				, m1.uname
+				, m1.company_name
+				, m1.insert_date
+			FROM 
+				member.member m1 
+			<where>
+				AND m1.id IN (
+					SELECT agency_id 
+					FROM member.member m2
+					<where>
+					AND	m2.id 
+					<foreach collection="member_list" item="member_id" open="IN (" close=")" separator=",">
+						#{member_id} :: bigint
+					</foreach>
+					AND m2.status = 'A'
+					AND m2.utype = 'D'
+					</where>
+				)
+				AND m1.status = 'A'
+				AND m1.utype = 'B'
+			</where>
+			UNION ALL
+			SELECT
+				agency_id AS member_id
+				, '-' AS uid 
+				, '-' AS uname
+				, null AS company_name
+				, null AS insert_date
+			FROM 
+				member.member m3 
+			<where>
+				AND m3.agency_id = 0
+				AND m3.id 
+				<foreach collection="member_list" item="member_id" open="IN (" close=")" separator=",">
+					#{member_id} :: bigint
+				</foreach>
+			 	AND m3.status = 'A'
+				AND m3.utype = 'D'
+			</where>
+			GROUP BY agency_id
+		) A 
+		ORDER BY A.company_name nulls last, company_name
+	</select>
+	
+	<!-- 대행사의 광고주 목록 조회 -->
+	<select id="getDemandListByAgency" resultType="HashMap">
+		SELECT
+			m.id AS member_id 
+			, m.uid
+			, m.uname
+			, m.company_name
+		FROM 
+			member.member m 
+		<where>
+			AND m.agency_id = #{agency_id}
+			AND m.status = 'A'
+			AND m.utype = 'D'
+			AND m.id 
+			<foreach collection="member_list" item="member_id" open="IN (" close=")" separator=",">
+				#{member_id} :: bigint
+			</foreach>
+		</where>
+		ORDER BY company_name 
+	</select>
+
+	<!-- 광고주별 리포트 -->
+	<select id="getListByDemand" resultType="HashMap">
+		SELECT 
+			(
+				SELECT
+					COALESCE( 
+						<foreach collection="hour_list" item="hour" open="SUM(" close=")" separator="+">
+							hour_${hour}
+						</foreach>
+					, 0)
+					AS CNT 
+				FROM
+					dsp_report.count_sg cs
+				WHERE
+					cs.sg_id = dsm.id
+				AND cs.dsp_id = m.id
+				AND cs.data_ymd BETWEEN #{start_date} AND #{end_date}
+			) AS CNT
+			, dsm.id AS sg_id 
+			, dsm.name AS sg_name
+		FROM 
+			member.member m 
+		JOIN public.dsp_campaign dc 
+		ON m.id = dc.member_id 
+		JOIN public.dsp_sg_manager dsm 
+		ON dc.id = dsm.campaign_id 
+		<where>
+		AND m.id = #{member_id}
+		AND	m.utype = 'D'
+		AND m.status = 'A'		
+		</where>
+		ORDER BY dc.id DESC, dsm.id DESC
+	</select>
+	
+	<!-- 매체별 리포트 start -->
+	<!-- 매체 목록 조회 -->
+	<select id="getSupplyMemberList" resultType="HashMap">
+		SELECT
+			m.id AS member_id
+			, m.uid
+			, m.uname
+			, m.company_name
+		FROM
+			member.member m
+		<where>
+		AND m.status = 'A'
+		AND m.utype = 'S'
+		</where>	
+		ORDER BY insert_date DESC
+	</select>
+	
+	<!-- 매체가 등록한 카테고리 목록 조회 -->
+	<select id="getProductCategoryList" resultType="HashMap">
+		SELECT 
+			sc.id AS category_id
+			, sc.category_name 
+		FROM 
+			ssp_category sc  
+		<where>
+			AND sc.member_id = #{member_id}
+			AND (
+				SELECT count(*) 
+				FROM public.ssp_product sp 
+				WHERE sp.category_id = sc.id 
+			) > 0
+		</where>
+		ORDER BY sc.category_name
+	</select>
+	
+	<!-- 매체 등록 상품 목록 조회 -->
+	<select id="getProductList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  sp.id AS product_id
+			, sp.product_name
+			, to_char(sp.update_date, 'YYYY-MM-DD') AS update_date
+			, sc.id AS category_id
+			, sc.category_name
+		FROM
+			public.ssp_product sp
+		JOIN public.ssp_category sc
+		ON sc.id = sp.category_id
+		JOIN member.member m
+		ON m.id = sc.member_id
+		WHERE
+			sc.id = #{ssp_category_id}		
+		ORDER BY sp.product_name	
+	</select>
+	
+	<!-- 상품의 노출수 조회 -->
+	<select id="getProductExposureCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COALESCE( 
+				<foreach collection="hour_list" item="hour" open="SUM(" close=")" separator="+">
+				hour_${hour}
+				</foreach>
+			, 0)
+			AS CNT 
+		FROM 
+			ssp_report.ad_count_product acp
+		<where>
+			AND acp.product_id = #{product_id}
+			AND TO_DATE(acp.data_ymd, 'YYYY-MM-DD') BETWEEN TO_DATE(#{start_date}, 'YYYY-MM-DD') AND TO_DATE(#{end_date}, 'YYYY-MM-DD')
+		</where>
+	</select>
+	<!-- 매체별 리포트 end -->
+	
+	<!-- 상품별 리포트 start -->
+	<!-- 상품 목록 조회 -->
+	<select id="getReportProductList" resultType="HashMap">
+		SELECT
+			m.id AS ssp_member_id
+			, m.company_name 
+			, sc.id AS category_id
+			, sc.category_name
+			, sp.id AS product_id
+			, sp.product_name 
+		FROM 
+			member.member m 
+		JOIN ssp_category sc 
+		ON sc.member_id = m.id 
+		JOIN ssp_product sp 
+		ON sp.category_id = sc.id 
+		<where>
+			AND m.status = 'A'
+			AND m.utype = 'S'
+			AND sp.status = 'S'
+			<if test='search_value != null and search_value != ""'>
+			AND CONCAT(m.company_name, sc.category_name, sp.product_name) LIKE '%' || #{search_value} || '%'
+			</if>
+		</where>
+		ORDER BY m.company_name, sc.category_name, sp.product_name 
+	</select>
+	
+	<!-- 상품을 생성한 매체사 목록 조회 -->
+	<select id="getSupplyMemberListByProductList" resultType="HashMap">
+		SELECT
+			m.id AS member_id 
+			, m.uid
+			, m.uname
+			, m.company_name
+		FROM
+			member.member m 
+		<where>
+			m.id IN (
+				SELECT 	
+					m.id
+				FROM 
+					ssp_product sp 
+				JOIN ssp_category sc 
+				ON sp.category_id = sc.id 
+				JOIN member.member m 
+				ON sc.member_id = m.id
+				<where>
+					sp.id 
+					<foreach collection="product_list" item="product_id" open="IN (" close=")" separator=",">
+						#{product_id} :: bigint
+					</foreach>
+					AND m.status = 'A'
+					AND m.utype = 'S'
+				</where> 
+				GROUP BY m.id
+			)
+			AND m.status = 'A'
+			AND m.utype = 'S'
+		</where>
+		ORDER BY m.company_name
+	</select>
+	
+	<!-- 매체사가 생성한 상품 목록 조회(등록한 디바이스가 있는경우만) -->
+	<select id="getProductListBySupplyMember" resultType="HashMap">
+		SELECT
+			sp.id AS product_id
+			, sp.category_id
+			, sp.product_name
+			, sp.status
+			, sp.product_image
+			, sp.support_format
+			, sp.screen_rate
+			, sp.screen_resolution
+			, sp."storage"
+			, sp.update_member_id
+			, sp.update_date
+			, sp.os
+			, sp.insert_date
+			, sp.price_rate
+			, sp.install_position
+			, sp.install_direction
+			, sp.support_audio
+			, sp.start_ymd
+			, sp.end_ymd
+			, sp.notes
+			, sp.screen_size
+			, sp.package_id
+			, sp.api_key
+			, sp.spec_insert_date
+			, sp.device_insert_date
+			, sp.deny_category_code1
+			, sp.deny_category_code2
+			, sp.deny_category_code3
+		FROM 
+			ssp_product sp 
+		JOIN ssp_category sc 
+		ON sp.category_id = sc.id 
+		<where>
+			sp.id 
+			<foreach collection="product_list" item="product_id" open="IN (" close=")" separator=",">
+				#{product_id} :: bigint
+			</foreach>
+		AND sc.member_id = #{member_id}
+		AND sp.status = 'S'
+		AND (
+			SELECT 
+				COUNT(*)
+			FROM 
+				public.ssp_device 
+			WHERE 
+				product_id = sp.id
+		) > 0
+		</where> 
+		ORDER BY sp.product_name
+	</select>
+	
+	<!-- 상품의 디바이스별 노출수 조회 -->
+	<select id="getProductDeviceExposureCnt" resultType="Integer">
+		SELECT
+			COALESCE( 
+				<foreach collection="hour_list" item="hour" open="SUM(" close=")" separator="+">
+				hour_${hour}
+				</foreach>
+			, 0)
+			AS CNT 
+		FROM 
+			ssp_report.ad_count_product_device acpd
+		<where>
+			AND acpd.product_id = #{product_id}
+			AND acpd.device_id = #{device_id}
+			AND TO_DATE(acpd.data_ymd, 'YYYY-MM-DD') BETWEEN TO_DATE(#{start_date}, 'YYYY-MM-DD') AND TO_DATE(#{end_date}, 'YYYY-MM-DD')
+		</where>
+	</select>
+	<!-- 상품별 리포트 end -->
+	
+	<!-- 지역별 리포트 start -->
+	<select id="getReportListByAreaMap" resultType="HashMap">
+		<if test='map_level == null or map_level lte 8'>
+			SELECT 
+				si_code
+				, si_name AS display_name
+				, st_x(st_centroid(ac.si_cpoint)) AS longitude
+				, st_y(st_centroid(ac.si_cpoint)) AS latitude
+				, (
+					SELECT 
+						COALESCE( 
+							<foreach collection="hour_list" item="hour" open="SUM(" close=")" separator="+">
+							hour_${hour}
+							</foreach>
+						, 0)
+						AS CNT 
+					FROM dsp_report.count_sg_area csa
+					JOIN member.member m 
+					ON csa.dsp_id = m.id  
+					<where>
+						AND csa.si_code = ac.si_code 
+						AND csa.dsp_id 
+						<foreach collection="member_list" item="member_id" open="IN (" close=")" separator=",">
+							#{member_id} :: bigint
+						</foreach>
+						<if test='gu_code != null and gu_code != ""'>
+							AND csa.gu_code = #{gu_code}
+						</if>
+						AND m.status = 'A'
+						AND m.utype = 'D'
+						AND TO_DATE(csa.data_ymd, 'YYYY-MM-DD') BETWEEN TO_DATE(#{start_date}, 'YYYY-MM-DD') AND TO_DATE(#{end_date}, 'YYYY-MM-DD')
+					</where>
+				) AS CNT 
+			FROM 
+				public.area_code ac
+			<where>
+				<if test='si_code != null and si_code != ""'>
+					AND ac.si_code = #{si_code}
+				</if>
+				<if test='gu_code != null and gu_code != ""'>
+					AND ac.gu_code = #{gu_code}
+				</if>
+			</where> 
+			GROUP BY ac.si_code, ac.si_name, ac.si_cpoint 
+			ORDER BY ac.si_code		
+		</if>
+		<if test='map_level gt 8'>
+			SELECT 
+				gu_code
+				, gu_name AS display_name
+				, st_x(st_centroid(ac.gu_cpoint)) AS longitude
+				, st_y(st_centroid(ac.gu_cpoint)) AS latitude
+				, (
+					SELECT 
+						COALESCE( 
+							<foreach collection="hour_list" item="hour" open="SUM(" close=")" separator="+">
+							hour_${hour}
+							</foreach>
+						, 0)
+						AS CNT 
+					FROM dsp_report.count_sg_area csa
+					JOIN member.member m 
+					ON csa.dsp_id = m.id  
+					<where>
+						AND csa.si_code = ac.si_code 
+						AND csa.gu_code = ac.gu_code
+						AND csa.dsp_id 
+						<foreach collection="member_list" item="member_id" open="IN (" close=")" separator=",">
+							#{member_id} :: bigint
+						</foreach>
+						AND m.status = 'A'
+						AND m.utype = 'D'
+						AND TO_DATE(csa.data_ymd, 'YYYY-MM-DD') BETWEEN TO_DATE(#{start_date}, 'YYYY-MM-DD') AND TO_DATE(#{end_date}, 'YYYY-MM-DD')
+					</where>
+				) AS CNT
+			FROM 
+				public.area_code ac 
+			<where>
+				<if test='si_code != null and si_code != ""'>
+					AND ac.si_code = #{si_code}
+				</if>
+				<if test='gu_code != null and gu_code != ""'>
+					AND ac.gu_code = #{gu_code}
+				</if>
+			</where> 
+			GROUP BY ac.si_code, ac.gu_code, ac.gu_name, ac.gu_cpoint 
+			ORDER BY ac.si_code, ac.gu_code
+		</if>		
+	</select>
+	
+	<!-- 사용자의 지역별 노출수 조회 -->
+	<select id="getAreaExposureList" resultType="HashMap">
+		SELECT 
+			m.id AS member_id
+			, csa.si_code 
+			, csa.gu_code
+			, COALESCE( 
+				<foreach collection="hour_list" item="hour" open="SUM(" close=")" separator="+">
+					hour_${hour}
+				</foreach>
+			, 0)
+			AS CNT
+		FROM 
+			dsp_report.count_sg_area csa 
+		JOIN member.member m 
+		ON csa.dsp_id = m.id 
+		<where>
+			AND	csa.dsp_id = #{member_id}
+			AND m.status = 'A'
+			AND m.utype = 'D'
+			AND TO_DATE(csa.data_ymd, 'YYYY-MM-DD') BETWEEN TO_DATE(#{start_date}, 'YYYY-MM-DD') AND TO_DATE(#{end_date}, 'YYYY-MM-DD')
+		</where>
+		GROUP BY m.id, csa.si_code, csa.gu_code 
+		<!-- SELECT
+			COALESCE(SUM(cnt), 0) AS cnt
+		FROM (
+			
+		) A -->
+	</select>
+	<!-- 지역별 리포트 end -->
+</mapper>

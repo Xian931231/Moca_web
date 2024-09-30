@@ -1,0 +1,767 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.device.ExternalDeviceMapper">
+	<!-- 디바이스 목록 -->
+	<select id="getList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS device_id 
+			, member_id
+			, product_id
+			, model_name
+			, serial_number
+			, status
+			, (SELECT
+					COUNT(*)
+				FROM
+					public.ssp_device sd2 
+					JOIN public.schedule_product sp 
+					ON sd2.product_id = sp.product_id AND sd2.id = sd.id AND sd2.motor_id IS NOT NULL
+					JOIN public.schedule_product_slot sps
+					ON sp.id = sps.schedule_product_id 
+					JOIN public.schedule_product_slot_sg spss 
+					ON sps.id = spss.schedule_product_slot_id 
+					JOIN public.dsp_sg_manager dsm 
+					ON spss.sg_id = dsm.id AND dsm.status IN (0,1,2) AND dsm.end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+			) AS in_progress_cpp_cnt
+		FROM
+			public.ssp_device sd
+		<where>
+			<if test='product_id != null and product_id != ""'>
+				AND product_id = #{product_id}
+			</if>
+			<if test='motor_id != null and motor_id != ""'>
+				AND motor_id = #{motor_id}
+			</if>
+			<if test='is_not_matching != null and is_not_matching == "Y"'>
+				<choose>
+					<when test='except_motor_id != null and except_motor_id != ""'>
+						AND (motor_id IS NULL OR motor_id = #{except_motor_id})
+					</when>
+					<otherwise>
+						AND motor_id IS NULL					
+					</otherwise>
+				</choose>
+			</if>
+			<if test='status != null and statis !=""'>
+				AND status = #{status}
+			</if>
+		</where>
+		ORDER BY
+			id
+	</select>
+	
+	<!-- 디바이스 추가 -->
+	<insert id="addDevice" parameterType="HashMap">
+		INSERT INTO public.ssp_device (
+			  member_id
+			, product_id
+			, model_name
+			, serial_number
+			, status
+			, insert_date
+		) VALUES
+		<foreach item="device" collection="add_device_list" separator=",">
+		    ((SELECT member_id FROM public.ssp_category sc WHERE id = (SELECT category_id FROM public.ssp_product sp WHERE id = #{product_id}))
+			, #{product_id}
+			, #{device.model_name}
+			, #{device.serial_number}
+			, 'Y'
+			, NOW())
+		</foreach> 
+	</insert>
+	
+	<!-- 상품에 디바이스 등록 날짜 수정 -->
+	<update id="modifyProductDeviceInsertDt" parameterType="HashMap">
+		UPDATE 
+			public.ssp_product
+		SET
+			device_insert_date = NOW()
+		WHERE
+			id = #{product_id}
+	</update>
+	
+	<!-- 디바이스 업데이트 -->
+	<update id="modifyDevice" parameterType="HashMap">
+		<foreach item="device" collection="modify_device_list" separator=";">
+			UPDATE
+				public.ssp_device
+			SET
+				  model_name = #{device.model_name}
+				, serial_number = #{device.serial_number}
+			WHERE
+				id = #{device.device_id}::bigint
+		</foreach>
+	</update>
+	
+	<!-- 디바이스 삭제 -->
+	<delete id="removeDevice" parameterType="HashMap">
+		DELETE FROM
+			public.ssp_device
+		WHERE
+			id IN
+			<foreach item="device_id" collection="remove_device_id_list" separator="," open="(" close=")">
+				#{device_id}::bigint
+			</foreach>
+	</delete>
+	
+	<!-- 디바이스 시리얼넘버 중복 체크 -->
+	<select id="hasDuplicateDeviceSerialNum" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_device                     
+		<where>
+			serial_number IN 
+			<foreach item="device" collection="add_device_list" separator="," open="(" close=")">
+				#{device.serial_number}
+			</foreach>
+			<if test='modify_device_list != null and !modify_device_list.isEmpty()'>
+				AND id NOT IN
+				<foreach item="device" collection="modify_device_list" separator="," open="(" close=")">
+					#{device.device_id}::bigint
+				</foreach>
+			</if>
+		</where>
+	</select>
+	
+	<!-- 측정 장비 목록 -->
+	<select id="getSensorList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS sensor_id
+			, category_id
+			, sensor_name
+		FROM
+			public.ssp_sensor
+		WHERE	
+			category_id = #{category_id}
+			<if test='is_exist_not_matching_device != null and is_exist_not_matching_device != ""'>
+				AND id IN (
+					SELECT
+						DISTINCT ssp_sensor_id  
+					FROM
+						ssp_sensor_device ssd 
+					WHERE
+						status = 'Y'
+						<choose>
+							<when test='except_motor_id != null and except_motor_id != ""'>
+								AND (motor_id IS NULL OR motor_id = #{except_motor_id})	
+							</when>
+							<otherwise>
+								AND motor_id IS NULL
+							</otherwise>
+						</choose>
+					)			
+			</if>
+		ORDER BY
+			ID desc
+	</select>
+	
+	<!-- 측정 장비명 상세 -->
+	<select id="getSensorDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			id AS sensor_id
+			, category_id
+			, (SELECT category_name FROM public.ssp_category WHERE id = ss.category_id) AS category_name
+			, (SELECT member_id FROM public.ssp_category WHERE id = ss.category_id) AS supply_id
+			, sensor_name
+			, maker
+			, model_name
+			, install_position
+			, notes
+			, image_path
+			, TO_CHAR(insert_date, 'YYYY-MM-DD HH') AS insert_date
+		FROM
+			public.ssp_sensor ss
+		WHERE
+			id = #{sensor_id}
+	</select>
+	
+	<!-- 측정 장비명 등록 -->
+	<insert id="addSensor" parameterType="HashMap" useGeneratedKeys="true" keyProperty="sensor_id">
+		INSERT INTO public.ssp_sensor (
+			  category_id
+			, sensor_name
+			, maker
+			, model_name
+			, install_position
+			, notes
+			, image_path
+			, insert_date
+		) VALUES (
+			  #{category_id}::bigint
+			, #{sensor_name}
+			, #{maker}
+			, #{model_name}
+			, #{install_position}
+			, #{notes}
+			, #{image_path}
+			, NOW()
+		)
+	</insert>
+	
+	<!-- 측정 장비명 수정 -->
+	<update id="modifySensor" parameterType="HashMap">
+		UPDATE
+			public.ssp_sensor
+		SET
+			  sensor_name = #{sensor_name}
+			, maker = #{maker}
+			, model_name = #{model_name}
+			, install_position = #{install_position}
+			, notes = #{notes}
+			, image_path = #{image_path}
+		WHERE
+			id = #{sensor_id}
+	</update>
+	
+	<!-- 측정 장비 목록 -->
+	<select id="getSensorDeviceList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS sensor_device_id
+			, serial_number
+		FROM
+			public.ssp_sensor_device
+		<where>
+			<if test='sensor_id != null and sensor_id != ""'>
+				AND ssp_sensor_id = #{sensor_id}
+			</if>
+			<if test='motor_id != null and motor_id != ""'>
+				AND motor_id = #{motor_id}
+			</if>
+			<if test='is_not_matching != null and is_not_matching == "Y"'>
+				<choose>
+					<when test='except_motor_id != null and except_motor_id != ""'>
+						AND (motor_id IS NULL OR motor_id = #{except_motor_id})
+					</when>
+					<otherwise>
+						AND motor_id IS NULL					
+					</otherwise>
+				</choose>
+			</if>
+		</where>
+		ORDER BY
+			id
+	</select>
+	
+	<select id="hasDuplicateSensorSerialNum" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_sensor_device
+		<where>
+			serial_number IN
+			<foreach item="sensor" collection="add_sensor_device_list" separator="," open="(" close=")">
+				#{sensor.serial_number} 
+			</foreach>
+			<if test='modify_sensor_device_list != null and !modify_sensor_device_list.isEmpty()'>
+			 	AND id NOT IN 
+				<foreach item="sensor" collection="modify_sensor_device_list" separator="," open="(" close=")">
+					#{sensor.sensor_device_id}::bigint
+				</foreach>
+			</if>
+		</where>
+	</select>
+	
+	<!-- 측정 장비 등록 -->
+	<insert id="addSensorDevice" parameterType="HashMap">
+		INSERT INTO public.ssp_sensor_device (
+			  ssp_sensor_id
+			, serial_number
+			, status
+			, insert_date
+		) VALUES
+		<foreach item="sensor_device" collection="add_sensor_device_list" separator=",">
+			(#{sensor_id}
+			, #{sensor_device.serial_number}
+			, 'Y'
+			, NOW())			
+		</foreach>
+	</insert>
+	
+	<!-- 측정 장비 수정 -->
+	<update id="modifySensorDevice" parameterType="HashMap">
+		<foreach item="sensor_device" collection="modify_sensor_device_list" separator=";">
+			UPDATE
+				public.ssp_sensor_device 
+			SET
+				serial_number = #{sensor_device.serial_number}
+			WHERE
+				id = #{sensor_device.sensor_device_id}::bigint		
+		</foreach>
+	</update>
+	
+	<!-- 측정 장비 삭제 -->
+	<delete id="removeSensorDevice" parameterType="List">
+		DELETE FROM
+			public.ssp_sensor_device
+		WHERE
+			id IN 
+			<foreach item="sensor_device_id" collection="remove_sensor_device_id_list" separator="," open="(" close=")">
+				#{sensor_device_id}
+			</foreach>
+	</delete>
+	
+	<!-- 측정 장비 이름 중복 체크 -->
+	<select id="hasDuplicateSensorName" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_sensor
+		WHERE
+			category_id = #{category_id} 
+			AND sensor_name = #{sensor_name}
+	</select>
+	
+	<!-- 게재 위치 목록 -->
+	<select id="getMotorPositionList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS motor_position_id
+			, position_name
+			, category_id
+		FROM
+			public.ssp_motor_position
+		WHERE
+			category_id = #{category_id}
+			<if test='is_exist_motor != null and is_exist_motor == "Y"'>
+				AND id IN (
+					SELECT
+						DISTINCT(ssp_motor_position_id)
+					FROM
+						public.ssp_motor
+				)
+			</if>
+		ORDER BY
+			id desc
+	</select>
+	
+	<!-- 게재 위치 상세 -->
+	<select id="getMotorPositionDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  category_id
+			, (SELECT member_id FROM public.ssp_category WHERE id = smp.category_id) AS supply_id
+			, position_name
+		FROM
+			public.ssp_motor_position smp
+		WHERE
+			id = #{motor_position_id}
+	</select>
+	
+	<!-- 게재 위치 이름 중복 체크 -->
+	<select id="hasDuplicateMotorPositionName" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_motor_position
+		WHERE
+			category_id = #{category_id}
+			AND position_name = #{position_name}
+	</select>
+	
+	<!-- 게재 위치 등록 -->
+	<insert id="addMotorPosition" parameterType="HashMap">
+		INSERT INTO public.ssp_motor_position (
+			  position_name
+			, category_id
+		) VALUES (
+			  #{position_name}
+			, #{category_id}
+		) 
+	</insert>
+	
+	<!-- 게재 위치 수정 -->
+	<update id="modifyMotorPosition" parameterType="HashMap">
+		UPDATE 
+			public.ssp_motor
+		SET
+			position_name = #{position_name}
+		WHERE
+			id = #{motor_position_id}::bigint
+	</update>
+	
+	<!-- 게재 위치 아이디 목록 -->
+	<select id="getMotorPositionIdList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS motor_id
+			, car_number
+			, ssp_motor_position_id
+			, ip_address
+			, status
+ 			, (SELECT
+					COUNT(*)
+				FROM
+				(
+					SELECT 
+						product_id 
+					FROM 
+						public.ssp_device sd 
+					WHERE 
+						motor_id = sm.id
+				) sd 
+				JOIN public.schedule_product sp 
+				ON sd.product_id = sp.product_id 
+				JOIN public.schedule_product_slot sps
+				ON sp.id = sps.schedule_product_id 
+				JOIN public.schedule_product_slot_sg spss 
+				ON sps.id = spss.schedule_product_slot_id 
+				JOIN public.dsp_sg_manager dsm 
+				ON spss.sg_id = dsm.id AND dsm.status IN (0,1,2) AND dsm.end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+			) AS in_progress_cpp_cnt
+		FROM
+			public.ssp_motor sm
+		WHERE
+			ssp_motor_position_id = #{motor_position_id}	
+		ORDER BY 
+			id
+	</select>
+	
+	
+	<!-- 게재 위치 구분 아이디 중복 체크 -->
+	<select id="hasDuplicateMotorId" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_motor
+		WHERE
+			car_number IN
+			<foreach item="motor" collection="add_motor_id_list" separator="," open="(" close=")">
+				#{motor.car_number}
+			</foreach>
+			
+			<if test="modify_motor_id_list != null and !modify_motor_id_list.isEmpty()">
+				AND id NOT IN
+				<foreach item="motor" collection="modify_motor_id_list" separator="," open="(" close=")">
+					#{motor.motor_id}
+				</foreach>
+			</if>
+	</select>
+	
+	<!-- 게재 위치 구분 IP 중복 체크 -->
+	<select id="hasDuplicateMotorIP" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_motor
+		WHERE
+			ip_address IN
+			<foreach item="motor" collection="add_motor_id_list" separator="," open="(" close=")">
+				#{motor.ip_address}::inet
+			</foreach>
+			
+			<if test="modify_motor_id_list != null and !modify_motor_id_list.isEmpty()">
+				AND id NOT IN
+				<foreach item="motor" collection="modify_motor_id_list" separator="," open="(" close=")">
+					#{motor.motor_id}
+				</foreach>
+			</if>
+	</select>
+	
+	<!-- 게재 위치 구분 아이디 등록 -->
+	<insert id="addMotorPositionId" parameterType="HashMap">
+		INSERT INTO public.ssp_motor (
+			  member_id
+			, status
+			, car_number
+			, ssp_motor_position_id
+			, ip_address
+			, insert_member_id
+			, insert_date
+		)  VALUES
+		<foreach item="motor" collection="add_motor_id_list" separator=",">
+			  ((SELECT member_id FROM public.ssp_category WHERE id = #{category_id})
+			, 0
+			, #{motor.car_number}
+			, #{motor_position_id}
+			, #{motor.ip_address}::inet
+			, #{external_login_id}::bigint
+			, NOW())		
+		</foreach>
+	</insert>
+	
+	<!-- 게재 위치 구분 아이디 수정 -->
+	<update id="modifyMotorPositionId" parameterType="HashMap">
+		<foreach item="motor" collection="modify_motor_id_list" separator=";">
+			UPDATE 
+				public.ssp_motor
+			SET
+				  car_number = #{motor.car_number}
+				, ip_address = #{motor.ip_address}::inet
+			WHERE
+				id = #{motor.motor_id}
+		</foreach>
+	</update>
+	
+	<!-- 게재 위치 구분 아이디 삭제 -->
+	<delete id="removeMotorPositionId" parameterType="HashMap">
+		DELETE FROM
+			public.ssp_motor
+		WHERE
+			id IN
+			<foreach item="motor_id" collection="remove_motor_id_list" separator="," open="(" close=")">
+				#{motor_id}
+			</foreach>
+	</delete>
+	
+	<!-- 게재 위치 구분 아이디 상세 -->
+	<select id="getMotorPositionIdDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  sm.id AS motor_id
+			, status
+			, car_number
+			, ssp_motor_position_id
+			, ip_address
+			, notes
+			, smp.category_id
+			, (SELECT member_id FROM public.ssp_category WHERE id = smp.category_id) AS supply_id
+		FROM
+			public.ssp_motor sm 
+			JOIN public.ssp_motor_position smp
+			ON sm.ssp_motor_position_id = smp.id AND sm.id = #{motor_id}
+	</select>
+	
+	<!-- 기기/위치 매칭 검수 -->
+	<update id="modifyMotorStatus" parameterType="HashMap">
+		UPDATE
+			public.ssp_motor
+		SET
+			  status = #{status}
+			, notes = #{notes} 
+			, update_date = NOW()
+			, update_member_id = #{external_login_id}::bigint
+		WHERE
+			id = #{motor_id}
+	</update>
+	
+	<!-- 디바이스 게재 위치 아이디 수정 -->
+	<update id="modifyDeviceMotorId" parameterType="HashMap" >
+		UPDATE
+			public.ssp_device
+		SET
+			motor_id = #{motor_id}
+		WHERE
+			id = #{device_id}	
+	</update>
+	
+	<!-- 측정 장비 게재 위치 아이디 수정 -->
+	<update id="modifySensorDeviceMotorId" parameterType="HashMap" >
+		UPDATE
+			public.ssp_sensor_device
+		SET
+			motor_id = #{motor_id}
+		WHERE
+			id = #{sensor_device_id}	
+	</update>
+	
+	<!-- 매칭되는 디바이스가 유효한지 체크 -->
+	<select id="hasValidMatchingDevice" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			(
+				SELECT 
+					COUNT(*)
+				FROM 
+					public.ssp_device sd 
+				WHERE
+					id = #{device_id}
+					AND motor_id != #{motor_id}
+					AND motor_id IS NOT NULL
+			) AS already_matching_cnt
+			,(
+				SELECT 
+					COUNT(*)
+				FROM 
+					public.ssp_device sd 
+				WHERE 
+					id = #{device_id}
+					AND product_id IN (
+						SELECT
+							id 
+						FROM 
+							public.ssp_product sp 
+						WHERE 
+							category_id = #{category_id}
+					)
+			) AS category_device_cnt
+			,(
+				SELECT 
+					COUNT(*)
+				FROM 
+					public.ssp_device sd 
+				WHERE 
+				    motor_id = #{motor_id}
+					AND product_id IN (
+						SELECT
+							product_id 
+						FROM 
+							public.ssp_device
+						WHERE 
+							id = #{device_id}
+					)
+			) AS already_matching_product_cnt 
+	</select>
+	
+	<!-- 매칭되는 측정장비가 유효한지 체크 -->
+	<select id="hasValidMatchingSensor" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			(
+				SELECT 
+					COUNT(*)
+				FROM 
+					public.ssp_sensor_device ssd 
+				WHERE
+					id = #{sensor_device_id}
+					AND motor_id != #{motor_id}
+					AND motor_id IS NOT NULL
+			) AS already_matching_cnt
+			,(
+				SELECT 
+					COUNT(*)
+				FROM 
+					public.ssp_sensor_device ssd
+				WHERE 
+					id = #{sensor_device_id}
+					AND ssp_sensor_id IN (
+						SELECT
+							id 
+						FROM 
+							public.ssp_sensor ss 
+						WHERE 
+							category_id = #{category_id}
+					)
+			) AS category_sensor_cnt
+			,(
+				SELECT 
+					COUNT(*)
+				FROM 
+					public.ssp_sensor_device ssd 
+				WHERE 
+				    motor_id = #{motor_id}
+					AND ssp_sensor_id IN (
+						SELECT
+							ssp_sensor_id 
+						FROM 
+							public.ssp_sensor_device
+						WHERE 
+							id = #{sensor_device_id}
+					)
+			) AS already_matching_product_cnt 
+	</select>
+
+	<!-- 상품에 속하는 디바이스인지 확인 -->
+	<select id="hasDeviceInCategory" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_device
+		<where>
+			product_id = #{product_id}
+			AND id IN
+			<foreach item="device_id" collection="remove_device_id_list" separator="," open="(" close=")">
+				#{device_id}
+			</foreach> 
+		</where>
+	</select>
+	
+	
+	<!-- 장비에 속하는 측정장비인지 확인 -->
+	<select id="hasSensorDeviceInSensor" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_sensor_device
+		WHERE
+			ssp_sensor_id = #{sensor_id}
+			AND id IN
+			<foreach item="sensor_device_id" collection="remove_sensor_device_id_list" separator="," open="(" close=")">
+				#{sensor_device_id}
+			</foreach> 
+	</select>
+	
+	<!-- 상품의 기기와 측정장비가 매칭 되었는지 확인 -->
+	<select id="hasMatchingDevice" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+			  (SELECT 
+					COUNT(*)
+			   FROM
+					public.ssp_device sd 
+			   WHERE 
+					motor_id IN
+			   <foreach item="motor_id" collection="remove_motor_id_list" separator="," open="(" close=")">
+			   		#{motor_id}
+			   </foreach>
+			) AS matching_product_device_cnt
+			, (SELECT
+					COUNT(*)
+				FROM
+				(
+					SELECT 
+						product_id 
+					FROM 
+						public.ssp_device sd 
+					WHERE 
+						motor_id IN
+						<foreach item="motor_id" collection="remove_motor_id_list" separator="," open="(" close=")">
+					   		#{motor_id}
+					   </foreach>
+				) sd 
+				JOIN public.schedule_product sp 
+				ON sd.product_id = sp.product_id 
+				JOIN public.schedule_product_slot sps
+				ON sp.id = sps.schedule_product_id 
+				JOIN public.schedule_product_slot_sg spss 
+				ON sps.id = spss.schedule_product_slot_id 
+				JOIN public.dsp_sg_manager dsm 
+				ON spss.sg_id = dsm.id AND dsm.status IN (0,1,2) AND dsm.end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+			) AS in_progress_cpp_cnt
+			, (SELECT 
+					COUNT(*)
+			   FROM
+					public.ssp_sensor_device sd 
+			   WHERE 
+					motor_id IN
+					<foreach item="motor_id" collection="remove_motor_id_list" separator="," open="(" close=")">
+				   		#{motor_id}
+				   </foreach>
+			) AS matching_sensor_device_cnt
+	</select>
+	
+	<!-- 개제 위치와 매칭된 디바이스 해제 -->
+	<update id="modifyDeviceMotorIdToNull" parameterType="HashMap">
+		UPDATE
+			public.ssp_device
+		SET
+			motor_id = null
+		WHERE
+			motor_id IN 
+			<foreach item="motor_id" collection="remove_motor_id_list" separator="," open="(" close=")">
+				#{motor_id}
+			</foreach>
+	</update>
+	
+	<!-- 개제 위치와 매칭된 측정 장비 해제 -->
+	<update id="modifySensorMotorIdToNull" parameterType="HashMap">
+		UPDATE
+			public.ssp_sensor_device
+		SET
+			motor_id = null
+		WHERE
+			motor_id IN 
+			<foreach item="motor_id" collection="remove_motor_id_list" separator="," open="(" close=")">
+				#{motor_id}
+			</foreach>
+	</update>
+	
+	<!-- 진행중인 CPP 광고 상품에 속한 디바이스인지 조회 -->
+	<select id="hasDeviceInProgressCppCategory" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_device sd
+		JOIN public.schedule_product sp 
+		ON sd.product_id = sp.product_id AND sd.id = #{device_id} AND sd.motor_id IS NOT NULL
+		JOIN public.schedule_product_slot sps
+		ON sp.id = sps.schedule_product_id 
+		JOIN public.schedule_product_slot_sg spss 
+		ON sps.id = spss.schedule_product_slot_id 
+		JOIN public.dsp_sg_manager dsm 
+		ON spss.sg_id = dsm.id AND dsm.status IN (0,1,2) AND dsm.end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+	</select>
+</mapper>

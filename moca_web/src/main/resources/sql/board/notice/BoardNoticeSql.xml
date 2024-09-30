@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.board.notice.BoardNoticeMapper">
+	<sql id="sql_where_list">
+		<if test='view_kind != null and view_kind != ""'>
+			AND view_kind = #{view_kind}
+		</if>
+		<if test='search_value != null and search_value != ""'>
+			<choose>
+				<when test='search_type == "1"'>
+					AND title LIKE '%' || #{search_value} || '%'
+				</when>
+				<when test='search_type == "2"'>
+					AND content LIKE '%' || #{search_value} || '%'
+				</when>
+				<otherwise>
+					AND CONCAT(title, content) LIKE '%' || #{search_value} || '%'
+				</otherwise>
+			</choose>
+		</if>
+	</sql>
+
+	<!-- 목록 갯수 조회 -->
+	<select id="getListCnt" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM 
+			public.board_notice
+		<where>
+			<include refid="sql_where_list"></include>		
+		</where>
+	</select>
+	
+	<!-- 목록 조회 -->
+	<select id="getList" resultType="HashMap">
+		SELECT
+			A.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER (ORDER BY insert_date) seq
+				, id as board_notice_id
+				, title
+				, content
+				, file_path
+				, file_name
+				, file_ext
+				, file_size
+				, insert_member_id
+				, insert_date
+				, view_kind 
+				, TO_CHAR(insert_date, 'YYYY-MM-DD') AS insert_date_str
+			FROM 
+				public.board_notice
+			<where>
+				<include refid="sql_where_list"></include>		
+			</where>
+		) A
+		ORDER BY A.seq DESC		
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+	
+	<!-- 상세 조회 -->
+	<select id="getDetail" resultType="HashMap">
+		SELECT 
+			TO_CHAR(AA.next_board_notice_insert_date, 'YYYY-MM-DD') AS next_board_notice_insert_date
+			, TO_CHAR(AA.prev_board_notice_insert_date, 'YYYY-MM-DD') AS prev_board_notice_insert_date
+			, AA.*
+		FROM (
+			SELECT 
+				A.*
+				, LAG(board_notice_id) OVER (ORDER BY A.seq DESC) AS next_board_notice_id
+				, LAG(title) OVER (ORDER BY A.seq DESC) AS next_board_notice_title
+				, LAG(insert_date) OVER (ORDER BY A.seq DESC) AS next_board_notice_insert_date
+				, LEAD(board_notice_id) OVER (ORDER BY A.seq DESC) AS prev_board_notice_id
+				, LEAD(title) OVER (ORDER BY A.seq DESC) AS prev_board_notice_title
+				, LEAD(insert_date) OVER (ORDER BY A.seq DESC) AS prev_board_notice_insert_date
+			FROM 
+			(
+				SELECT
+					ROW_NUMBER () OVER (order by insert_date) AS seq
+					, id as board_notice_id
+					, title
+					, content
+					, file_path
+					, file_name
+					, file_ext
+					, file_size
+					, insert_member_id
+					, insert_date 
+					, view_kind
+					, TO_CHAR(insert_date, 'YYYY-MM-DD') AS insert_date_str
+				FROM 
+					public.board_notice
+			) A 
+		) AA
+		<where>
+			AA.board_notice_id = #{board_notice_id}
+		</where>
+	</select>
+</mapper>

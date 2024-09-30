@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/externalLayout}">
+<th:block layout:fragment="content">
+	<main class="main-panel product" id="moCafePanel">
+      <div class="content">
+        <div class="titleCont">
+          <h2 id="productName"></h2>
+        </div>        
+        <div class="productSpecification tab-content.advTablesCpm">
+          <form action="">
+            <ul class="product01">              
+              <li class="product-img-cla">
+                <div>상품 사진</div>
+                  <div class="product-in-img-cla" data-toggle="modal" id="produdctImg" data-src="productSpecAdd" data-act="clickImgUploadModal">
+                  </div>
+              </li>
+            </ul>
+            <ul class="product02">
+              <li class="productSelect">
+                <div class="productSelect-title">디바이스OS</div>
+                <select id="deviceOsSb" class="selectpicker">
+                </select>
+              </li>
+              <li class="switchBoxWrap switchBox actShow productSelect">
+                <div class="productSelect-title">재생가능 포맷</div>
+                <div class="productSelect-btn" id="formatBtnGroup">
+                </div>
+              </li>
+              <li class="productSelect">
+                <div class="productSelect-title">비율</div>
+                <select id="screenRateSb" class="selectpicker">
+                </select>
+              </li>
+              <li class="productSelect">
+                <div class="productSelect-title">해상도</div>
+                <select id="screenResolutionSb" class="selectpicker">
+                </select>
+              </li>
+              <li class="productSelect">
+                <label class="productSelect-title" for="modalSearch">크기</label>
+                <input type="text" id="screenSize" placeholder="60">
+                <span class="cla-text">인치</span>
+              </li>
+              <li class="productSelect">
+                <label class="productSelect-title" for="modalSearch">저장공간</label>
+                <input type="text" id="storage" placeholder="200">
+                <span class="cla-text">Gb</span>
+              </li>
+              <li class="productSelect">
+                <div class="productSelect-title">실내 / 실외</div>
+                <div class="slotWrap">
+                  <div class="slotBtnWrap">
+                    <button type="button" name="installPosition" class="btn btn-cpp act" value="I" data-src="productSpecAdd" data-act="clickOptionBtn">실내</button>
+                    <button type="button" name="installPosition" class="btn btn-block" value="O" data-src="productSpecAdd" data-act="clickOptionBtn">실외</button>
+                  </div>
+                </div>                
+              </li>
+              <li class="productSelect">
+                <div class="productSelect-title">설치 방향</div>
+                <div class="slotWrap">
+                  <div class="slotBtnWrap">
+                    <button type="button" name="installDirection" class="btn btn-cpp act" value="H" data-src="productSpecAdd" data-act="clickOptionBtn">가로</button>
+                    <button type="button" name="installDirection" class="btn btn-block" value="V" data-src="productSpecAdd" data-act="clickOptionBtn">세로</button>
+                  </div>
+                </div>                
+              </li>
+              <li class="productSelect">
+                <div class="productSelect-title">음향 지원</div>
+                <div class="slotWrap">
+                  <div class="slotBtnWrap">
+                    <button type="button" name="supportAudio" class="btn btn-cpp act" value="Y" data-src="productSpecAdd" data-act="clickOptionBtn">유</button>
+                    <button type="button" name="supportAudio" class="btn btn-block" value="N" data-src="productSpecAdd" data-act="clickOptionBtn">무</button>
+                  </div>
+                </div>                
+              </li>
+            </ul>
+             <input type="file" class="d-none" id="productImgFile" accept="image/*" data-src="productSpecAdd" data-act="changeProductImg"/>     
+          </form>
+        </div>
+        <div class="productSelectBtn">
+          <a href="javascript:;">
+            <button type="button" class="btn-lg btn-clear" data-src="productSpecAdd" data-act="clickCancle">작성취소</button>
+          </a>
+          <a href="javascript:;">
+            <button type="button" class="btn-lg btn-dark" data-src="productSpecAdd" data-act="clickAddProductSpec">작성내용 저장</button>
+          </a>
+        </div>
+      </div>
+      <!--사진선택 모달-->
+      <div class="modal fade" id="imgUploadModal" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog product">
+          <div class="modal-content">
+            <div class="modal-body">
+              <div>
+                <p data-src="productSpecAdd" data-act="clickGallery">갤러리에서 선택</p>  
+              </div>              
+              <div>
+                <p data-src="productSpecAdd" data-act="clickCamera">사진 촬영 후 등록</p>  
+              </div>    
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/external/product/specAdd.js}"></script>
+	<script>
+		externalLayout.setCallback(productSpecAdd.init);
+	</script>
+</th:block>
+</html>

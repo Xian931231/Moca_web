@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.member.ExternalMemberMapper">
+	<!-- 로그인 정보 조회 -->
+	<select id="getMyData" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  m.id AS member_id
+			, m.uid
+			, m.passwd
+			, m.utype
+			, m.ukind
+			, m.role_id
+			, m.status
+			, m.uname
+			, m.mobile
+			, m.email
+			, m.zipcode
+			, m.address1
+			, m.address2
+			, m.url
+			, m.company_name
+			, m.company_regnum
+			, m.company_regnum_image
+			, m.company_regnum_file_name
+			, m.company_email
+			, m.ceo_name
+			, m.biz_kind
+			, m.biz_type
+			, m.accept_email
+			, m.accept_sms
+		FROM
+			member.member m
+		<where>
+			m.id = #{external_login_id}::bigint
+		</where>
+	</select>
+	
+</mapper>

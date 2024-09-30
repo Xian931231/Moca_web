@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/externalLayout}">
+<th:block layout:fragment="content">
+   <main class="main-panel product moCafePanel">
+      <div class="content">
+        <div class="titleCont">
+          <h2>측정장비 수정</h2>
+        </div>        
+        <div class="productSpecification measuring tab-content.advTablesCpm">
+          <form action="">
+            <ul class="product01">              
+              <li class="product-img-cla">
+                <div>장비 사진</div>
+                  <div class="product-in-img-cla" data-toggle="modal" id="sensorImg" data-src="sensorModify" data-act="clickImgUploadModal">
+	                  <div>
+	                      <img src="/assets/imgs/icon_Photos.png" alt="">                    
+	                    </div>
+	                    <div class="product-in-img">
+	                        <img src="/assets/imgs/icon_add.png" alt="">
+	                        <p>사진 등록</p>                     
+	                    </div>
+                  </div>                  
+              </li>
+            </ul>
+            <ul class="product02">              
+              <li class="productSelect">
+                <label class="productSelect-title" for="modalSearch">장비명</label>
+                <input type="text" id="sensorName" placeholder="차량 속도 측정 장비">
+              </li>
+              <li class="productSelect">
+                <label class="productSelect-title" for="modalSearch">제조사</label>
+                <input type="text" id="maker" placeholder="㈜CS카메라">
+              </li>
+              <li class="productSelect">
+                <label class="productSelect-title" for="modalSearch">모델명</label>
+                <input type="text" id="modelName" placeholder="CSCJ2134">
+              </li>
+              <li class="productSelect">
+                <div class="productSelect-title">설치 위치</div>
+                <div class="slotWrap">
+                  <div class="slotBtnWrap">
+                    <button type="button" class="btn btn-cpp act" name="installPosition" value="I" data-src="sensorModify" data-act="clickOptionBtn">실내</button>
+                    <button type="button" class="btn btn-block" name="installPosition" value="O" data-src="sensorModify" data-act="clickOptionBtn">실외</button>
+                  </div>
+                </div>                
+              </li>
+              <li class="productSelect">
+                <label class="productSelect-title" for="modalSearch">상세 설치 위치</label>
+                <input type="text" id="notes" placeholder="전면 디스플레이 상단">
+              </li>
+            </ul>          
+            <input type="file" class="d-none" id="sensorImgFile" accept="image/*" data-src="sensorModify" data-act="changeSensorImg"/>       
+          </form>
+        </div>
+        <div class="productSelectBtn">
+          <a href="javascript:;" data-src="sensorModify" data-act="clickCancel">
+            <button type="button" class="btn-lg btn-clear">작성취소</button>
+          </a>
+          <a href="javascript:;" data-src="sensorModify" data-act="clickModifySensor">
+            <button type="button" class="btn-lg btn-dark">작성내용 저장</button>
+          </a>
+        </div>
+      </div>
+      <!--사진선택 모달-->
+      <div class="modal fade" id="imgUploadModal" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog product">
+          <div class="modal-content">
+            <div class="modal-body">
+              <div>
+                <p data-src="sensorModify" data-act="clickGallery">갤러리에서 선택</p>  
+              </div>              
+              <div>
+                <p data-src="sensorModify" data-act="clickCamera">사진 촬영 후 등록</p>  
+              </div>    
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/external/sensor/modify.js}"></script>
+	<script>
+		externalLayout.setCallback(sensorModify.init);
+	</script>
+</th:block>
+</html>

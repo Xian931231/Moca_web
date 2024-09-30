@@ -1,0 +1,200 @@
+# api 기본 주소
+apiPrefix: /api/v1
+
+server:
+  port: 9090
+  error:
+    path: /error
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+  
+spring:
+  profiles:
+      active: prod
+  thymeleaf:
+    prefix: classpath:templates/
+    suffix: .html
+    cache: false
+
+mybatis:
+  mapper-locations: sql/**/*.xml
+  configuration:
+    call-setters-on-nulls: true
+  
+# jasypt
+jasypt:
+  encryptor:
+    algorithm: PBEWithMD5AndDES
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator
+    password: ${jasypt.encryptor.password}
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - local
+  datasource:
+    url: jdbc:postgresql://demo.newfrom.net:55432/dev_moca
+    driver-class-name: org.postgresql.Driver
+    username: moca
+    password: ENC(XrtNVo7DRPO26VxqlVs2ohm58t3IuG7n)
+    
+  servlet:
+    multipart:
+      max-file-size: 300MB
+      max-request-size: 1800MB
+  mail:
+    from: admin@mocafe.com
+    host: smtp.gmail.com
+    port: 587
+    username: newfrom89
+    password: ENC(6yj1HgbQhWnEvTfB19K5GPYvZDKgsadbzUCZFoCdWOc=)
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+             
+cloud:
+  aws:
+    credentials:
+      profile-name: mocafe
+    s3:
+      bucket: mocafe-dev
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+
+logging:
+  config: classpath:log4j2_local.yml
+
+batch:
+  path:
+    default: /Users/mocafe
+
+project: 
+  admin: 
+    url: http://localhost:9092
+      
+---
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - dev
+  datasource:
+    url: jdbc:postgresql://demo.newfrom.net:55432/dev_moca
+    driver-class-name: org.postgresql.Driver
+    username: moca
+    password: ENC(XrtNVo7DRPO26VxqlVs2ohm58t3IuG7n)
+    
+  servlet:
+    multipart:
+      max-file-size: 300MB
+      max-request-size: 1800MB
+  mail:
+    from: admin@mocafe.com
+    host: smtp.gmail.com
+    port: 587
+    username: newfrom89
+    password: ENC(6yj1HgbQhWnEvTfB19K5GPYvZDKgsadbzUCZFoCdWOc=)
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+             
+cloud:
+  aws:
+    credentials:
+      profile-name: mocafe
+    s3:
+      bucket: mocafe-dev
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+      
+logging:
+  config: classpath:log4j2_dev.yml
+  
+batch:
+  path:
+    default: /home/mocafe
+
+# 타임아웃 2분으로 설정
+server:
+  tomcat:
+    connection-timeout: 120000
+    
+project: 
+  admin: 
+    url: https://admin-dev.mocafelab.com
+---
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - prod
+  datasource:
+    url: jdbc:postgresql://mocafe-prod-db.crxpbdtn2qtc.ap-northeast-2.rds.amazonaws.com/moca
+    driver-class-name: org.postgresql.Driver
+    username: moca
+    password: ENC(q+4p4nPKaIN2W8ugQpfbi8wchlQPNH3G)
+    hikari:
+      maximum-pool-size: 30 # 최대 커넥션 개수
+      minimum-idle: 10 # 커넥션 풀에서 관리될 최소 커넥션 개수
+    
+  servlet:
+    multipart:
+      max-file-size: 300MB
+      max-request-size: 1800MB
+  mail:
+    from: moca@innocean.com
+    host: sniper1.innocean.com
+    port: 465
+    username: moca
+    password: ENC(8EHeteR7JownPPhwoi0JHKrgY0RQrQ6y)
+    properties:
+      mail:
+        debug: true
+        transport:
+          protocol: smtps
+        smtp:
+          auth: true
+          ssl: 
+            enable: true
+            protocols: TLSv1.2
+             
+cloud:
+  aws:
+    credentials:
+      profile-name: mocafe
+    s3:
+      bucket: mocafe-prod
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+      
+logging:
+  config: classpath:log4j2_prod.yml
+  
+batch:
+  path:
+    default: /home/mocafe
+
+project: 
+  admin: 
+    url: https://admin.mocafelab.com

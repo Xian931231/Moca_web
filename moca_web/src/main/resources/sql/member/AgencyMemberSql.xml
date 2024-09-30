@@ -1,0 +1,1832 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.member.AgencyMemberMapper">
+	<!-- 대행사 아이디 조회 -->
+	<select id="getAgencyId" parameterType="HashMap" resultType="Integer">
+		SELECT
+			agency_id::int
+		FROM
+			member.member
+		WHERE
+			id = #{login_id}::bigint
+	</select>
+
+	<!-- 대행사 직원 등록 -->
+	<insert id="addMember" parameterType="HashMap">
+		INSERT INTO member.member (
+			  uid
+			, utype
+			, status
+			, passwd
+			, uname
+			, email
+			, company_email
+			, company_name
+			, role_id
+			, agency_id
+			, insert_date
+			, passwd_update_date
+		)
+		VALUES (
+			  #{uid}
+			, #{utype}
+			, #{status}
+			, #{passwd}
+			, #{uname}
+			, #{company_email}
+			, #{company_email}
+			, #{company_name}
+			, #{role_id}::bigint
+			, #{login_agency_id}::bigint
+			, now()
+			, now() + interval '180 day'
+		)
+	</insert>
+	<!-- 대행사 마스킹상세 정보 -->
+	<select id="getAgencyMaskingData" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS member_id
+			, uid
+			, utype
+			, ukind
+			, role_id
+			, status
+			, f_set_masking(uname, 'name')as masked_uname
+			, f_set_masking(mobile, 'mobile')as masked_mobile
+			, email
+			, zipcode
+			, address1
+			, address2
+			, url
+			, company_name
+			, company_regnum
+			, company_regnum_image
+			, company_regnum_file_name
+			, company_email
+			, ceo_name
+			, biz_kind
+			, biz_type
+			, accept_email
+			, accept_sms
+			, agency_id
+			, notes
+			, balance_day
+			, balance_rate
+			, login_fail_cnt
+		FROM
+			member.member
+		WHERE
+			id = #{agency_id}::bigint
+	</select>
+	<!-- 대행사 상세 정보 -->
+	<select id="getAgencyData" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS member_id
+			, uid
+			, utype
+			, ukind
+			, role_id
+			, status
+			, uname
+			, mobile
+			, email
+			, zipcode
+			, address1
+			, address2
+			, url
+			, company_name
+			, company_regnum
+			, company_regnum_image
+			, company_regnum_file_name
+			, company_email
+			, ceo_name
+			, biz_kind
+			, biz_type
+			, accept_email
+			, accept_sms
+			, agency_id
+			, notes
+			, balance_day
+			, balance_rate
+			, login_fail_cnt
+		FROM
+			member.member
+		WHERE
+			id = #{login_agency_id}::bigint
+	</select>
+	<!-- 직원 리스트 -->
+	<select id="getList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  m.id
+			, m.uid
+			, m.role_id
+			, m.uname
+			, m.insert_date
+			, m.agency_id
+			, rm.name as role_name
+		FROM
+			(
+			SELECT
+				  id
+				, uid
+				, role_id
+				, uname
+				, to_char(insert_date, 'YYYY-MM-DD') AS insert_date
+				, agency_id
+				, insert_date as order_date
+			FROM
+				member.member
+			WHERE
+				agency_id = #{login_agency_id}::bigint
+				AND status = 'A'
+			) m
+		LEFT JOIN member.role_manager rm 
+		ON m.role_id = rm.id 
+		<where>
+			<if test="role_id != null and role_id != ''">
+				AND role_id = #{role_id}
+			</if>
+			<if test="search_value != null and search_value != ''">
+				AND (uid LIKE CONCAT('%', #{search_value}, '%') OR uname LIKE CONCAT('%', #{search_value}, '%')) 		
+			</if>
+		</where>
+		ORDER BY 
+			m.order_date desc
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select> 
+	
+	<!-- 직원 리스트 개수 -->
+	<select id="getListCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			(
+			SELECT
+				  id
+				, uid
+				, role_id
+				, uname
+				, to_char(insert_date, 'YYYY-MM-DD') AS insert_date
+				, agency_id
+			FROM
+				member.member
+			WHERE
+				agency_id = #{login_agency_id}::bigint
+				AND status = 'A'
+			) m
+		LEFT JOIN member.role_manager rm 
+		ON m.role_id = rm.id 
+		<where>
+			<if test="role_id != null and role_id != ''">
+				AND role_id = #{role_id}
+			</if>
+			<if test="search_value != null and search_value != ''">
+				AND (uid LIKE CONCAT('%', #{search_value}, '%') OR uname LIKE CONCAT('%', #{search_value}, '%')) 		
+			</if>
+		</where>
+	</select> 
+	
+	<!-- 직원 정보 수정 -->
+	<update id="modifyMember" parameterType="HashMap">
+		UPDATE
+			member.member
+		SET
+			update_date = now()
+		<if test="new_passwd != null and new_passwd != ''">
+			, passwd = #{new_passwd}
+		</if>
+		<if test="email != null and email != ''">
+			, email = #{email}
+		</if>
+		WHERE
+			id = #{member_id} 
+			AND agency_id = #{login_agency_id}::bigint
+	</update>
+	
+	<!-- 로그인한 대행사 계정의 탈퇴시 직원 탈퇴 처리 -->
+	<update id="setMemberLeave">
+		UPDATE 
+			member.member
+		SET 	
+			status = 'L'
+			, leave_process_date = NOW()
+			, leave_process_member_id = #{login_id}
+			, leave_reason = #{leave_reason}
+		<where>
+			agency_id = #{member_id}
+		</where>
+	</update>
+	
+	<!--직원 삭제 -->
+	<delete id="removeMember" parameterType="HashMap">
+		UPDATE
+			member.member
+		SET
+			  update_date = NOW()
+			, status = #{status}
+			, leave_reason = #{leave_reason}
+			, leave_process_member_id = #{login_id}::bigint
+			, leave_process_date = NOW()
+			, leave_request_date = NOW()
+		WHERE
+			id = #{member_id}::bigint
+			AND agency_id = #{login_agency_id}::bigint
+	</delete>
+
+	<!-- 로그인한 대행사의 회원 정보 조회 -->
+	<select id="getAgencyMember" resultType="HashMap">
+		SELECT 
+			id AS member_id
+			, uid
+			, utype
+			, passwd
+			, role_id
+			, status
+			, login_fail_cnt
+			, agency_id
+			, company_email
+			<![CDATA[
+			, ( 
+				CASE
+					WHEN extract('second' from (now() - passwd_update_date)) > 0 THEN 'Y'
+					WHEN extract('second' from (now() - passwd_update_date)) < 0 THEN 'N'
+				ELSE '-' END 
+			  ) AS is_expire
+			]]>	
+		FROM 
+			member.member
+		WHERE
+			status = 'A'
+			AND utype = 'B'
+			AND id = #{login_id}::bigint
+	</select>
+	
+	<!-- 대행사 구분별 담당 광고주 -->
+	<select id="getPartDemandList" resultType="HashMap">
+		SELECT 
+			m.id member_id
+			, m.uid
+			, m.utype
+			, m.uname
+			, m.status
+			, m.role_id
+			, m.company_name
+			, m.agency_id
+			, rad.role_id rad_role_id
+			, rad.dsp_id rad_dsp_id
+			, (CASE WHEN rad.role_id = #{role_id}::bigint THEN 'Y' ELSE 'N' END) AS choose
+		FROM  
+			member.member m
+		LEFT JOIN (
+			SELECT 
+				* 
+			FROM 
+				member.role_access_dsp 
+			WHERE 
+				role_id = #{role_id}::bigint
+		) rad
+		ON m.id = rad.dsp_id
+		WHERE 
+			m.agency_id = #{login_agency_id}::bigint
+			AND m.utype = 'D'
+			AND m.status = 'A'
+	</select>
+	<!--종료되지 않은 광고가 있는지 체크 대행사 용  -->
+	<select id="getProcessingSgCntByAgency" resultType="Integer">
+		SELECT 
+            COUNT(dsp.*)
+        FROM
+        (
+            SELECT 
+                mad.dsp_id 
+                , dc.id AS campaign_id
+            FROM
+                MEMBER.member_access_dsp mad
+            JOIN
+                dsp_campaign dc
+            ON
+                mad.dsp_id = dc.member_id
+            WHERE
+                mad.member_id = #{login_agency_id}::bigint
+            GROUP BY mad.dsp_id, dc.id
+        ) dsp
+        JOIN
+            dsp_sg_manager dsm
+        ON
+            dsm.campaign_id = dsp. campaign_id
+        WHERE
+            dsm.status in (0, 1, 2)
+	</select>
+	<!-- 종료되지 않은 광고가 있는지 체크 대행사 광고주 용 -->
+	<select id="getProcessingSgCntByMember" resultType="Integer">
+		SELECT 
+			count(dsm.*)
+		FROM
+			public.dsp_campaign dc 
+		JOIN public.dsp_sg_manager dsm 
+		ON dc.id = dsm.campaign_id 
+		<where>
+			dc.member_id = #{member_id} :: bigint
+		AND dsm.status in (0, 1, 2)		
+		</where> 
+	</select>
+	<!-- 구분별 소속 직원 리스트 -->
+	<select id="getRoleStaffList" resultType="HashMap">
+		SELECT
+			mm.id as member_id
+            , mm.uid
+            , mm.utype
+            , mm.ukind
+            , mm.role_id
+            , mm.status
+            , mm.uname
+            , mm.agency_id
+            , mr.name as role_name
+            , to_char(mm.insert_date, 'YYYY-MM-DD') AS insert_ymd
+            , H.message
+            , to_char(H.update_date, 'YYYY-MM-DD') AS update_ymd
+            , (SELECT uid FROM member.member m2 WHERE H.update_member_id = m2.id) AS update_member_id
+            , (SELECT COUNT(*) FROM member.member_modify_history mmh WHERE mmh.member_id = mm.id ) AS modify_history_count
+		FROM
+			member.member mm
+		JOIN
+			member.role_manager mr
+		ON
+			mm.role_id = mr.id
+		LEFT JOIN   
+            (
+                SELECT
+                    member_id
+                    , update_date
+                    , message
+                    , update_member_id
+                FROM
+                    member.member_modify_history mmh
+                WHERE mmh.id IN (
+                    SELECT
+                        MAX(id) AS id
+                    FROM
+                        member.member_modify_history mmh2
+                    GROUP BY member_id
+                )
+            ) H
+		ON H.member_id = mm.id
+		WHERE
+			mm.agency_id = #{login_agency_id}::bigint
+			AND mm.utype = 'B'
+			<if test="option == 'option' ">
+			AND mm.status = 'A'
+			</if>
+			<if test="search_text != null and search_text != '' ">
+				AND (mm.uid LIKE CONCAT('%', #{search_text},'%') OR mm.uname LIKE CONCAT('%', #{search_text},'%'))
+			</if>
+			<if test="role_id != null and role_id !=''">
+				AND mm.role_id = #{role_id}
+			</if>
+		ORDER BY mm.insert_date DESC
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	<!-- 구분별 소속 직원 리스트 개수 -->
+	<select id="getRoleStaffListCnt" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member mm
+		JOIN
+			member.role_manager mr
+		ON
+			mm.role_id = mr.id
+		LEFT JOIN   
+            (
+                SELECT
+                    member_id
+                    , update_date
+                    , message
+                    , update_member_id
+                FROM
+                    member.member_modify_history mmh
+                WHERE mmh.id IN (
+                    SELECT
+                        MAX(id) AS id
+                    FROM
+                        member.member_modify_history mmh2
+                    GROUP BY member_id
+                )
+            ) H
+		ON H.member_id = mm.id
+		WHERE
+			mm.agency_id = #{login_agency_id}::bigint
+			AND mm.utype = 'B'
+			<if test="search_text != null and search_text != '' ">
+				AND (mm.uid LIKE CONCAT('%', #{search_text},'%') OR mm.uname LIKE CONCAT('%', #{search_text},'%'))
+			</if>
+			<if test="role_id != null and role_id !=''">
+				AND mm.role_id = #{role_id}
+			</if>
+	</select>
+	
+	<!-- 광고주별 담당 직원 리스트 -->
+	<select id="getDemandAccessStaffList" resultType="HashMap">
+		SELECT
+		    mad.dsp_id
+		    , m.utype
+		    , m.id AS member_id
+		    , m.uid
+		    , m.uname
+		    , m.role_id
+		    , rm.name
+		    , m2.agency_id
+		FROM
+		    member.member_access_dsp mad
+		JOIN
+		    member."member" m
+		ON
+		    m.id = mad.member_id
+		JOIN
+		    member."member" m2
+		ON
+		    m2.id = mad.dsp_id
+		JOIN
+		    member.role_manager rm
+		ON
+		    rm.id = m.role_id
+		WHERE
+		    mad.dsp_id = #{demand_id}::bigint
+		    AND m.status = 'A'
+		    AND m2.agency_id = #{login_agency_id}::bigint
+		    AND m.agency_id != 0
+		    <if test="staff_id != null and staff_id != '' ">
+		    	AND mad.member_id = #{staff_id}::bigint
+		    </if>
+	</select>
+	<!-- 광고주 기본 권한 -->
+	<select id="defaultDemandRole" resultType="Integer">
+		SELECT
+		    id
+		FROM
+		    MEMBER.role_manager
+		WHERE
+		    utype = 'D'
+		    AND owner_id = 0
+		    AND use_yn = 'Y'
+		    AND modify_yn = 'N'
+		    AND sort = 0
+	</select>
+	
+	<!-- 대행사 개인별 담당 광고주 -->
+	<select id="getPersonalDemandList" resultType="HashMap">
+		SELECT 
+			m.id member_id
+			, m.uid
+			, m.utype
+			, m.uname
+			, m.role_id
+			, m.status
+			, m.company_name
+			, m.agency_id
+			, mad.member_id mad_member_id
+			, mad.dsp_id mad_dsp_id
+			, (CASE WHEN mad.member_id = #{member_id}::bigint THEN 'Y' ELSE 'N' END) AS choose
+		FROM
+			member.member m
+		LEFT JOIN (
+			SELECT
+				* 
+			FROM 
+				member.member_access_dsp 
+			WHERE 
+				member_id = #{member_id}::bigint
+		) mad
+		ON m.id = mad.dsp_id
+		WHERE 
+			m.agency_id = #{login_agency_id}::bigint
+			AND m.utype = 'D'
+			AND m.status = 'A'
+	</select>
+	<!--대행사에 소속된 직원인지 확인-->
+	<select id="hasAgencyStaff" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		WHERE
+			id = #{staff_id}::bigint
+			AND agency_id = #{login_agency_id}::bigint
+			AND utype = 'B'
+			AND status = 'A'
+	</select>
+	<!-- 대행사 소속 광고주 목록 파라미터 sql -->
+	<sql id="demandListSql">
+		<where>
+			<if test='staff_role_id != null and staff_role_id != "" '>
+				AND member_id IN (
+					SELECT
+						m.id demand_member_id
+					FROM
+				        member.member m
+				    JOIN member.member_access_dsp mad
+					ON m.id = mad.dsp_id AND m.utype = 'D' AND agency_id = #{login_agency_id}::bigint
+					JOIN member.member m2
+   					ON m2.id= mad.member_id
+					WHERE m2.role_id = #{staff_role_id}::bigint
+				)
+			</if>
+			<if test='staff_id != null and staff_id != "" '>
+				AND member_id IN (
+					SELECT
+						m.id demand_member_id
+					FROM
+						member.member m
+					JOIN member.member_access_dsp mad 
+					ON m.id = mad.dsp_id AND utype = 'D' AND agency_id = #{login_agency_id}::bigint
+					WHERE mad.member_id  = #{staff_id}::bigint
+				)
+			</if>
+		</where>
+	</sql>
+	
+	<!-- 대행사 소속 광고주 목록 (팀, 직원 중복 허용) - 광고주 계정 관리 용도 -->
+	<select id="getDemandList" resultType="HashMap">
+		SELECT
+			t.*
+		    , h.message
+		    , (SELECT uid FROM member.member m2 WHERE h.update_member_id = m2.id) AS update_member_id
+		    , (SELECT COUNT(*) FROM member.member_modify_history mmh WHERE mmh.member_id = t.member_id ) AS modify_history_count
+		    , to_char(h.update_date, 'YYYY-MM-DD') AS update_ymd
+		FROM (
+			SELECT 
+				member_id
+				, company_name demand_name
+				, uid demand_uid
+				, status demand_status
+				, TO_CHAR(max(insert_date), 'YYYY-MM-DD') insert_date
+				, STRING_AGG(CAST(staff_role_id AS VARCHAR), ',') staff_role_id
+				, STRING_AGG(CAST(staff_id AS VARCHAR), ',') staff_id
+				, ( CASE 
+					WHEN STRING_AGG(CAST(CONCAT(staff_name) AS VARCHAR), ',') = '_' THEN NULL
+					ELSE STRING_AGG(CAST(CONCAT(staff_name) AS VARCHAR), ', ') 
+					END ) staff_role_name
+			FROM (
+				SELECT
+					m.*
+					, mm.staff_role_id
+					, mm.team_role_name
+					, mm.staff_id
+					, mm.staff_name
+				FROM (
+					SELECT
+						id AS member_id
+						, company_name
+						, uname
+						, uid
+						, status
+						, insert_date
+					FROM
+						member.member m
+					WHERE 
+						agency_id = #{login_agency_id}::bigint
+						AND utype = 'D'
+				) m
+				LEFT JOIN (
+					SELECT 
+						m.*
+						, mm.team_role_name
+					FROM (
+						SELECT
+							m.id AS staff_id
+							, m.role_id AS staff_role_id
+							, m.uname AS staff_name
+							, m.uid AS staff_uid
+							, mad.dsp_id
+						FROM (
+							SELECT 
+								m.id
+								, m.uname
+								, m.role_id
+								, m.uid
+							FROM 
+								member.member m
+							WHERE 
+								m.agency_id = #{login_agency_id}::bigint
+								AND m.utype = 'B'
+							) m
+							LEFT JOIN member.member_access_dsp mad
+							ON m.id = mad.member_id
+					) m
+					JOIN (
+						SELECT
+							rm.id AS team_role_id
+							, rm.name AS team_role_name
+						FROM 
+							member.role_manager rm 
+						WHERE 
+							owner_id = #{login_agency_id}::bigint
+							AND utype = 'B'
+					) mm
+					ON m.staff_role_id = mm.team_role_id
+				) mm
+				ON m.member_id = mm.dsp_id
+				<include refid="demandListSql" />
+			) m
+			GROUP BY member_id, company_name, uid, status
+			<if test="limit != null and offset != null">
+				LIMIT #{limit} OFFSET #{offset}
+			</if>
+		) t
+		LEFT JOIN   
+		    (
+		        SELECT
+		            member_id
+		            , update_date
+		            , message
+		            , update_member_id
+		        FROM
+		            member.member_modify_history mmh
+		        WHERE mmh.id IN (
+		            SELECT
+		                MAX(id) AS id
+		            FROM
+		                member.member_modify_history mmh2
+		            GROUP BY member_id
+		        )
+		    ) h
+		ON h.member_id = t.member_id
+		<where>
+			<if test='search_type != null and search_type != "" '>
+				<if test='search_value != null and search_value != "" '>
+					<if test='search_type == "uname" '>
+						AND demand_name LIKE CONCAT('%', #{search_value}, '%')
+					</if>
+					<if test='search_type == "uid" '>
+						AND demand_uid LIKE CONCAT('%', #{search_value}, '%')
+					</if>
+				</if>
+			</if>
+		</where>
+		ORDER BY t.insert_date DESC
+	</select>
+	
+	<!-- 대행사 소속 광고주 목록 카운트 (팀, 직원 중복 허용) - 광고주 계정 관리 용도 -->
+	<select id="getDemandListCount" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM (
+			SELECT 
+				member_id
+				, company_name demand_name
+				, uid demand_uid
+				, status demand_status
+				, TO_CHAR(max(insert_date), 'YYYY-MM-DD') insert_date
+				, STRING_AGG(CAST(staff_role_id AS VARCHAR), ',') staff_role_id
+				, STRING_AGG(CAST(staff_id AS VARCHAR), ',') staff_id
+				, ( CASE 
+					WHEN STRING_AGG(CAST(CONCAT(staff_name) AS VARCHAR), ',') = '_' THEN NULL
+					ELSE STRING_AGG(CAST(CONCAT(staff_name) AS VARCHAR), ',') 
+					END ) staff_role_name
+				,  TO_CHAR(max(modify_history_date), 'YYYY-MM-DD') modify_history_date
+				, max(modify_history) modify_history
+				, sum(modify_history_count) modify_history_count	
+			FROM (
+				SELECT
+					m.*
+					, mm.staff_role_id
+					, mm.team_role_name
+					, mm.staff_id
+					, mm.staff_name
+					, mm.modify_history
+					, mm.modify_history_date
+					, mm.modify_history_count
+				FROM (
+					SELECT
+						id AS member_id
+						, company_name
+						, uname
+						, uid
+						, status
+						, insert_date
+					FROM
+						member.member m
+					WHERE 
+						agency_id = #{login_agency_id}::bigint
+						AND utype = 'D'
+				) m
+				LEFT JOIN (
+					SELECT 
+						m.*
+						, mm.team_role_name
+						, (SELECT message FROM member.member_modify_history WHERE member_id = m.staff_id ORDER BY update_date DESC limit 1) modify_history
+						, (SELECT update_date FROM member.member_modify_history WHERE member_id = m.staff_id ORDER BY update_date DESC limit 1) modify_history_date
+						, (SELECT count(*) FROM member.member_modify_history WHERE member_id = m.staff_id) modify_history_count 
+					FROM (
+						SELECT
+							m.id AS staff_id
+							, m.role_id AS staff_role_id
+							, m.uname AS staff_name
+							, mad.dsp_id
+						FROM (
+							SELECT 
+								m.id
+								, m.uname
+								, m.role_id
+							FROM 
+								member.member m
+							WHERE 
+								m.agency_id = #{login_agency_id}::bigint
+								AND m.utype = 'B'
+							) m
+							LEFT JOIN member.member_access_dsp mad
+							ON m.id = mad.member_id
+					) m
+					JOIN (
+						SELECT
+							rm.id AS team_role_id
+							, rm.name AS team_role_name
+						FROM 
+							member.role_manager rm
+						WHERE 
+							owner_id = #{login_agency_id}::bigint
+							AND utype = 'B'
+						
+					) mm
+					ON m.staff_role_id = mm.team_role_id
+				) mm
+				ON m.member_id = mm.dsp_id
+				<include refid="demandListSql" />
+			) m
+			GROUP BY member_id, company_name, uid, status
+		) t
+		<where>
+			<if test='search_type != null and search_type != "" '>
+				<if test='search_value != null and search_value != "" '>
+					<if test='search_type == "uname" '>
+						AND demand_name LIKE CONCAT('%', #{search_value}, '%')
+					</if>
+					<if test='search_type == "uid" '>
+						AND demand_uid LIKE CONCAT('%', #{search_value}, '%')
+					</if>
+				</if>
+			</if>
+		</where>
+	</select>
+	
+	<!-- 대행사 소속 광고주 조회 -->
+	<select id="getDemandMember" resultType="HashMap">
+		SELECT 
+			id AS member_id
+			, uid
+			, utype
+			, passwd
+			, role_id
+			, status
+			, login_fail_cnt
+			, agency_id
+			, company_email
+			<![CDATA[
+			, ( 
+				CASE
+					WHEN extract('second' from (now() - passwd_update_date)) > 0 THEN 'Y'
+					WHEN extract('second' from (now() - passwd_update_date)) < 0 THEN 'N'
+				ELSE '-' END 
+			  ) AS is_expire
+			]]>	
+		FROM 
+			member.member
+		WHERE
+			status = 'A'
+			AND utype = 'D'
+			AND id = #{demand_member_id}::bigint
+			AND agency_id = #{login_agency_id}::bigint
+	</select>
+	
+	<!-- 대행사 소속된 광고주인지 체크 -->
+	<select id="hasDemandMember" resultType="Integer">
+		SELECT 
+			count(*)
+		FROM 
+			member.member
+		WHERE
+			status = 'A'
+			AND utype = 'D'
+			AND id = #{demand_member_id}::bigint
+			AND agency_id = #{login_agency_id}::bigint
+	</select>
+	
+	<!-- 접근 가능한 구분(권한)인지 체크 -->
+	<select id="hasAccessPart" resultType="Integer">
+		SELECT 
+			count(*)
+		FROM (
+			SELECT
+				mm.id as member_id
+				, mm.company_name
+				, mm.uid
+				, mmm.id as staff_id
+				, mmm.rad_role_id
+				, mmm.rad_dsp_id
+			FROM (
+				SELECT
+					id
+					, company_name
+					, uid
+				FROM
+					member.member m
+				WHERE 
+					id = #{demand_id}::bigint
+					AND utype = 'D'
+			) mm
+			JOIN (
+				SELECT 
+					m.id
+					, m.uname
+					, rad.role_id as rad_role_id 
+					, rad.dsp_id as rad_dsp_id
+				FROM 
+					member.member m
+				LEFT JOIN member.role_access_dsp rad 
+				ON m.role_id = rad.role_id 
+				WHERE
+					m.id = #{login_id}::bigint
+					AND rad.role_id  = #{rold_id}::bigint
+					AND m.utype = 'B'
+			) mmm
+			ON mm.id = mmm.rad_dsp_id
+		) mem
+	</select>
+	
+	<!-- 접근 가능한 직원인지 체크 -->
+	<select id="hasAccessStaff" resultType="Integer">
+		SELECT 
+			count(*)
+		FROM (
+			SELECT
+				mm.id as member_id
+				, mm.company_name
+				, mm.uid
+				, mmm.id as staff_id
+				, mmm.mad_dsp_id as mad_dsp_id
+			FROM (
+				SELECT
+					id
+					, company_name
+					, uid
+				FROM
+					member.member m
+				WHERE 
+					id = #{demand_id}::bigint
+					AND utype = 'D'
+			) mm
+			INNER JOIN (
+				SELECT 
+					m.id
+					, m.uname
+					, mad.member_id mad_member_id
+					, mad.dsp_id mad_dsp_id
+				FROM 
+					member.member m
+				LEFT JOIN member.member_access_dsp mad 
+				ON m.id = mad.member_id 
+				WHERE
+					m.id = #{login_id}::bigint
+					AND m.utype = 'B'
+			) mmm
+			ON mm.id = mmm.mad_dsp_id
+		) mem
+	</select>
+	
+	<sql id="getAgencyDemandStaffSql">
+		<where>
+			<if test='staff_role_id != null and staff_role_id != ""'>
+				AND demand_id IN (
+					SELECT
+						DISTINCT mad.dsp_id demand_id
+					FROM
+						member.member m
+					JOIN member.member_access_dsp mad 
+					ON m.id = mad.member_id AND m.role_id = #{staff_role_id}::bigint AND m.agency_id = #{login_agency_id}::bigint
+				)
+			</if>
+			<if test='staff_id != null and staff_id != ""'>
+				AND demand_id IN (
+					SELECT
+						mad.dsp_id demand_id
+					FROM
+						member.member m
+					JOIN member.member_access_dsp mad 
+					ON m.id = mad.member_id AND m.id = #{staff_id}::bigint AND agency_id = #{login_agency_id}::bigint
+				)
+			</if>
+			<if test='demand_id != null and demand_id !=""'>
+				AND demand_id = #{demand_id}::bigint
+			</if>
+			<if test='search_type == "demand_uid" and search_value != null and search_value != ""'>
+				AND demand_uid LIKE CONCAT('%', #{search_value}, '%')
+			</if>
+			<if test='search_type == "demand_uname" and search_value != null and search_value != ""'>
+				AND demand_name LIKE CONCAT('%', #{search_value}, '%')
+			</if>
+		</where> 
+	</sql>
+	
+	<sql id="campaignAndSgCountCheckSql">
+		<choose>
+			<when test='search_type == "campaign_name" and search_value != null and search_value != ""'>
+				JOIN public.dsp_campaign dc 
+				ON dc.member_id = m.demand_id AND dc.name LIKE CONCAT('%', #{search_value}, '%')			
+			</when>
+			<otherwise>
+				LEFT JOIN public.dsp_campaign dc 
+				ON dc.member_id = m.demand_id
+			</otherwise>
+		</choose>
+		<choose>
+			<when test='search_type == "sg_name" and search_value != null and search_value != ""'>
+				JOIN public.dsp_sg_manager dsm
+				ON dsm.campaign_id = dc.id
+				<if test='sg_status != null and !sg_status.equals("")'>
+					AND dsm.status = #{sg_status}::smallint
+				</if>
+				AND dsm.name LIKE CONCAT('%', #{search_value}, '%')
+			</when>
+			<otherwise>
+				<choose>
+					<when test='sg_status != null and !sg_status.equals("")'>
+						JOIN public.dsp_sg_manager dsm 
+						ON dsm.campaign_id = dc.id
+						AND dsm.status = #{sg_status}::smallint
+					</when>
+					<otherwise>
+						LEFT JOIN public.dsp_sg_manager dsm 
+						ON dsm.campaign_id = dc.id		
+					</otherwise>
+				</choose>
+			</otherwise>
+		</choose>
+		<if test='str_dt != null and str_dt !=""'>
+			<![CDATA[
+			AND dsm.start_ymd >= #{str_dt}
+			]]>				
+		</if>
+		<if test='end_dt != null and end_dt !=""'>
+			<![CDATA[
+			AND (CASE WHEN dsm.end_ymd = '0' THEN dsm.start_ymd ELSE dsm.end_ymd END) <= #{end_dt} 
+			]]>				
+		</if>
+	</sql>
+	
+	<!-- 대행사 소속 광고주와 직원 목록 -->
+	<select id="getAgencyDemandStaffList" resultType="HashMap">
+		SELECT 
+			m.*
+			, (SELECT count(*) FROM public.dsp_campaign dc JOIN public.dsp_sg_manager dsm ON dc.id = dsm.campaign_id AND dc.member_id = m.demand_id) total_sg_count
+			, (SELECT count(*) FROM public.dsp_campaign dc JOIN public.dsp_sg_manager dsm ON dc.id = dsm.campaign_id AND dc.member_id = m.demand_id WHERE dsm.status = '1') processing_sg_count
+		FROM (
+			SELECT
+				m.demand_id
+				, m.demand_name 
+				, m.demand_uid
+				, m.demand_status 
+				, STRING_AGG(CAST(m.staff_role_id AS VARCHAR), ',') staff_role_id 
+				, STRING_AGG(CAST(m.staff_id AS VARCHAR), ',') staff_id 
+				, STRING_AGG(m.staff_name, ', ') staff_name 
+			FROM (
+				SELECT
+					m.*
+					, mm.staff_role_id
+					, mm.staff_id
+					, mm.staff_name
+				FROM (
+					SELECT
+						id AS demand_id
+						, company_name demand_name
+						, uname 
+						, uid demand_uid
+						, status demand_status
+					FROM
+						member.member m
+					WHERE 
+						agency_id = #{login_agency_id}::bigint
+						AND utype = 'D'
+						AND status = 'A'
+				) m
+				LEFT JOIN (
+					SELECT
+						m.id AS staff_id
+						, m.role_id AS staff_role_id
+						, m.uname AS staff_name
+						, mad.dsp_id
+					FROM (
+						SELECT 
+							m.id
+							, m.uname
+							, m.role_id
+						FROM 
+							member.member m
+						WHERE 
+							m.agency_id = #{login_agency_id}::bigint
+							AND m.utype = 'B'
+					) m
+					LEFT JOIN member.member_access_dsp mad
+					ON m.id = mad.member_id
+				) mm
+				ON m.demand_id = mm.dsp_id
+				<include refid="getAgencyDemandStaffSql"/>
+			) m
+			GROUP BY m.demand_id, m.demand_name, m.demand_uid, m.demand_status
+		) m
+		<include refid="campaignAndSgCountCheckSql"/>
+		GROUP BY m.demand_id, m.demand_name, m.demand_uid, m.demand_status, m.staff_role_id, m.staff_id, m.staff_name
+		ORDER BY total_sg_count DESC, processing_sg_count DESC
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 대행사 소속 광고주와 직원 목록 카운트 -->
+	<select id="getAgencyDemandStaffCount" resultType="Integer">
+		SELECT
+			count(*)
+		FROM (
+			SELECT 
+				m.*
+			FROM (
+				SELECT
+					m.demand_id
+					, m.demand_name 
+					, m.demand_uid 
+					, m.demand_status
+					, STRING_AGG(CAST(m.staff_role_id AS VARCHAR), ',') staff_role_id 
+					, STRING_AGG(CAST(m.staff_id AS VARCHAR), ',') staff_id 
+					, STRING_AGG(m.staff_name, ', ') staff_name 
+				FROM (
+					SELECT
+						m.*
+						, mm.staff_role_id
+						, mm.staff_id
+						, mm.staff_name
+					FROM (
+						SELECT
+							id AS demand_id
+							, company_name demand_name
+							, uname 
+							, uid demand_uid
+							, status demand_status
+						FROM
+							member.member m
+						WHERE 
+							agency_id = #{login_agency_id}::bigint
+							AND utype = 'D'
+					) m
+					LEFT JOIN (
+						SELECT
+							m.id AS staff_id
+							, m.role_id AS staff_role_id
+							, m.uname AS staff_name
+							, mad.dsp_id
+						FROM (
+							SELECT 
+								m.id
+								, m.uname
+								, m.role_id
+							FROM 
+								member.member m
+							WHERE 
+								m.agency_id = #{login_agency_id}::bigint
+								AND m.utype = 'B'
+						) m
+						LEFT JOIN member.member_access_dsp mad
+						ON m.id = mad.member_id
+					) mm
+					ON m.demand_id = mm.dsp_id
+					<include refid="getAgencyDemandStaffSql"/>
+				) m
+				GROUP BY m.demand_id, m.demand_name, m.demand_uid, m.demand_status
+			) m
+			<include refid="campaignAndSgCountCheckSql"/>
+			GROUP BY m.demand_id, m.demand_name, m.demand_uid, m.demand_status, m.staff_role_id, m.staff_id, m.staff_name
+		) m
+	</select>
+	
+	<!-- 대행사 소속 광고주 목록 -->
+	<select id="getAgencyDemandList" resultType="HashMap">
+		SELECT
+			id AS member_id
+			, uid
+			, uname
+			, company_name
+			, role_id
+			, status
+			, agency_id
+		FROM
+			member.member 
+		WHERE 
+			utype = 'D'
+			AND agency_id = #{login_agency_id}::bigint
+			<if test="staff_role_id != null and staff_role_id != ''">
+				AND id IN (
+					SELECT
+						DISTINCT mad.dsp_id demand_id
+					FROM
+						member.member m
+					JOIN member.member_access_dsp mad 
+					ON m.id = mad.member_id AND m.role_id = #{staff_role_id}::bigint AND m.agency_id = #{login_agency_id}::bigint
+				)
+			</if>
+			<if test="staff_id != null and staff_id != ''">
+				AND id IN (
+					SELECT
+						mad.dsp_id demand_id
+					FROM
+						member.member m
+					JOIN member.member_access_dsp mad 
+					ON m.id = mad.member_id AND m.id = #{staff_id}::bigint AND agency_id = #{login_agency_id}::bigint
+				)
+			</if>
+	</select>
+	
+	<!-- 대행사 소속 직원 목록-->
+	<select id="getAgencyStaffList" resultType="HashMap">
+		SELECT 
+			id AS member_id
+			, uid
+			, uname
+			, role_id
+			, status
+			, agency_id
+		FROM
+			member.member
+		WHERE 
+			agency_id = #{login_agency_id}::bigint
+			AND utype = 'B'
+			AND status = 'A'
+			<if test="staff_role_id != null and staff_role_id != ''">
+				AND role_id = #{staff_role_id}::bigint
+			</if>
+	</select>
+	
+	<!-- 대행사 소속 광고주 캠페인 목록 -->
+	<select id="getDemandCampaignList" resultType="HashMap">
+		SELECT 
+			id campaign_id
+			, name campaign_name
+			, pay_type
+		FROM
+			public.dsp_campaign
+		WHERE
+			member_id = #{demand_id}::bigint
+		<if test="search_type == 'campaign_name' and search_value != null and search_value != ''">
+			AND name LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+	</select>
+	
+	<!-- 캠페인의 광고 목록 -->
+	<select id="getCampaignSgList" resultType="HashMap">
+		SELECT 
+			id sg_id
+			, name sg_name
+			, start_ymd 
+			, end_ymd 
+			, TO_CHAR(insert_date, 'YYYY-MM-DD') insert_date
+			, TO_CHAR(request_date, 'YYYY-MM-DD') request_date
+			, status
+			, price
+			, pay_price
+			, total_pay_price
+			, TO_CHAR(approve_date, 'YYYY-MM-DD') reject_date
+			, TO_CHAR(stop_date, 'YYYY-MM-DD HH24:MI') stop_date
+			, reject_reason
+			, COALESCE((SELECT sum(total_count) FROM dsp_report.count_sg WHERE sg_id = dsm.id), 0) sg_total_exposure_count
+			, TO_CHAR(display_start_date, 'YYYY-MM-DD HH24:MI') display_start_date
+			, TO_CHAR(display_end_date, 'YYYY-MM-DD HH24:MI') display_end_date
+		FROM
+			public.dsp_sg_manager dsm
+		<where>
+			campaign_id = #{campaign_id}::bigint
+			<if test='sg_status != null and !sg_status.equals("")'>
+				AND status = #{sg_status}
+			</if>
+			<if test='search_type == "sg_name" and search_value != null and search_value != ""'>
+				AND name LIKE CONCAT('%', #{search_value}, '%')
+			</if>	
+			<if test='str_dt != null and str_dt !=""'>
+				<![CDATA[
+				AND dsm.start_ymd >= #{str_dt}
+				]]>				
+			</if>
+			<if test='end_dt != null and end_dt !=""'>
+				<![CDATA[
+				AND (CASE WHEN dsm.end_ymd = '0' THEN dsm.start_ymd ELSE dsm.end_ymd END) <= #{end_dt} 
+				]]>				
+			</if>
+		</where>
+		ORDER BY
+			start_ymd 
+	</select>
+
+	<sql id="getAgencyCostSgSql">
+		<if test='sg_status != null and sg_status == 100'>
+			AND dsm.status = 0
+		</if>
+		<if test='sg_status != null and sg_status == 1'>
+			AND dsm.status IN (1, 2, 8)
+		</if>
+		<if test='sg_status != null and sg_status == 9'>
+			AND dsm.status = 9
+		</if>
+		<if test='pay_status_code != null and pay_status_code != ""'>
+			AND dsm.pay_status_code = #{pay_status_code}
+		</if>
+		<if test='search_type == "campaign_name" and search_value != null and search_value != ""'>
+			AND dc.name LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		<if test='search_type == "sg_name" and search_value != null and search_value != ""'>
+			AND dsm.name LIKE CONCAT('%', #{search_value}, '%')
+		</if>	
+		<if test='str_dt != null and str_dt !=""'>
+			<![CDATA[
+			AND dsm.request_date >= #{str_dt}::timestamptz
+			]]>				
+		</if>
+		<if test='end_dt != null and end_dt !=""'>
+			<![CDATA[
+			AND dsm.request_date <= (#{end_dt}::timestamptz + interval '1 day')  
+			]]>				
+		</if>
+	</sql>
+	
+	<!-- 대행사 소속 광고주 캠페인 광고 목록 (집행요청용) -->
+	<select id="getDemandCostList" resultType="HashMap">
+		SELECT 
+			* 
+		FROM (
+			SELECT 
+				mm.*
+				, dc.id campaign_id
+				, dc.name campaign_name
+				, dc.pay_type
+				, dsm.id sg_id
+				, dsm.name sg_name
+				, dsm.start_ymd
+				, dsm.end_ymd 
+				, TO_CHAR(dsm.insert_date, 'YYYY-MM-DD') insert_date
+				, TO_CHAR(dsm.request_date, 'YYYY-MM-DD') request_date
+				, dsm.status
+				, dsm.pay_status_code
+				, (SELECT c.code_name FROM public.code c WHERE c.code = dsm.pay_status_code) pay_code_name
+				, CASE 
+					WHEN dsm.pay_status_code = 'PAY_COMPLETE' THEN (SELECT TO_CHAR(insert_date, 'YYYY-MM-DD') FROM public.dsp_sg_pay_log WHERE sg_id = dsm.id AND kind = 'D') 
+					WHEN dsm.pay_status_code = 'REFUND_COMPLETE' THEN (SELECT TO_CHAR(insert_date, 'YYYY-MM-DD') FROM public.dsp_sg_pay_log WHERE sg_id = dsm.id AND kind = 'R') 
+					ELSE NULL
+					END pay_status_date 
+				, dsm.price
+				, dsm.pay_price
+				, dsm.total_pay_price
+				, TO_CHAR(dsm.approve_date, 'YYYY-MM-DD') reject_date
+				, dsm.reject_reason
+			FROM (
+				SELECT 
+					demand_id
+					, demand_name 
+					, demand_uid 
+					, status demand_status
+					, STRING_AGG(CAST(staff_role_id AS VARCHAR), ',') staff_role_id 
+					, STRING_AGG(CAST(staff_id AS VARCHAR), ',') staff_id 
+					, STRING_AGG(staff_name, ',') staff_name 
+				FROM (
+					SELECT
+						m.*
+						, mm.staff_role_id
+						, mm.staff_id
+						, mm.staff_name
+					FROM (
+						SELECT
+							id AS demand_id
+							, company_name demand_name
+							, uname
+							, uid demand_uid
+							, status
+						FROM
+							member.member m
+						WHERE 
+							agency_id = #{login_agency_id}::bigint
+							AND utype = 'D'
+					) m
+					LEFT JOIN (
+						SELECT
+							m.id AS staff_id
+							, m.role_id AS staff_role_id
+							, m.uname AS staff_name
+							, mad.dsp_id
+						FROM (
+							SELECT 
+								m.id
+								, m.uname
+								, m.role_id
+							FROM 
+								member.member m
+							WHERE 
+								m.agency_id = #{login_agency_id}::bigint
+								AND m.utype = 'B'
+						) m
+						LEFT JOIN member.member_access_dsp mad
+						ON m.id = mad.member_id
+					) mm
+					ON m.demand_id = mm.dsp_id
+					<include refid="getAgencyDemandStaffSql" />
+				) m 
+				GROUP BY demand_id, demand_name, demand_uid, status
+			) mm
+			JOIN public.dsp_campaign dc 
+			ON mm.demand_id = dc.member_id 
+			JOIN public.dsp_sg_manager dsm 
+			ON dsm.campaign_id = dc.id
+			<where>
+				<include refid="getAgencyCostSgSql"/>
+			</where>
+			ORDER BY dsm.insert_date DESC
+		) mmm
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 대행사 소속 광고주 캠페인 광고 목록 (집행요청용) 카운트 -->
+	<select id="getDemandCostListCount" resultType="Integer">
+		SELECT 
+			count(*)
+		FROM (
+			SELECT 
+				mm.*
+				, dc.id campaign_id
+				, dc.name campaign_name
+				, dc.pay_type
+				, dsm.id sg_id
+				, dsm.name sg_name
+				, dsm.start_ymd
+				, dsm.end_ymd 
+				, TO_CHAR(dsm.insert_date, 'YYYY-MM-DD') insert_date
+				, TO_CHAR(dsm.request_date, 'YYYY-MM-DD') request_date
+				, dsm.status
+				, dsm.pay_status_code
+				, (SELECT c.code_name FROM public.code c WHERE c.code = dsm.pay_status_code) pay_code_name
+				, CASE 
+					WHEN dsm.pay_status_code = 'PAY_COMPLETE' THEN (SELECT TO_CHAR(insert_date, 'YYYY-MM-DD') FROM public.dsp_sg_pay_log WHERE sg_id = dsm.id AND kind = 'D') 
+					WHEN dsm.pay_status_code = 'REFUND_COMPLETE' THEN (SELECT TO_CHAR(insert_date, 'YYYY-MM-DD') FROM public.dsp_sg_pay_log WHERE sg_id = dsm.id AND kind = 'R') 
+					ELSE NULL
+					END pay_status_date 
+				, dsm.price
+				, dsm.pay_price
+				, dsm.total_pay_price
+				, TO_CHAR(dsm.approve_date, 'YYYY-MM-DD') reject_date
+				, dsm.reject_reason
+			FROM (
+				SELECT 
+					demand_id
+					, demand_name 
+					, demand_uid 
+					, status demand_status
+					, STRING_AGG(CAST(staff_role_id AS VARCHAR), ',') staff_role_id 
+					, STRING_AGG(CAST(staff_id AS VARCHAR), ',') staff_id 
+					, STRING_AGG(staff_name, ', ') staff_name 
+				FROM (
+					SELECT
+						m.*
+						, mm.staff_role_id
+						, mm.staff_id
+						, mm.staff_name
+					FROM (
+						SELECT
+							id AS demand_id
+							, company_name demand_name
+							, uname
+							, uid demand_uid
+							, status
+						FROM
+							member.member m
+						WHERE 
+							agency_id = #{login_agency_id}::bigint
+							AND utype = 'D'
+					) m
+					LEFT JOIN (
+						SELECT
+							m.id AS staff_id
+							, m.role_id AS staff_role_id
+							, m.uname AS staff_name
+							, mad.dsp_id
+						FROM (
+							SELECT 
+								m.id
+								, m.uname
+								, m.role_id
+							FROM 
+								member.member m
+							WHERE 
+								m.agency_id = #{login_agency_id}::bigint
+								AND m.utype = 'B'
+						) m
+						LEFT JOIN member.member_access_dsp mad
+						ON m.id = mad.member_id
+					) mm
+					ON m.demand_id = mm.dsp_id
+					<include refid="getAgencyDemandStaffSql" />
+				) m 
+				GROUP BY demand_id, demand_name, demand_uid, status
+			) mm
+			JOIN public.dsp_campaign dc 
+			ON mm.demand_id = dc.member_id 
+			JOIN public.dsp_sg_manager dsm 
+			ON dsm.campaign_id = dc.id
+			<where>
+				<include refid="getAgencyCostSgSql"/>
+			</where>
+		) mmm
+	</select>
+	
+	<!-- 대행사 로그인된 직원의 구분별 담당 광고주 목록 -->
+	<select id="getMemberPartDemandList" resultType="HashMap">
+		SELECT 
+			m.*
+			, rad.*
+		FROM (
+			SELECT
+				id member_id
+				, uid
+				, utype
+				, uname
+				, role_id
+				, company_name
+				, agency_id
+			FROM 
+				member.member 
+			WHERE 
+				id = #{login_id}::bigint
+				AND utype = 'B'
+		) m
+		JOIN (
+			SELECT 
+				rad.*
+				, m.uname dsp_name
+			FROM 
+				member.role_access_dsp rad
+			JOIN member.member m
+			ON rad.dsp_id = m.id
+		) rad
+		ON m.role_id = rad.role_id 
+	</select>
+	
+	<!-- 대행사 로그인된 직원의 개인별 담당 광고주 목록 -->
+	<select id="getMemberPersonalDemandList" resultType="HashMap">
+		SELECT 
+			m.*
+			, mad.*
+		FROM (
+			SELECT
+				id member_id
+				, uid
+				, utype
+				, uname
+				, role_id
+				, company_name
+				, agency_id
+			FROM 
+				member.member 
+			WHERE 
+				id = #{login_id}::bigint
+				AND utype = 'B'
+		) m 
+		JOIN (
+			SELECT
+				mad.*
+				, m.uname dsp_name
+			FROM 
+				member.member_access_dsp mad 
+			JOIN member.member m
+			ON mad.dsp_id = m.id
+		) mad
+		ON m.member_id = mad.member_id
+	</select>
+	
+	<!-- 대행사 소속 광고주 계정 삭제 -->
+	<update id="removeDemand">
+		UPDATE 
+			member.member
+		SET 
+			status = 'R'
+			, leave_request_date = NOW() 
+			, leave_reason = #{leave_reason}
+		WHERE
+			id = #{member_id}::bigint
+	</update>
+	
+	<!-- 대행사 소속 광고주 생성(등록) -->
+	<select id="addDemand" resultType="HashMap">
+		INSERT INTO 
+			member.member (
+				company_name
+				, company_regnum
+				, company_email
+				, ceo_name
+				, biz_type
+				, biz_kind 
+				, zipcode
+				, address1
+				, address2
+				, url
+				, uid
+				, email
+				, passwd
+				, uname
+				, mobile
+				, agency_id
+				, utype
+				, status
+				, role_id
+				, insert_date
+				, passwd_update_date
+				, temp_passwd_yn
+			)
+			values (
+				#{company_name}
+				, #{company_regnum}
+				, #{company_email}
+				, #{ceo_name}
+				, #{biz_type}
+				, #{biz_kind}
+				, #{zipcode}
+				, #{address1}
+				, #{address2}
+				, #{url}
+				, #{uid}
+				, #{email}
+				, #{passwd}
+				, #{uname}
+				, #{mobile}
+				, #{login_agency_id}::bigint
+				, 'D'
+				, #{status}
+				, #{role_id}::bigint
+				, now()
+				, now() + interval '180 day'
+				, #{temp_passwd_yn}
+			)
+			RETURNING id AS member_id
+	</select>
+	<!-- 광고주 담당자 목록 -->
+	<select id="getDemandAgencyMemberList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  member_id as staff_id
+			, dsp_id
+			, m.uname 
+			, m.role_id 
+			, rm."name" as role_name
+		FROM
+			member.member_access_dsp mad JOIN member.member m
+		ON mad.member_id = m.id AND mad.dsp_id = #{demand_id}
+		JOIN member.role_manager rm 
+		ON m.role_id = rm.id
+		WHERE
+ 			m.agency_id != 0
+	</select>
+	
+	<!-- 계정 수정 이력 히스토리 등록 -->
+	<insert id="addMemberModifyHistory" parameterType="HashMap">
+		INSERT INTO member.member_modify_history (
+			  member_id
+			, message
+			, update_date
+			, update_member_id
+			, screen_id
+			, ip_addr
+		) VALUES (
+			  #{member_id}::bigint
+			, #{message}
+			, NOW()
+			, #{login_id}::int
+			, #{screen_id}::int
+			, #{remote_ip}::inet
+		)
+	</insert>
+	
+	<!-- 활동 이력 조회 -->
+	<select id="getMemberModifyHistoryList" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+		    dmh.message
+		    , dmh.ip_addr
+		    , m.uid AS update_member_uid
+		    , to_char(dmh.update_date, 'YYYY-MM-DD') AS update_date
+		FROM
+		    member.member_modify_history dmh
+		JOIN member.member m
+		ON dmh.update_member_id = m.id 
+		WHERE
+			dmh.member_id = #{member_id}
+		ORDER BY 
+			dmh.update_date DESC
+	</select>
+	
+	<!-- 담당자 정보 조회 -->
+	<select id="getAgencyMemberList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			m.id AS staff_id
+			, m.uid 
+			, m.uname 
+		FROM
+		 	member.member m 
+		WHERE
+			m.utype = 'B' 
+			AND m.agency_id = #{login_agency_id}::bigint
+			<choose>
+				<when test="staff_id_list != null and staff_id_list">
+					AND m.id IN
+					<foreach item="id_list" collection="staff_id_list" separator="," open="(" close=")">
+						#{id_list.staff_id}
+					</foreach>
+				</when>
+				<otherwise>
+					AND m.id = #{staff_id}
+				</otherwise>			
+			</choose>
+	</select>
+	
+	<sql id="agency_sg_manager_order">
+		<choose>
+			<when test='sort_type == "AED"'>
+				ORDER BY A.total_exposure DESC
+			</when>
+			<when test='sort_type == "AEA"'>
+				ORDER BY A.total_exposure 
+			</when>
+			<when test='sort_type == "APD"'>
+				ORDER BY A.total_price DESC
+			</when>
+			<when test='sort_type == "APA"'>
+				ORDER BY A.total_price
+			</when>
+			<when test='sort_type == "TD"'>
+				ORDER BY A.count DESC
+			</when>
+		</choose>
+	</sql>
+	
+	<!-- 대행사 소속 광고주 / 직원의 경우 담당 광고주만 -->
+	<select id="getAgencyWithDemandList" resultType="HashMap">
+		SELECT
+			AA.*
+		FROM
+		(
+			SELECT
+				ROW_NUMBER() OVER(<include refid="agency_sg_manager_order"></include>) as seq
+				, A.*
+			FROM
+			(
+			
+				SELECT 
+					m.*
+					, mad.*
+					, COALESCE(R.total_exposure, 0) as total_exposure
+					, COALESCE(P.total_price, 0) as total_price
+					, P.count
+				FROM (
+					SELECT
+						id member_id
+						, uid
+						, utype
+						, uname
+						, role_id
+						, company_name
+						, agency_id
+					FROM 
+						member.member 
+					WHERE
+						id = #{login_id}::int
+						AND utype = 'B'
+				) m 
+				JOIN (
+					SELECT
+						mad.*
+						, m.uname as dsp_name
+						, m.uid as dsp_uid
+						, m.company_name as dsp_company_name
+					FROM 
+						member.member_access_dsp mad 
+					JOIN member.member m
+					ON mad.dsp_id = m.id
+				) mad
+				ON
+					m.member_id = mad.member_id
+				LEFT JOIN (
+					SELECT
+						SUM(total_count) as total_exposure
+						, dsp_id
+					FROM
+						dsp_report.count_sg cs
+					JOIN
+						public.dsp_sg_manager dsm
+					ON
+						cs.sg_id = dsm.id
+					WHERE
+						dsm.status = 1
+					AND	TO_CHAR(NOW(), 'YYYY-MM-DD') > data_ymd
+					GROUP BY
+						dsp_id
+				) R
+				ON
+					R.dsp_id = mad.dsp_id
+				JOIN (
+					SELECT
+						SUM(dsm.price) as total_price
+						, COUNT(*) as count
+						, member_id
+					FROM
+						dsp_campaign dc 
+					JOIN
+						dsp_sg_manager dsm
+					ON
+						dc.id = dsm.campaign_id 
+					WHERE dsm.status = 1
+					GROUP BY dc.member_id
+				) P
+				ON
+					P.member_id = mad.dsp_id
+			) A
+		) AA
+		ORDER BY AA.seq
+	</select>
+	
+	<sql id="campaign_sg_manager_order">
+		<choose>
+			<when test='sort_type == "RD"'>
+				ORDER BY A.request_date DESC
+			</when>
+			<when test='sort_type == "RA"'>
+				ORDER BY A.request_date
+			</when>
+		</choose>
+	</sql>
+	
+	<!-- 대행사 소속 광고주의 대기중인 캠페인 광고 정보 / 직원의 경우 담당 광고주만 -->
+	<select id="getDemandCampaginSgList" resultType="HashMap">
+		SELECT
+			AA.*
+		FROM
+		(
+			SELECT
+				ROW_NUMBER() OVER(<include refid="campaign_sg_manager_order"></include>) as seq
+				, A.*
+			FROM
+			(
+				SELECT 
+					m.*
+					, mad.*
+					, dc.pay_type 
+					, dc.name as campaign_name
+					, dc.id as campaign_id
+					, dsm.name as sg_name
+					, dsm.id as sg_id
+					, dsm.price
+					, dsm.request_date as request_timestamptz
+					, TO_CHAR(dsm.request_date, 'YYYY-MM-DD HH24:MI') as request_date
+				FROM (
+					SELECT
+						id member_id
+						, uid
+						, utype
+						, uname
+						, role_id
+						, company_name
+						, agency_id
+					FROM 
+						member.member 
+					WHERE
+						id = #{login_id}::int
+						AND utype = 'B'
+				) m 
+				JOIN (
+					SELECT
+						mad.*
+						, m.uname as dsp_name
+						, m.uid as dsp_uid
+						, m.company_name as dsp_company_name
+					FROM 
+						member.member_access_dsp mad 
+					JOIN member.member m
+					ON mad.dsp_id = m.id
+				) mad
+				ON m.member_id = mad.member_id
+				JOIN
+					dsp_campaign dc 
+				ON
+					dc.member_id = mad.dsp_id
+				JOIN
+					dsp_sg_manager dsm
+				ON
+					dc.id = dsm.campaign_id
+				AND status = 0
+			) A
+		) AA
+		ORDER BY AA.seq
+	</select>
+</mapper>

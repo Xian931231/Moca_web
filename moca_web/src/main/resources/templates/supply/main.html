@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<th:block layout:fragment="content">
+    <main class="main-panel">
+      <div class="pagePath">
+        매체 현황
+      </div>
+      <div class="content">
+        <div class="titleCont">
+          <h2 id="title">매체 진행 상황 <span id="standardTime"></span><i class="popTip" data-toggle="tooltip" data-placement="top" id="tip" title="매일 자정 전일자 데이터가 반영됩니다."></i></h2>
+        </div>
+        <ul class="nav nav-tabs advTabs medTabs">
+          <li class="nav-item">
+            <a class="nav-link active" href="#impressionTab" data-toggle="tab" data-src="list" data-act="clickTab" data-tab="impressions">
+              <div class="advTabsBtn">
+                <p>총 노출 수</p>
+                <p><span id="totalImpressionCnt"></span> 건</p>
+              </div>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#productTab" data-toggle="tab" data-src="list" data-act="clickTab" data-tab="product">
+              <div class="advTabsBtn">
+                <p>운영 중 상품</p>
+                <p><span id="totalProductCnt"></span> 건</p>
+              </div>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#deviceTab" data-toggle="tab" data-src="list" data-act="clickTab" data-tab="error">
+              <div class="advTabsBtn">
+                <p>장비 오류 현황</p>
+                <p><span id="totalErrorCnt"></span> 건</p>
+              </div>
+            </a>
+          </li>
+        </ul>
+        <div class="boderLine"></div>
+        <!--테이블 컨텐츠 시작-->
+        <!--각 테이블은 내용이 없더라도 11행은 유지해 주세요
+        스크롤 유무에 따라 고정된 테이블 헤더 값이 유동적입니다.-->
+        <div class="tab-content medTables">
+          <div class="tab-pane fade show active" id="impressionTab">
+            <!--<div>
+            <!--테이블 : 총 노출 수 / 시작-->
+            <div class="tableWrap" id="impressionWrap">
+              <div id="impressionsWrapDiv"></div>
+              <div class="tableInner medTable1">
+                <table class="table" id="medTable1">
+                  <colgroup>
+                    <col width="120px">
+                    <col width="230px">
+                    <col width="630px">
+                    <col width="*">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>NO</th>
+                      <th>분류</th>
+                      <th>상품명<span class="sortingArrow"><i></i><i data-src="list" data-act="clickSorting" data-sort="impressions" data-target="product" id="impressionsP"></i></span></th>
+                      <th>노출 수<span class="sortingArrow"><i></i><i data-src="list" data-act="clickSorting" data-sort="impressions" data-target="impressions" id="impressionsI"></i></span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="impressionTable">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <!--테이블 : 총 노출 수 / 끝-->
+          </div>
+          <div class="tab-pane fade" id="productTab">
+            <!--테이블 : 운영 중 상품 / 시작-->
+            <!--광고 없을 시 .tableWrap 에 .notAdv 추가-->
+            <div class="tableWrap" id="productWrap">
+              <div id="productWrapDiv"></div>
+              <div class="tableInner medTable2">
+                <table class="table" id="medTable2">
+                  <colgroup>
+                    <col width="180px">
+                    <col width="630px">
+                    <col width="200px">
+                    <col width="*">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>분류</th>
+                      <th>상품명</th>
+                      <th>화면 규격</th>
+                      <th>등록 일자<span class="sortingArrow"><i></i><i data-src="list" data-act="clickSorting" data-sort="product"></i></span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="productTable">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <!--테이블 : 운영 중 상품 / 끝-->
+          </div>
+          <div class="tab-pane fade" id="deviceTab">
+            <!--테이블 : 승인대기 상품 / 시작-->
+            <div class="tableWrap" id="errorWrap">
+              <div id="errorWrapDiv"></div>
+              <div class="tableInner medTable3">
+                <table class="table" id="medTable3">
+                  <colgroup>
+                    <col width="120px">
+                    <col width="530px">
+                    <col width="220px">
+                    <col width="100px">
+                    <col width="*">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>NO</th>
+                      <th>상품명<span class="sortingArrow"><i></i><i data-src="list" data-act="clickSorting" data-sort="error" data-target="product" id="errorP"></i></span></th>
+                      <th>디바이스S/N</th>
+                      <th>상태</th>
+                      <th>오류 발생 시간<span class="sortingArrow"><i></i><i data-src="list" data-act="clickSorting" data-sort="error" data-target="error" id="errorE"></i></span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="errorTable">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <!--테이블 : 승인 대기 상품 / 끝-->
+          </div>
+        </div>
+        <!--테이블 컨텐츠 끝-->
+      </div>
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/supply/main.js}"></script>
+	<script>
+		layout.setCallback(supplyMainList.init);
+	</script>
+</th:block>
+</html>

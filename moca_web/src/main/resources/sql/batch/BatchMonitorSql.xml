@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.batch.BatchMonitorMapper">
+	
+	<!-- batch_monitor 조회 -->
+	<select id="getBatchMonitor" resultType="HashMap">
+		SELECT 
+			batch_code
+			, name
+			, batch_path 
+			, log_path
+			, result
+			, result_message 
+			, execute_date
+			, record_size  
+			, last_index 
+			, update_date
+		FROM 
+			public.batch_monitor
+		WHERE 
+			batch_code = #{batch_code}
+	</select>
+	
+	<!-- batch_monitor 리스트 조회 -->
+	<select id="getBatchMonitorList" resultType="HashMap">
+		SELECT 
+			batch_code 
+			, name
+			, batch_path 
+			, log_path
+			, result
+			, result_message 
+			, execute_date
+			, record_size  
+			, last_index 
+			, update_date
+		FROM 
+			public.batch_monitor
+		<where>
+			<if test="name != null and name != ''">
+				name LIKE CONCAT('%', #{name}, '%')
+			</if>
+			<if test="result != null and result != ''">
+				AND result = #{result}
+			</if>
+		</where>
+		<trim prefix="ORDER BY" prefixOverrides=",">
+			<if test="batch_name != null and batch_name != ''">
+				, name DESC
+			</if>
+			<if test="batch_result != null and batch_result != ''">
+				, result DESC
+			</if>
+			, execute_date DESC
+		</trim> 
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+
+</mapper>

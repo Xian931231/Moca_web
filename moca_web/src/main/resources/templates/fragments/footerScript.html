@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+	<!-- 공통 스크립트 -->
+	<th:block th:fragment="footerScriptFragment">
+		<!-- jquery -->
+		<script th:src="@{/assets/js/jquery-3.7.0.min.js}"></script>
+		<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script> -->
+
+		<!-- bootstrap -->
+  		<script th:src="@{/assets/bootstrap/js/bootstrap.bundle.min.js}"></script>
+		<script th:src="@{/assets/bootstrap/js/bootstrap-select.min.js}"></script>
+		<script th:src="@{/assets/bootstrap/js/bootstrap-datepicker.min.js}"></script>
+		<script th:src="@{/assets/bootstrap/js/bootstrap-datepicker.ko.min.js}"></script>
+         
+
+		<script th:src="@{/js/util/util.js}"></script>
+		<script th:src="@{/js/common/page.js}"></script>
+		<script th:src="@{/js/common/customModal.js}"></script>
+		<script th:src="@{/js/common/loginCustomModal.js}"></script>
+		<script th:src="@{/js/assets/gibberish-aes.js}"></script>
+		<script th:src="@{/js/assets/h.comm.js}"></script>
+		
+		<script th:src="@{/js/common/customDatePicker.js}"></script>
+		<script th:src="@{/js/common/globalConfig.js}"></script>
+        <script th:src="@{/js/common/multiSelectPicker.js}"></script>
+        
+		
+		<!-- util -->
+		<script th:src="@{/js/util/fileUtil.js}"></script>
+		
+		<script th:src="@{/assets/js/common.js}"></script>
+		
+	</th:block>
+	<!-- 모카페 플랫폼 스크립트 -->
+	<th:block th:fragment="platformFooterScriptFragment">
+		
+		<script th:src="@{/js/page/layout/menu.js}"></script>
+		<script th:src="@{/js/page/layout/layout.js}"></script>
+		<script th:src="@{/js/page/layout/header.js}"></script>
+		
+		<!-- vendor -->
+		<script th:src="@{/vendor/moment/moment.min.js}"></script>
+		<script th:src="@{/vendor/moment/moment-with-locales.min.js}"></script>
+	</th:block>
+	<!-- 별도 페이지 스크립트 -->
+	<th:block th:fragment="externalFooterScriptFragment">
+		<script th:src="@{/js/page/layout/externalLayout.js}"></script>
+		<script th:src="@{/js/page/layout/externalHeader.js}"></script>
+		
+		<script th:src="@{/vendor/sheetjs/xlsx.full.min.js}"></script>
+	</th:block>
+</html>

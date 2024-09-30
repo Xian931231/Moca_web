@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.member.DemandMemberMapper">
+	<!-- 활동 이력 조회 -->
+	<select id="getList" resultType="HashMap">
+		SELECT 
+		    dmh.message
+		    , c1.code_name AS kind_name
+		    , dmh.kind
+		    , dmh.modify_id
+		    , dsm.name AS sg_name
+		    , c2.code_name AS type_name
+		    , dmh.modify_type
+		    ,REGEXP_REPLACE(
+				host(dmh.ip_addr)
+				, '\.\d+\.\d+\.'
+				, '.xxx.xxx.'
+		    ) AS masked_ip
+		    , TO_CHAR(dmh.update_date, 'YYYY-MM-DD HH24:MI:SS') AS update_date
+		FROM
+		    public.dsp_modify_history dmh
+		JOIN
+		    public.code c1
+		ON
+		    dmh.kind = c1.code
+		JOIN
+		    public.code c2
+		ON
+		    dmh.modify_type = c2.code
+		JOIN
+			public.dsp_sg_manager dsm
+		on
+			dmh.modify_id = dsm.id
+		<where>
+			dmh.update_member_id = #{login_id}::bigint
+			<if test='str_dt != null and str_dt != "" '>
+				AND TO_CHAR(dmh.update_date , 'YYYY-MM-DD')::timestamp >= #{str_dt}::timestamp
+			</if>
+			<if test='end_dt != null and end_dt != "" '>
+				AND TO_CHAR(dmh.update_date , 'YYYY-MM-DD')::timestamp  <![CDATA[ <= ]]> #{end_dt}::timestamp
+			</if>
+		</where>
+		ORDER BY dmh.update_date DESC
+		<if test='limit != null and offset != null'>
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 활동 이력 개수 -->
+	<select id="getListCnt" resultType="int">
+		SELECT 
+		   COUNT(*)
+		FROM
+		    public.dsp_modify_history dmh
+		JOIN
+		    public.code c1
+		ON
+		    dmh.kind = c1.code
+		JOIN
+		    public.code c2
+		ON
+		    dmh.modify_type = c2.code
+		JOIN
+		    public.dsp_sg_manager dsm
+		on
+		    dmh.modify_id = dsm.id
+		<where>
+			dmh.update_member_id = #{login_id}::bigint
+			<if test='str_dt != null and str_dt != "" '>
+				AND TO_CHAR(dmh.update_date , 'YYYY-MM-DD')::timestamp >= #{str_dt}::timestamp
+			</if>
+			<if test='end_dt != null and end_dt != "" '>
+				AND TO_CHAR(dmh.update_date , 'YYYY-MM-DD')::timestamp  <![CDATA[ <= ]]> #{end_dt}::timestamp
+			</if>
+		</where>
+	</select>
+	
+	<!-- 활동 이력 추가 -->
+	<insert id="addDspModHistory">
+		INSERT INTO dsp_modify_history(
+			kind
+			, modify_id
+			, modify_type
+			, message
+			, update_member_id
+			, ip_addr
+			, update_date
+		)VALUES(
+			#{kind}
+			, #{modify_id}::bigint
+			, #{status}
+			, #{message}
+			, #{update_member_id}::bigint
+			, #{ip_addr}::inet
+			, now()
+		)
+	</insert>
+	
+	<!-- 매체 조회 -->
+	<select id="getSupplyList" resultType="HashMap">
+		SELECT
+			id as member_id
+			, company_name
+		FROM
+			member.member
+		WHERE
+			utype = 'S'
+		AND status = 'A'
+	</select>
+	
+</mapper>

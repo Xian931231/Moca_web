@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/externalLayout}">
+<th:block layout:fragment="content">
+    <main class="main-panel measuring moCafePanel">
+      <div class="content reg">
+        <div class="titleCont">
+          <h2>기기/위치 매칭</h2>
+        </div>
+        <div class="measuring tab-content advTablesCpm">
+          <div class="management">
+          <div class="moCafeFormWrap">
+            <div class="pad-select">
+              <span class="device-text">선택 매체</span>
+              <span class="selectFinWrap">
+                <select id="supplySb" class="selectpicker" data-src="matchingList" data-act="changeSupply">
+                </select>
+              </span>
+            </div>
+            <div class="pad-select">
+              <span class="device-text">선택 분류</span>
+              <span class="selectFinWrap">
+              <select id="categorySb" class="selectpicker" data-src="matchingList" data-act="changeCategory">
+              </select>
+            </span>
+            </div>
+            <div class="pad-select">
+              <span class="device-text">게재 위치</span>
+              <span class="selectFinWrap">
+              <select id="motorPositionSb" class="selectpicker" data-src="matchingList" data-act="changeMotorPosition">
+              </select>
+            </span>
+            </div>
+          </div>
+          
+          <!-- 테이블 / 시작 -->
+          <div class="tableWrap">
+            <div class="tableInner">
+              <table class="table advTable5">
+                <colgroup>
+                  <col width="250px">
+                  <col width="250px">
+                  <col width="*">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>구분 ID</th>
+                    <th>IP</th>
+                    <th>검수</th>
+                  </tr>
+                </thead>
+                <tbody id="listBody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 전체 / 끝 -->
+        </div>
+        </div>        
+      </div>
+      <!--검수 모달-->
+      <div class="modal fade" id="matchingInspectionModal" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog product device matching">
+          <div class="modal-content">
+            <div class="modal-body">
+              <div class="modal-device">
+                <div>선택된 상품</div>
+                <span id="matchingDevices"></span>
+              </div>
+              <div class="modal-device">
+                <div>선택된 측정장비</div>
+                <span id="matchingSensorDevices"></span>
+              </div>
+              <div class="modal-device">
+                <label>비고</label>
+                <textarea class="note-textarea" id="notes" cols="30" rows="2.5" placeholder="차량속도 측정장비(CSCJ2134)&#10;불량"></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-lg btn-clear" data-dismiss="modal" data-src="matchingList" data-act="clickMatchingInspection" data-inpection-status="2">오류</button>
+                <button type="button" class="btn-lg btn-dark" data-dismiss="modal" data-src="matchingList" data-act="clickMatchingInspection" data-inpection-status="1">검수 완료</button>             
+            </div>
+          </div>
+        </div>
+        <input type="hidden" id="motorId">
+      </div> 
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/external/matching/list.js}"></script>
+	<script>
+		externalLayout.setCallback(matchingList.init);
+	</script>
+</th:block>
+</html>

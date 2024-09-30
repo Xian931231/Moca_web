@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<th:block layout:fragment="content">
+<main class="main-panel cpp">
+  <div class="pagePath">
+    광고 관리<span>&gt;</span>캠페인 / 광고 관리<span>&gt;</span>캠페인 내 광고 리스트
+  </div>
+  <div class="content">
+    <div class="titleCont">
+      <h2 id="campaignName"></h2>
+      <p>
+        <span id="payType"></span>
+        <span id="secondInfo"></span>
+        <span id="thirdInfo"></span>
+      </p>
+    </div>
+    <div>
+      <!--캠페인 수정 페이지로 이동(14p, 02_광고관리_01D2_7)-->
+      <button type="button" class="btn-lg btn-clear" data-src="list" data-act="moveCampaignModify"> 캠페인 수정 </button>
+      <!--- 
+     해당 캠페인 삭제 후 캠페인/광고 관리 페이지로 이동(7p, 02_광고관리_01D1)
+     onclick="location.href='02_cus-01_ctrCamp.html'"
+     onclick="location.href='02_cus-01_cpmList..html'"
+      - 광고가 진행중인 캠페인은 삭제 불가 얼럿
+      - 삭제된 캠페인 잔액 회수 얼럿 -->
+      <button type="button" class="btn-lg btn-clear" data-src="list" data-act="removeCampaign"> 캠페인 삭제하기 </button>
+      <button type="button" class="btn-lg btn-clear" data-src="list" data-act="moveCampaignList">
+         캠페인 리스트로 이동
+      </button>
+      <button type="button" class="btn-lg btn-dark" data-src="list" data-act="moveSgAdd">
+        <!--해당 캠페인 내에 새로운 광고 등록, 
+        광고 신청 페이지로 이동(26p, 02_광고관리_02D2)--> 새로운 광고 등록 &nbsp; <img src="/assets/imgs/icon_add.png" alt="">
+      </button>
+    </div>
+    <!-- 캠페인 삭제하기 모달 : 시작 -->
+    <div class="modal fade" id="campDel" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <!--'캠페인 삭제' 버튼 기능 2가지-->
+            <!--기능 1 메시지-->
+            <p>광고가 진행중인 캠페인은 삭제하실 수 없습니다.</p>
+            <!--기능 2 메시지 주석처리 -->
+            <!--<p>삭제된 캠페인의 잔액은 계정 잔액으로 회수됩니다.</p>-->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-sm btn-dark" data-dismiss="modal">확인</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 캠페인 삭제하기 모달 : 끝 -->
+    <ul id="menuTab" class="nav nav-tabs advTabs cpp">
+      <li class="nav-item">
+        <a class="nav-link active" data-src="list" data-act="getSgList" data-toggle="tab" href="#advCppCampTabs1">
+          <div class="advTabsBtn">
+            <p id="total"></p>
+          </div>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-src="list" data-act="getSgList" data-toggle="tab" href="#advCampTabs2">
+          <div class="advTabsBtn">
+            <p id="proceed" data-status="1"></p>
+          </div>
+        </a>
+      </li>
+      <li id="pauseTab" class="nav-item">
+        <a class="nav-link" data-src="list" data-act="getSgList" data-toggle="tab" href="#advCampTabs3">
+          <div class="advTabsBtn">
+            <p id="pause" data-status="2"></p>
+          </div>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-src="list" data-act="getSgList" data-toggle="tab" href="#advCampTabs4">
+          <div class="advTabsBtn">
+            <p id="request" data-status="0"></p>
+          </div>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-src="list" data-act="getSgList" data-toggle="tab" href="#advCampTabs5">
+          <div class="advTabsBtn">
+            <p id="reject" data-status="9"></p>
+          </div>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-src="list" data-act="getSgList" data-toggle="tab" href="#advCampTabs6">
+          <div class="advTabsBtn">
+            <p id="end" data-status="8"></p>
+          </div>
+        </a>
+      </li>
+    </ul>
+    <div class="tab-content advTablesCpm">
+      <div class="tab-pane fade" id="advCampTabs1">
+        <!-- 전체 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCamp1">
+            <table class="table" id="advTableCamp1">
+              <colgroup>
+                <col width="66px">
+                <col width="110.5px">
+                <col width="254px">
+                <col width="187.55px">
+                <col width="122px">
+                <col width="90px">
+                <col width="90px">
+                <col width="90px">
+                <col width="90px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <th>NO</th>
+                <th>상태</th>
+                <th>광고 제목</th>
+                <th>광고 소재</th>
+                <th>시작일</th>
+                <th>목표 노출 수</th>
+                <th>일 노출 제한</th>
+                <th>금일 노출 수</th>
+                <th>미 노출 수</th>
+                <th>총 노출 수</th>
+              </thead>
+              <tbody id="allCpmListBody">
+             </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 전체 / 끝 -->
+      </div>
+      <div class="tab-pane fade" id="advCampTabs2">
+        <!-- 진행중 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCamp2">
+            <table class="table" id="advTableCamp2">
+              <colgroup>
+                <col width="66px">
+                <col width="110.5px">
+                <col width="254px">
+                <col width="187.55px">
+                <col width="122px">
+                <col width="90px">
+                <col width="90px">
+                <col width="90px">
+                <col width="90px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <th>
+                  <span class="chk">
+                    <input type="checkbox" id="allCheckProceedCpm" data-src="list" data-act="changeAllCheckbox">
+                    <label for="allCheckProceedCpm"></label>
+                  </span>
+                </th>
+                <th>NO</th>
+                <th>광고 제목</th>
+                <th>광고 소재</th>
+                <th>시작일</th>
+                <th>목표 노출 수</th>
+                <th>일 노출 제한</th>
+                <th>금일 노출 수</th>
+                <th>미 노출 수</th>
+                <th>총 노출 수</th>
+              </thead>
+              <tbody id="proceedCpmListBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 진행중 / 끝 -->
+        <button type="button" class="btn-lg btn-clear" data-src="list" data-act="pauseSg" data-toggle="modal" data-target="#advPause"> 선택한 광고 진행 일시중지 </button>
+      </div>
+      <div class="tab-pane fade" id="advCampTabs3">
+        <!-- 일시중지 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCamp3">
+            <table class="table" id="advTableCamp3">
+              <colgroup>
+                <col width="66px">
+                <col width="110.5px">
+                <col width="254px">
+                <col width="187.55px">
+                <col width="122px">
+                <col width="90px">
+                <col width="90px">
+                <col width="90px">
+                <col width="90px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <th>
+                  <span class="chk">
+                    <input type="checkbox" id="allCheckPauseCpm" data-src="list" data-act="changeAllCheckbox">
+                    <label for="allCheckPauseCpm"></label>
+                  </span>
+                </th>
+                <th>NO</th>
+                <th>광고 제목</th>
+                <th>광고 소재</th>
+                <th>시작일</th>
+                <th>목표 노출 수</th>
+                <th>일 노출 제한</th>
+                <th>금일 노출 수</th>
+                <th>미 노출 수</th>
+                <th>총 노출 수</th>
+              </thead>
+              <tbody id="pauseCpmListBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 진행중 / 끝 -->
+        <button type="button" class="btn-lg btn-dark" data-src="list" data-act="proceedSg" data-toggle="modal" data-target="#advRestart"> 선택한 광고 다시 진행 </button>
+      </div>
+      <div class="tab-pane fade" id="advCampTabs4">
+        <!-- 승인대기 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCamp4">
+            <table class="table" id="advTableCamp4">
+              <colgroup>
+                <col width="54px">
+                <col width="66px">
+                <col width="384px">
+                <col width="200px">
+                <col width="122px">
+                <col width="122px">
+                <col width="122px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    <span class="chk">
+                      <input type="checkbox" id="allCheckRequestCpm" data-src="list" data-act="changeAllCheckbox">
+                      <label for="allCheckRequestCpm"></label>
+                    </span>
+                  </th>
+                  <th>NO</th>
+                  <th>광고 제목</th>
+                  <th>광고 소재</th>
+                  <th>광고시작 <br />요청일 </th>
+                  <th>승인요청 <br />일시 </th>
+                  <th>목표 노출 수</th>
+                  <th>일 노출 제한 <br />설정 금액 </th>
+                </tr>
+              </thead>
+              <tbody id="requestCpmListBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!--승인대기 / 끝 -->
+        <button type="button" class="btn-lg btn-clear" data-src="list" data-act="removeRequestSg"> 선택한 광고 삭제 </button>
+      </div>
+      <div class="tab-pane fade" id="advCampTabs5">
+        <!-- 승인거부 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCamp5">
+            <table class="table" id="advTableCamp5">
+              <colgroup>
+                <col width="56px">
+                <col width="66px">
+                <col width="340px">
+                <col width="180px">
+                <col width="112px">
+                <col width="112px">
+                <col width="112px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    <span class="chk">
+                      <input type="checkbox" id="allCheckRejectCpm" data-src="list" data-act="changeAllCheckbox">
+                      <label for="allCheckRejectCpm"></label>
+                    </span>
+                  </th>
+                  <th>NO</th>
+                  <th>광고 제목</th>
+                  <th>광고 소재</th>
+                  <th>승인요청 일시</th>
+                  <th>입금확인 일시</th>
+                  <th>승인거부 일시</th>
+                  <th>승인거부 사유</th>
+                </tr>
+              </thead>
+              <tbody id="rejectCpmListBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!--승인거부 / 끝 -->
+        <button type="button" class="btn-lg btn-clear" data-src="list" data-act="removeRejectSg"> 선택한 광고 삭제 </button>
+      </div>
+      <div class="tab-pane fade" id="advCampTabs6">
+        <!-- 종료 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCamp6">
+            <table class="table" id="advTableCamp6">
+              <colgroup>
+                <col width="52px">
+                <col width="62px">
+                <col width="323px">
+                <col width="200px">
+                <col width="105px">
+                <col width="105px">
+                <col width="105px">
+                <col width="105px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    <span class="chk">
+                      <input type="checkbox" id="allCheckEndCpm" data-src="list" data-act="changeAllCheckbox">
+                      <label for="allCheckEndCpm"></label>
+                    </span>
+                  </th>
+                  <th>NO</th>
+                  <th>광고 제목</th>
+                  <th>광고 소재</th>
+                  <th>시작일</th>
+                  <th>종료 시점</th>
+                  <th>목표 노출 수</th>
+                  <th>총 노출 수</th>
+                  <th>종료 사유</th>
+                </tr>
+              </thead>
+              <tbody id="endCpmListBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!--종료 / 끝 -->
+        <button type="button" class="btn-lg btn-clear" data-src="list" data-act="removeEndSg"> 선택한 광고 삭제 </button>
+      </div>
+      <!-- cpp 시작 -->
+      <div class="tab-pane fade" id="advCppCampTabs1">
+        <!-- 전체 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCppCamp1">
+            <table class="table" id="advTableCppCamp1">
+              <colgroup>
+                <col width="76px">
+                <col width="110.5px">
+                <col width="345px">
+                <col width="200px">
+                <col width="246px">
+                <col width="107px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>NO</th>
+                  <th>상태</th>
+                  <th>광고 제목</th>
+                  <th>광고 소재</th>
+                  <th>진행 상품</th>
+                  <th>시작일<br />~<br />종료일</th>
+                  <th>집행 금액</th>
+                </tr>
+              </thead>
+              <tbody id="allCppListBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 전체 / 끝 -->
+      </div>
+      <div class="tab-pane fade" id="advCppCampTabs2">
+        <!-- 진행중 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCppCamp2">
+            <table class="table" id="advTableCppCamp2">
+              <colgroup>
+                <col width="62px">
+                <col width="454px">
+                <col width="200px">
+                <col width="246px">
+                <col width="112px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>NO</th>
+                  <th>광고 제목</th>
+                  <th>광고 소재</th>
+                  <th>진행 상품</th>
+                  <th>시작일<br />~<br />종료일</th>
+                  <th>집행 금액<br />(VAT 별도)</th>
+                </tr>
+              </thead>
+              <tbody id="proceedCppListBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 진행중 / 끝 -->
+      </div>
+      <div class="tab-pane fade" id="advCppCampTabs3">
+        <!-- 승인대기 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCppCamp3">
+            <table class="table" id="advTableCppCamp3">
+              <colgroup>
+                <col width="58px">
+                <col width="58px">
+                <col width="363px">
+                <col width="196px">
+                <col width="242px">
+                <col width="140.5px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    <span class="chk">
+                      <input type="checkbox" id="allCheckRequestCpp" data-src="list" data-act="changeAllCheckbox">
+                      <label for="allCheckRequestCpp"></label>
+                    </span>
+                  </th>
+                  <th>NO</th>
+                  <th>광고 제목</th>
+                  <th>광고 소재</th>
+                  <th>진행 상품</th>
+                  <th>시작일<br />~<br />종료일</th>
+                  <th>승인 요청 일시</th>
+                </tr>
+              </thead>
+              <tbody id="requestCppListBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!--승인대기 / 끝 -->
+        <button type="button" class="btn-lg btn-clear" data-src="list" data-act="removeRequestSg">
+          선택한 광고 삭제
+        </button>
+      </div>
+      <div class="tab-pane fade" id="advCppCampTabs4">
+        <!-- 승인거부 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCppCamp4">
+            <table class="table" id="advTableCppCamp4">
+              <colgroup>
+                <col width="62px">
+                <col width="62px">
+                <col width="340px">
+                <col width="180px">
+                <col width="112px">
+                <col width="112px">
+                <col width="112px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    <span class="chk">
+                      <input type="checkbox" id="allCheckRejectCpp" data-src="list" data-act="changeAllCheckbox">
+                      <label for="allCheckRejectCpp"></label>
+                    </span>
+                  </th>
+                  <th>NO</th>
+                  <th>광고 제목</th>
+                  <th>광고 소재</th>
+                  <th>승인요청 일시</th>
+                  <th>입금확인 일시</th>
+                  <th>승인거부 일시</th>
+                  <th>승인거부 사유</th>
+                </tr>
+              </thead>
+              <tbody id="rejectCppListBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!--승인거부 / 끝 -->
+        <button type="button" class="btn-lg btn-clear" data-src="list" data-act="removeRejectSg">
+          선택한 광고 삭제
+        </button>
+      </div>
+      <div class="tab-pane fade" id="advCppCampTabs5">
+        <!-- 종료 / 시작 -->
+        <div class="tableWrap">
+          <div class="tableInner advTableCppCamp5">
+            <table class="table" id="advTableCppCamp5">
+              <colgroup>
+                <col width="62px">
+                <col width="62px">
+                <col width="310px">
+                <col width="180px">
+                <col width="170px">
+                <col width="100px">
+                <col width="76px">
+                <col width="80px">
+                <col width="*">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>
+                    <span class="chk">
+                      <input type="checkbox" id="allCheckEndCpp" data-src="list" data-act="changeAllCheckbox">
+                      <label for="allCheckEndCpp"></label>
+                    </span>
+                  </th>
+                  <th>NO</th>
+                  <th>광고 제목</th>
+                  <th>광고 소재</th>
+                  <th>진행 상품</th>
+                  <th>시작일<br />~<br />종료일</th>
+                  <th>진행 기간</th>
+                  <th>집행 금액</th>
+                  <th>종료 사유</th>
+                </tr>
+              </thead>
+              <tbody id="endCppListBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!--종료 / 끝 -->
+        <button type="button" class="btn-lg btn-clear" data-src="list" data-act="removeEndSg">
+          선택한 광고 삭제
+        </button>
+      </div>
+    </div>
+    <!-- 선택한 광고 삭제 모달 : 시작 -->
+    <div class="modal fade" id="advDel" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>요청하신 광고 승인이 취소되고 해당 광고를 삭제합니다.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-sm btn-dark" data-dismiss="modal">확인</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 선택한 광고 삭제 모달 : 끝 -->
+  </div>
+</main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/demand/campaign/sg/list.js}"></script>
+	<script>
+		layout.setCallback(sgList.init);
+	</script>
+</th:block>
+</html>

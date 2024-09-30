@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+	<head>
+		<!-- 공통 CSS -->        
+        <!-- <th:block th:replace="fragments/headerScript :: headerScriptFragment"></th:block> -->
+        <!-- Required meta tags -->
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- Bootstrap CSS -->
+		<link rel="stylesheet" th:href="@{/assets/bootstrap/css/bootstrap.min.css}">
+		<!-- only css -->
+		<link href="https://cdn.jsdelivr.net/npm/reset-css@5.0.1/reset.min.css" rel="stylesheet">
+		
+		<link rel="stylesheet" type="text/css" th:href="@{/assets/css/common.css}">
+		<link rel="stylesheet" type="text/css" th:href="@{/assets/css/login.css}">
+	</head>
+	<body>
+		<div class="wrapper_join">
+		    <header>
+		      <h1>
+		        <a href="javascript:;" data-src="error" data-act="clickMoveLoginPage">
+		          <img th:src="@{/assets/imgs/logo_moca.png}" alt="모카페어드민">
+		        </a>
+		      </h1>
+		    </header>
+		
+		    <section id="con_error" class="terms-section">
+		      <div class="error-all">
+		        <div  class="error_img">
+		        <p>해당 페이지에 연결할 수 없습니다.<br>
+		          로그인 후 다시 시도해 주세요.
+		          </p>
+		          <a href="javascript:;" data-src="error" data-act="clickMoveLoginPage">
+		            <button type="button" class="license-btn">로그인 페이지로 이동</button>
+		          </a>
+		      </div>
+		      </div>
+		    </section>
+		  </div>
+	</body>
+	<th:block layout:fragment="script">
+	<script th:src="@{/assets/js/jquery-3.7.0.min.js}"></script>
+	<script th:src="@{/js/page/error.js}"></script>
+		<script>
+			error.init();
+		</script>
+	</th:block>
+</html>

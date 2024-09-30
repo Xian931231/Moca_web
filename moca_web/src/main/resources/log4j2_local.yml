@@ -1,0 +1,32 @@
+Configutation:
+  name: Default
+  status: warn
+
+  Properties:
+    Property:
+    - name: "log-path"
+      value: "/Users/mocafe/logs/web"
+    - name: pattern
+      value: "%highlight{[%-5level]}{FATAL=bg_red, ERROR=red, WARN=yellow, INFO=cyan, DEBUG=green} %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"
+
+  Appenders:
+    Console:
+      name: Console_Appender
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: ${pattern}
+
+          
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: Console_Appender
+#        - ref: File_Appender
+    Logger:
+      - name: com.mocafelab.web
+        additivity: false
+        level: debug
+        AppenderRef:
+          - ref: Console_Appender
+#          - ref: File_Appender

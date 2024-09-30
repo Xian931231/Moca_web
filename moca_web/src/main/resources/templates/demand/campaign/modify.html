@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<th:block layout:fragment="content">
+<main class="main-panel cpmCppModify shortPanel">
+  <div class="pagePath">
+    광고 관리<span>&gt;</span>캠페인 / 광고 관리<span>&gt;</span>캠페인 수정
+  </div>
+  <div class="content">
+    <div class="titleCont">
+      <h2>캠페인 수정</h2>
+    </div>
+    <div class="adv-content advForms">
+      <p> ※ 과금 방식은 수정이 불가능합니다. <br /> &nbsp;&nbsp;&nbsp;&nbsp;다른 과금 방식을 선택하시려면 새로운 캠페인을 신청해주세요. </p>
+      <div class="formWrap">
+        <form onsubmit="return false;">
+          <div class="innerForm">
+            <ul class="formList newCamp">
+              <li>
+                <div>과금 방식</div>
+                <div id="payType"></div>
+                <div id="cppPrice" style="display: none;">
+                   <div style="margin: 0px 30px">|</div>
+                   <div>총 집행금액 : </div>
+                   <div id="price"></div>
+                </div>
+              </li>
+              <li>
+                <div>캠페인 이름</div>
+                <div>
+                  <input id="name" type="text" class="form-control" maxLength="30">
+                </div>
+              </li>
+            </ul>
+          </div>
+          <!-- Button trigger modal -->
+          <div class="btnGroupTwin">
+            <button type="button" class="btn-lg btn-clear" data-src="modify" data-act="moveSgList"> 이전 페이지로 </button>
+            <button type="button" class="btn-lg btn-dark" data-src="modify" data-act="modifyCampaign"> 수정 내용 저장하기 </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/demand/campaign/modify.js}"></script>
+	<script>
+		layout.setCallback(modify.init);
+	</script>
+</th:block>

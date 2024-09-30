@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/joinLayout}">
+<th:block layout:fragment="joinContent">
+    <section id="login" class="terms-section">
+      <div class="terms-wrap">
+        <form class="terms-join-form">
+          <ul class="join-center" id="termsList">
+            <li>
+              <div class="text-box">
+                <h2 name="joinType"></h2>
+                <p>회원가입약관 및 개인정보처리방침안내의 내용에 동의하셔야 회원가입 하실 수 있습니다.
+                </p>
+              </div>
+              <div class="consent-box">
+                <input type="checkbox" name="consent" id="consent" value="consent" checked="consent" data-src="join" data-act="allAgree">
+                <label for="consent"></label>
+                <span>약관 및 방침에 모두 동의합니다.</span>
+              </div>
+            </li>
+            <li class="join-consent">
+              <p>서비스 이용약관</p>
+              <textarea name="join-textarea" cols="100" rows="15" id="serviceTerms" readonly></textarea>
+            </li>
+            <li class="terms-join-checkbox">
+              <input type="checkbox" class="chk" name="agree" id="consent-ck1" checked="consent-ck1" data-src="join" data-act="agree">
+              <label for="consent-ck1"></label>
+              <span>동의합니다.</span>
+            </li>
+          </ul>
+          <ul class="join-box">
+            <li class="join-btn">
+              <a href="javascript:;" data-src="join" data-act="clickPrev">
+                <button type="button" class="previous-btn">이전 단계로</button>
+              </a>
+            </li>
+            <li class="join-btn">
+              <button type="button" class="completion-btn" data-src="join" data-act="clickComplete">동의 및 정보입력 완료</button>
+            </li>
+          </ul>
+        </form>
+      </div>
+    </section>
+    <section id="jogin" class="jogin-section">
+      <div class="customer_join">
+        <h2 name="joinType">광고주 회원가입</h2>
+      </div>
+      <div class="join-all">
+        <form class="join-form">
+          <ul class="join-center">
+            <h2>사업자 정보 입력</h2>
+            <li class="join-corporate">
+              <span class="form-label">상호(법인명)</span>
+              <input type="text" class="form-control" name="joinCompanyName" id="joinCompanyName">
+            </li>
+            <li class="join-business_number">
+              <span class="form-label">사업자등록번호 <span style="color:#f15a22;">[법인]</span></span>
+              <input type="text" class="form-control" name="joinCompanyRegnum" id="joinCompanyRegnum" data-src="join" data-act="changeBiznum" maxlength="20">
+              <p id="regnumNotice"></p>
+            </li>
+            <li class="join-representative">
+              <span class="form-label">대표자 성명</span>
+              <input type="text" class="form-control" name="joinCeoName" id="joinCeoName">
+            <li class="join-occupation">
+              <span class="form-label">업태</span>
+              <input type="text" class="form-control" name="joinBizType" id="joinBizType">
+            </li>
+            <li class="join-business">
+              <span class="form-label">업종</span>
+              <input type="text" class="form-control" name="joinBizKind" id="joinBizKind">
+            </li>
+            <li class="join-address">
+              <span class="form-label">사업장 주소</span>
+              <div>
+                <input type="text" class="form-control" name="joinAddress1" id="joinAddress1" data-src="join" data-act="clickAddressInput">
+                <input type="hidden" class="form-control" name="joinZipcode" id="joinZipcode">
+                <button type="button" class="address-btn" data-src="join" data-act="clickPostcode" id ="postcodeBtn">주소찾기</button>
+              </div>
+            </li>
+            <li class="join-detailed_add">
+              <span class="form-label">상세주소</span>
+              <input type="text" class="form-control" name="joinAddress2" id="joinAddress2">
+            </li>
+            <li class="join-license">
+              <span class="form-label">사업자등록증 <span>[pdf, png, jpg] 200kb 미만</span></span>
+              <div class="addFile">
+                <input type="file" class="custom-file-input" id="joinCompanyRegnumImage" name="joinCompanyRegnumImage" accept=".jpg,.pdf,.png" data-src="join" data-act="changeFile"><label class="custom-file-label form-control selected" for="joinCompanyRegnumImage"></label>
+              </div>
+              <p id="fileAlert"></p>
+            </li>
+            <li class="join-url">
+              <span for="url" class="form-label">대표 URL <span>[선택]</span></span>
+              <input type="text" class="form-control" name="joinUrl" id="joinUrl">
+            </li>
+            <li class="join-userId">
+              <h2>기본 정보 입력</h2>
+              <span class="form-label">아이디</span>
+              <input type="text" class="form-control" name="joinUid" id="joinUid" data-src="join" data-act="idInput" autocomplete="new-password">
+              <button type="button" class="userId-btn" data-src="join" data-act="clickIdCheck">사용가능 여부 확인</button>
+              <p>영문, 숫자 혼용 6~15자 입력</p>
+            </li>
+            <li class="join-pw">
+              <span class="form-label">비밀번호</span>
+              <input type="password" class="form-control" name="joinPasswd" id="joinPasswd" data-src="join" data-act="comfirmPasswd" autocomplete="new-password">
+              <p>특수문자 1자리, 영문 2자리, 숫자 포함 총 10자리 이상</p>
+            </li>
+            <li class="join-pw2">
+              <span class="form-label">비밀번호 확인</span>
+              <input type="password" class="form-control" name="joinConfirmPasswd" id="joinConfirmPasswd" data-src="join" data-act="comfirmPasswd" placeholder="비밀번호 재입력">
+              <p id="passwdConfirmText"></p>
+            </li>
+            <li class="join-email">
+              <span class="form-label">이메일</span>
+              <div>
+                <input type="text" name="joinCompanyEmail" id="joinCompanyEmail" class="form-control email" data-src="join" data-act="authEmail1">
+                <span>@</span>
+                <input type="text" name="joinCompanyEmailAddress" id="joinCompanyEmailAddress" class="form-control email" data-src="join" data-act="authEmail2">
+                <select name="selectEmailAddress" id="selectEmailAddress" class="selectpicker" data-src="join" data-act="selectEmail">
+                  <option value="directInput" selected>직접 입력</option>
+                  <option value="naver.com">naver.com</option>
+                  <option value="gmail.com">gmail.com</option>
+                  <option value="nate.com">nate.com</option>
+                  <option value="daum.com">daum.com</option>
+                  <option value="hanmail.com">hanmail.com</option>
+                </select>
+                <button type="button" class="userId-btn" id="authBtn" data-src="join" data-act="clickAuthSend">인증번호 전송하기</button>
+              </div>
+            </li>
+            <li class="join-email-number">
+              <span class="form-label">인증번호 입력</span>
+              <div>
+                 <input type="text" class="form-control" name="authNumber" id="authNumber">
+                 <span class="stopwatch" id="authTimer">5:00</span>
+              </div>
+              <button type="button" class="userId-btn" data-src="join" data-act="clickAuthCheck">인증번호 확인</button>
+              <p id="emailConfirm"></p>
+            </li>
+            <li class="join-checkbox">
+              <span class="consent">수신동의<span>[선택]</span></span>
+              <input type="checkbox" name="email" id="email" checked>
+              <label for="email"></label>
+              <span>E-Mail</span>
+              <input type="checkbox" name="sns" id="sns" checked>
+              <label for="sns"></label>
+              <span>SMS</span>
+            </li>
+            <li class="join-contact-Name">
+              <h2>업무 담당자 정보 입력</h2>
+              <span class="form-label">담당자 이름</span>
+              <input type="text" class="form-control" name="joinUname" id="joinUname">
+            </li>
+              <li class="join-phone">
+              <span class="form-label">담당자 연락처</span>
+              <input type="text" class="form-control" name="joinMobile" id="joinMobile" data-src="join" data-act="changeMobile" maxlength="13">
+            </li>
+            <li class="join-email">
+              <span class="form-label">담당자 이메일</span>
+              <input type="email" class="form-control" name="joinUemail" id="joinUemail">
+              <span class="chk">
+                <input type="checkbox" id="correctBase" name="correctBase" data-src="join" data-act="clickCorrectBase">
+                <label for="correctBase"><span>기본 정보와 동일합니다.</span></label>
+              </span>
+            </li>
+            <ul class="join-box">
+              <li class="join-btn">
+                <a href="javascript:;" data-src="join" data-act="clickPrevJoin">
+                <button type="button" class="previous-btn">이전 페이지로</button>
+                </a>
+              </li>
+              <li class="join-btn">
+                <button type="button" class="completion-btn" data-src="join" data-act="clickSignUp">회원가입 완료</button>
+              </li>
+            </ul>
+          </ul>
+        </form>
+      </div>
+    </section>
+</th:block>
+<th:block layout:fragment="script">
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+	<script th:src="@{/js/page/signup/join.js}"></script>
+    <script>
+       $(document).ready(function(){
+          join.init();
+       });
+   	</script>
+</th:block>
+</html>

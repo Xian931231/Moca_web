@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/joinLayout}">
+<th:block layout:fragment="joinContent">
+	<section class="policy-section">
+      <div class="policy-all">
+        <form class="policy-form">
+          <ul class="join-center">
+            <li class="policy01">
+                <h2>운영정책</h2>
+            </li>
+            <li class="policy-consent">
+              <p>서비스 이용약관</p>
+              <textarea name="join-textarea" cols="100" rows="15" id="serviceArea"readonly>
+              </textarea>
+            </li>
+            <li class="policy-consent">
+              <p>광고주 이용약관</p>
+              <textarea name="join-textarea" cols="100" rows="15" id="demandArea" readonly>
+              </textarea>                  
+            </li>
+            <li class="policy-consent">
+              <p>대행사 이용약관</p>
+              <textarea name="join-textarea" cols="100" rows="15" id="agencyArea" readonly>
+              </textarea>                  
+            </li>
+          </ul>
+        </form>
+      </div>
+    </section>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/support/policy.js}"></script>
+	<script>
+   		$(document).ready(function(){
+           policy.init();
+        });
+	</script>
+</th:block>
+</html>

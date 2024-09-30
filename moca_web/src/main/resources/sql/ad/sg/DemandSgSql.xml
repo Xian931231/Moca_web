@@ -1,0 +1,921 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.ad.sg.DemandSgMapper">
+
+	<!-- 광고주 ( demand ) -->
+	<update id="demandModifyStatus">
+		UPDATE 
+			dsp_sg_manager
+		SET 
+			status = #{status}::int
+			<if test='status == 2'>
+			, stop_date = now()
+			</if>
+		<where>
+			id = #{sg_id}::int
+			<choose>
+				<when test='status == 1'>
+					AND status = 2
+				</when>
+				<when test='status == 2'>
+					AND status = 1
+				</when>
+			</choose>
+		</where>
+	</update>
+	
+	<!-- 광고(정책) 기본 정보 등록 -->
+	<insert id="addSgBasic" parameterType="HashMap" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO public.dsp_sg_manager (
+			  campaign_id
+			, name
+			, main_category_code
+			, middle_category_code
+			, sub_category_code
+			, start_ymd
+			<if test='end_ymd != null and end_ymd != ""'>
+			, end_ymd
+			</if>
+			, price
+			, pay_price
+			, total_pay_price
+			<if test='target_area_yn != null and target_area_yn != ""'>
+			, target_area_yn
+			</if>
+			<if test='target_week_yn != null and target_week_yn != ""'>
+			, target_week_yn
+			</if>
+			, material_kind
+			, exposure_time
+			<if test='exposure_target != null and exposure_target != ""'>
+			, exposure_target
+			, remain_exposure_count
+			</if>
+			<if test='exposure_limit != null and !exposure_limit.equals("")'>
+			, exposure_limit
+			</if>
+			<if test='ssp_product_id != null and ssp_product_id != ""'>
+			, ssp_product_id
+			</if>
+			, status
+			, insert_date
+			, request_date
+			, exposure_horizon_type
+			, exposure_vertical_type
+			, material_ratio
+		)
+		VALUES (
+			  #{campaign_id}
+			, #{name}
+			, #{main_category_code}
+			, #{middle_category_code}
+			, #{sub_category_code}
+			, #{start_ymd}
+			<if test='end_ymd != null and end_ymd != ""'>
+			, #{end_ymd}
+			</if>
+			, #{price}
+			, #{pay_price}
+			, 0
+			<if test='target_area_yn != null and target_area_yn != ""'>
+			, #{target_area_yn}
+			</if>
+			<if test='target_week_yn != null and target_week_yn != ""'>
+			, #{target_week_yn}
+			</if>
+			, #{material_kind}
+			, #{exposure_time}
+			<if test='exposure_target != null and exposure_target != ""'>
+			, #{exposure_target}
+			, #{exposure_target}
+			</if>
+			<if test='exposure_limit != null and !exposure_limit.equals("")'>
+			, #{exposure_limit}::int
+			</if>
+			<if test='ssp_product_id != null and ssp_product_id != ""'>
+			, #{ssp_product_id}::bigint
+			</if>
+			, #{status}
+			, now()
+			, now()
+			, #{exposure_horizon_type}
+			, #{exposure_vertical_type}
+			, #{material_ratio}
+		)
+	</insert>
+	
+	<!-- 캠페인 조회 -->
+	<select id="getCampaign" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id
+			, name
+			, pay_type
+		FROM 
+			public.dsp_campaign
+		WHERE
+			id = #{campaign_id}::bigint
+		AND member_id = #{login_id}::int
+	</select>
+	
+	<!-- 카테고리 코드 조회 -->
+	<select id="hasCategoryCode" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.code
+		WHERE
+			code = #{sub_category_code}
+	</select>
+	
+	<!-- 광고 노출 지역 등록 -->
+	<insert id="addSgArea" parameterType="HashMap">
+		INSERT INTO public.dsp_sg_area (
+			  sg_id
+			, area_id
+		)
+		VALUES (
+			  #{sg_id}
+			, #{area_id}
+		)
+	</insert>
+	
+	<!-- 지역 코드 유무 체크 -->
+	<select id="hasAreaCode" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.area_code
+		WHERE
+			id = #{area_id}::bigint
+	</select>
+	
+	<!-- 광고 스케줄 등록 -->
+	<insert id="addSgSchedule" parameterType="HashMap">
+		INSERT INTO public.dsp_sg_week (
+			  sg_id
+			, week_code
+			, week_name
+			, hour_00
+			, hour_01
+			, hour_02
+			, hour_03
+			, hour_04
+			, hour_05
+			, hour_06
+			, hour_07
+			, hour_08
+			, hour_09
+			, hour_10
+			, hour_11
+			, hour_12
+			, hour_13
+			, hour_14
+			, hour_15
+			, hour_16
+			, hour_17
+			, hour_18
+			, hour_19
+			, hour_20
+			, hour_21
+			, hour_22
+			, hour_23
+			, use_yn
+		)
+		VALUES (
+			  #{sg_id}::bigint
+			, #{week_code}::smallint
+			, (select public.f_convert_dow(#{week_code}::int))
+			, #{hour_00}::smallint
+			, #{hour_01}::smallint
+			, #{hour_02}::smallint
+			, #{hour_03}::smallint
+			, #{hour_04}::smallint
+			, #{hour_05}::smallint
+			, #{hour_06}::smallint
+			, #{hour_07}::smallint
+			, #{hour_08}::smallint
+			, #{hour_09}::smallint
+			, #{hour_10}::smallint
+			, #{hour_11}::smallint
+			, #{hour_12}::smallint
+			, #{hour_13}::smallint
+			, #{hour_14}::smallint
+			, #{hour_15}::smallint
+			, #{hour_16}::smallint
+			, #{hour_17}::smallint
+			, #{hour_18}::smallint
+			, #{hour_19}::smallint
+			, #{hour_20}::smallint
+			, #{hour_21}::smallint
+			, #{hour_22}::smallint
+			, #{hour_23}::smallint
+			, #{use_yn}
+		)
+	</insert>
+	
+	<!-- 광고 소재 등록 -->
+	<insert id="addSgMaterial" parameterType="HashMap">
+		INSERT INTO public.dsp_sg_material(
+			  sg_id
+			, name
+			, file_path
+			, file_name
+			, file_type
+			, file_size
+			<if test='width != null and width != ""'>
+			, width
+			</if>
+			<if test='height != null and height != ""'>
+			, height
+			</if>
+			<if test='playtime != null and playtime != ""'>
+			, playtime
+			</if>
+			, insert_date
+			, page_size_code
+			, default_yn
+			, ratio_type
+		)
+		VALUES (
+			  #{sg_id}
+			, #{name}
+			, #{file_path}
+			, #{file_name}
+			, #{file_type}
+			, #{file_size}::bigint
+			<if test='width != null and width != ""'>
+			, #{width}
+			</if>
+			<if test='height != null and height != ""'>
+			, #{height}
+			</if>
+			<if test='playtime != null and playtime != ""'>
+			, #{playtime}
+			</if>
+			, now()
+			, #{page_size_code}
+			, #{default_yn}
+			, #{ratio_type}
+		)
+	</insert>
+	
+	<!-- 광고 상세 조회  -->
+	<select id="getSgManager" resultType="HashMap">
+		SELECT 
+			id
+			, campaign_id 
+			, name
+			, main_category_code
+			, middle_category_code
+			, sub_category_code
+			, (SELECT code_name FROM public.code c WHERE c.code = main_category_code) as main_category_name
+			, (SELECT code_name FROM public.code c WHERE c.code = middle_category_code) as middle_category_name
+			, (SELECT code_name FROM public.code c WHERE c.code = sub_category_code) as sub_category_name
+			, price
+			, start_ymd
+			, end_ymd
+			, insert_date
+			, request_date
+			, pay_price
+			, total_pay_price
+			, status 
+			, target_area_yn 
+			, target_week_yn 
+			, exposure_time 
+			, exposure_target
+			, exposure_limit 
+			, ssp_product_id 
+			, material_kind
+			, exposure_horizon_type
+			, exposure_vertical_type
+			, material_ratio
+			, pay_status_code
+		FROM 
+			public.dsp_sg_manager 
+		WHERE 
+			id = #{sg_id}::bigint
+	</select>
+	
+	<!-- 광고 소재 상세 -->
+	<select id="getSgMaterial" resultType="HashMap">
+		SELECT
+			id
+			, sg_id 
+			, name
+			, insert_date
+			, file_path
+			, file_name 
+			, file_type
+			, file_size 
+			, default_yn
+			, ratio_type
+			, page_size_code
+			, playtime
+			, (SELECT description FROM public.code c WHERE c.code = page_size_code) as size_descriptione
+		FROM 
+			public.dsp_sg_material
+		WHERE sg_id = #{sg_id}::bigint
+	</select>
+	
+	<!-- 광고 스케쥴 조회 -->
+	<select id="getSgWeek" resultType="HashMap">
+		SELECT 
+			*
+		FROM 
+			public.dsp_sg_week
+		WHERE 
+			sg_id = #{sg_id}::bigint
+	</select>
+	
+	<!-- 광고 지역 조회 -->
+	<select id="getSgArea" resultType="HashMap">
+		SELECT
+			dsa.id
+			, dsa.sg_id 
+			, ac.id area_id 
+			, CONCAT(ac.si_name, ' ' ,ac.gu_name, ' ', ac.dong_name) area_name
+			, si_name
+			, gu_name
+			, si_code
+		FROM 
+			public.dsp_sg_area dsa
+		JOIN public.area_code ac 
+		ON dsa.area_id = ac.id
+		WHERE 
+			sg_id = #{sg_id}::bigint
+	</select>
+		
+	<!-- 광고 진행 상품 조회 -->
+	<select id="getSgProduct" resultType="HashMap">
+		SELECT
+			id
+			, category_id 
+			, product_name
+			, screen_resolution
+			, support_format
+		FROM 
+			public.ssp_product
+		WHERE 
+			id = #{ssp_product_id}
+	</select>
+	
+	<!-- 광고 지역 유무 확인 -->
+	<select id="hasSgArea" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM 
+			public.dsp_sg_area
+		WHERE 
+			sg_id = #{sg_id}::bigint
+	</select>
+
+	<!-- dsp_sg_manager 수정 -->
+	<update id="modifySgManager">
+		UPDATE 
+			public.dsp_sg_manager
+		SET 
+			name = #{name}
+			, main_category_code = #{main_category_code}
+			, middle_category_code = #{middle_category_code}
+			, sub_category_code = #{sub_category_code}
+			, status = 0
+			, pay_status_code = 'PAY_WAIT'
+			, start_ymd = #{start_ymd}
+			, reject_reason = NULL
+			, approve_date = NULL
+			<if test='end_ymd != null and end_ymd != ""'>
+				, end_ymd = #{end_ymd}
+			</if>
+			<if test='target_week_yn != null and target_week_yn != ""'>
+				, target_week_yn = #{target_week_yn}
+			</if>
+			<if test='target_area_yn != null and target_area_yn != ""'>
+				, target_area_yn = #{target_area_yn}
+			</if>
+			, material_kind = #{material_kind}
+			, exposure_time = #{exposure_time}
+			<if test='exposure_target != null and exposure_target !=""'>
+				, exposure_target = #{exposure_target}
+				, remain_exposure_count = #{exposure_target}
+			</if>
+			<if test='exposure_limit != null and exposure_limit !=""'>
+				, exposure_limit = #{exposure_limit}::int
+			</if>
+			<if test='exposure_type != null and exposure_type !=""'>
+				, exposure_type = #{exposure_type}
+			</if>
+			<if test='ssp_product_id != null and ssp_product_id !=""'>
+				, ssp_product_id = #{ssp_product_id}::bigint
+			</if>
+			<if test='material_ratio != null and material_ratio != ""'>
+				, material_ratio = #{material_ratio}
+			</if>
+			<if test='exposure_horizon_type != null and exposure_horizon_type != ""'>
+				, exposure_horizon_type = #{exposure_horizon_type}
+			</if>
+			<if test='exposure_vertical_type != null and exposure_vertical_type != ""'>
+				, exposure_vertical_type = #{exposure_vertical_type}
+			</if>
+			, price = #{price}
+			, pay_price = #{price}
+			, total_pay_price = 0
+			, request_date = now()
+			, update_date = now()
+		WHERE 
+			id = #{sg_id}::bigint
+	</update>
+	
+	<!-- dss_sg_manager 삭제 -->
+	<select id="removeSgManager" resultType="HashMap">
+		DELETE FROM public.dsp_sg_manager
+		WHERE id = #{sg_id}::int
+		RETURNING name
+	</select>
+	
+	<!-- dsp_sg_material 수정 -->
+	<update id="modifySgMaterial">
+		UPDATE 
+			public.dsp_sg_material
+		SET 
+			name = #{ext_exclude_name}
+			, file_path = #{file_path}
+			, file_name = #{file_name}
+			, file_type = #{file_type}
+			, file_size = #{file_size}
+			<if test='width != null and width != ""'>
+				, width = #{width}
+			</if>
+			<if test='height != null and height != ""'>
+				, height = #{height}
+			</if>
+			<if test='playtime != null and playtime != ""'>
+				, playtime = #{playtime}
+			</if>
+			, default_yn = #{default_yn}
+			, page_size_id = #{page_size_id}
+		WHERE 
+			sg_id = #{sg_id}::bigint
+	</update>
+	
+	<!-- dsp_sg_material 삭제 -->
+	<delete id="removeSgMaterial">
+		DELETE FROM public.dsp_sg_material
+		WHERE sg_id = #{sg_id}::int
+	</delete>
+	
+	
+	<!-- dsp_sg_pay_log 삭제 -->
+	<delete id="removeSgPayLog">
+		DELETE FROM public.dsp_sg_pay_log
+		WHERE sg_id = #{sg_id}::int
+	</delete>
+	
+	<!-- dsp_sg_week 수정 -->
+	<update id="modifySgWeek">
+		UPDATE
+			public.dsp_sg_week
+		SET 
+			week_name = (select public.f_convert_dow(#{week_code}::int)) 
+			, hour_00 = #{hour_00}::smallint
+			, hour_01 = #{hour_01}::smallint
+			, hour_02 = #{hour_02}::smallint
+			, hour_03 = #{hour_03}::smallint
+			, hour_04 = #{hour_04}::smallint
+			, hour_05 = #{hour_05}::smallint
+			, hour_06 = #{hour_06}::smallint
+			, hour_07 = #{hour_07}::smallint
+			, hour_08 = #{hour_08}::smallint
+			, hour_09 = #{hour_09}::smallint
+			, hour_10 = #{hour_10}::smallint
+			, hour_11 = #{hour_11}::smallint
+			, hour_12 = #{hour_12}::smallint
+			, hour_13 = #{hour_13}::smallint
+			, hour_14 = #{hour_14}::smallint
+			, hour_15 = #{hour_15}::smallint
+			, hour_16 = #{hour_16}::smallint
+			, hour_17 = #{hour_17}::smallint
+			, hour_18 = #{hour_18}::smallint
+			, hour_19 = #{hour_19}::smallint
+			, hour_20 = #{hour_20}::smallint
+			, hour_21 = #{hour_21}::smallint
+			, hour_22 = #{hour_22}::smallint
+			, hour_23 = #{hour_23}::smallint
+			, use_yn = #{use_yn}::bpchar
+		WHERE 
+			sg_id = #{sg_id}::bigint
+			AND week_code = #{week_code}::smallint
+	</update>
+	
+	<!-- dsp_sg_week 삭제 -->
+	<delete id="removeSgWeek">
+		DELETE FROM dsp_sg_week 
+		WHERE 
+			sg_id = #{sg_id}::int
+	</delete>
+	
+	<!-- dsp_sg_area 수정 -->
+	<update id="modifySgArea">
+		UPDATE
+			dsp_sg_area
+		SET 
+			area_id = #{area_id}
+		WHERE
+			sg_id = #{sg_id}
+	</update>
+	
+	<!-- dsp_sg_area 제거 -->
+	<delete id="removeSgArea">
+		DELETE FROM
+			public.dsp_sg_area 
+		WHERE
+			sg_id = #{sg_id}::int
+	</delete>
+	
+	<select id="getSgMaterialFile" resultType="HashMap" parameterType="HashMap">
+		SELECT
+			file_path
+			, file_name
+		FROM
+			public.dsp_sg_material
+		WHERE
+			id =#{material_id}::int
+	</select>
+	
+	<delete id="removeSgMaterialFile">
+		DELETE FROM public.dsp_sg_material
+		WHERE
+			id = #{material_id}::int
+	</delete>
+	
+	<!-- 매체/상품 조회 -->
+	<select id="getProductList" parameterType="HashMap" resultType="HashMap">
+		SELECT DISTINCT
+			sst.*
+		FROM
+			(SELECT
+				ss.id AS slot_id
+				, ss.slot_order 
+				, ss.play_time 
+				, ss.slot_type
+				, s.schedule_name 
+				, s.id 
+			FROM 
+				public.schedule_slot ss 
+			JOIN public.schedule s 
+			ON ss.schedule_id = s.id) AS sst
+		FULL JOIN (
+			SELECT
+				pt.*
+				, scp.schedule_id 
+			FROM 
+				schedule_product scp
+			JOIN (SELECT 
+					m.company_name
+					, sc.category_name 
+					, sp.id
+					, sp.product_name 
+				FROM 
+					member.member m
+				JOIN public.ssp_category sc 
+				ON sc.member_id = m.id 
+				JOIN public.ssp_product sp
+				ON sp.category_id = sc.id) AS pt
+			ON pt.id = scp.product_id) AS spt
+		ON spt.schedule_id = sst.id
+		WHERE
+			sst.slot_type = 'C'
+		ORDER BY sst.id DESC, sst.slot_order
+	</select>
+	
+	<!-- 가중치 조회 -->
+	<select id="getRate" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			rate
+		FROM
+			public.price_rate_manager
+		WHERE
+			rate_code = #{rate_code}
+	</select>
+	
+	<!-- rate_kind 별로 가중치 리스트 조회 -->
+	<select id="getRateList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			rate
+			, rate_code
+		FROM
+			public.price_rate_manager
+		WHERE
+			rate_kind = #{rate_kind}
+	</select>
+	
+	<!-- 광고 등록 시 캠페인 등록자 확인 -->
+	<select id="hasCampaignMember" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.dsp_campaign
+		WHERE
+			member_id = #{login_id}::bigint
+		AND id = #{campaign_id}::int
+	</select>
+	
+	<sql id="demandSgListSql">
+		<where>
+			dc.member_id = #{login_id}::bigint
+			<if test='status != null and status == 100'>
+				AND dsm.status = 0
+			</if>
+			<if test='status != null and status == 1'>
+				AND dsm.status IN (1, 2, 8)
+			</if>
+			<if test='status != null and status == 9'>
+				AND dsm.status = 9
+			</if>
+			<if test='pay_status_code != null and pay_status_code != ""'>
+				AND dsm.pay_status_code = #{pay_status_code}
+			</if>
+			<if test='str_dt != null and str_dt !=""'>
+				<![CDATA[
+				AND dsm.insert_date >= #{str_dt}::timestamptz
+				]]>				
+			</if>
+			<if test='end_dt != null and end_dt !=""'>
+				<![CDATA[
+				AND dsm.insert_date <= (#{end_dt}::timestamptz + interval '1 day') 
+				]]>				
+			</if>
+		</where> 
+	</sql>
+	
+	<!-- 캠페인 및 광고 목록 -->
+	<select id="getDemandSgList" resultType="HashMap">
+		SELECT
+			s.campaign_id 
+			, s.campaign_name
+			, s.member_id 
+			, s.pay_type 
+			, s.sg_id
+			, s.sg_name
+			, s.start_ymd
+			, s.end_ymd
+			, TO_CHAR(s.insert_date, 'YYYY-MM-DD') insert_date
+			, s.stop_date 
+			, s.reject_reason 
+			, s.approve_date 
+			, s.status
+			, s.pay_status_code
+			, (SELECT c.code_name FROM public.code c WHERE c.code = pay_status_code) pay_code_name
+			, CASE 
+				WHEN pay_status_code = 'PAY_COMPLETE' THEN (SELECT TO_CHAR(insert_date, 'YYYY-MM-DD') FROM public.dsp_sg_pay_log WHERE sg_id = s.sg_id AND kind = 'D') 
+				WHEN pay_status_code = 'REFUND_COMPLETE' THEN (SELECT TO_CHAR(insert_date, 'YYYY-MM-DD') FROM public.dsp_sg_pay_log WHERE sg_id = s.sg_id AND kind = 'R') 
+				ELSE NULL
+				END pay_status_date 
+			, s.price 
+			, s.pay_price
+			, s.total_pay_price 
+		FROM (
+			SELECT 
+				dc.id campaign_id 
+				, dc.name campaign_name
+				, dc.member_id 
+				, dc.pay_type 
+				, dsm.id sg_id
+				, dsm.name sg_name
+				, TO_CHAR(CAST(dsm.start_ymd AS TIMESTAMPTZ), 'YYYY-MM-DD') start_ymd
+				, CASE 
+					WHEN dsm.end_ymd != '0' THEN TO_CHAR(CAST(dsm.end_ymd AS TIMESTAMPTZ), 'YYYY-MM-DD')
+					ELSE dsm.end_ymd
+				END end_ymd
+				, dsm.insert_date 
+				, dsm.stop_date 
+				, dsm.reject_reason 
+				, dsm.approve_date 
+				, dsm.status
+				, dsm.pay_status_code 
+				, dsm.price 
+				, dsm.pay_price
+				, dsm.total_pay_price 
+			FROM 
+				public.dsp_campaign dc 
+			JOIN public.dsp_sg_manager dsm 
+			ON dc.id = dsm.campaign_id
+			<include refid="demandSgListSql"/>
+		) s
+		ORDER BY s.insert_date DESC
+		<if test='limit != null and offset != null'>
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 캠페인 및 광고 목록 카운트 -->
+	<select id="getDemandSgListCount" resultType="Integer">
+		SELECT
+			count(*)
+		FROM (
+			SELECT 
+				dc.id campaign_id 
+				, dc.name campaign_name
+				, dc.member_id 
+				, dc.pay_type 
+				, dsm.id sg_id
+				, dsm.name sg_name
+				, TO_CHAR(CAST(dsm.start_ymd AS TIMESTAMPTZ), 'YYYY-MM-DD') start_ymd
+				, CASE 
+					WHEN dsm.end_ymd != '0' THEN TO_CHAR(CAST(dsm.end_ymd AS TIMESTAMPTZ), 'YYYY-MM-DD')
+					ELSE dsm.end_ymd
+				END end_ymd
+				, dsm.insert_date 
+				, dsm.stop_date 
+				, dsm.reject_reason 
+				, dsm.approve_date 
+				, dsm.status
+				, dsm.pay_status_code
+				, (SELECT c.code_name FROM public.code c WHERE c.code = pay_status_code) pay_code_name
+				, CASE 
+					WHEN pay_status_code = 'PAY_COMPLETE' THEN (SELECT TO_CHAR(insert_date, 'YYYY-MM-DD') FROM public.dsp_sg_pay_log WHERE sg_id = sg_id AND kind = 'P') 
+					WHEN pay_status_code = 'REFUND_COMPLETE' THEN (SELECT TO_CHAR(insert_date, 'YYYY-MM-DD') FROM public.dsp_sg_pay_log WHERE sg_id = sg_id AND kind = 'R')  
+					ELSE NULL
+					END pay_status_date
+				, dsm.price 
+				, dsm.pay_price
+				, dsm.total_pay_price 
+			FROM 
+				public.dsp_campaign dc 
+			JOIN public.dsp_sg_manager dsm 
+			ON dc.id = dsm.campaign_id
+			<include refid="demandSgListSql"/>
+		) s
+	</select>
+	
+	<!-- 구 카테고리 목록 -->
+	<select id="getAreaGuList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			MIN(id) as area_id
+			, gu_name
+		FROM
+			public.area_code
+		WHERE
+			si_code = #{si_code}
+		GROUP BY gu_code, gu_name
+		ORDER BY gu_code 
+	</select>
+	
+	<!-- 해당 슬롯의 광고 목록 조회 -->
+	<select id="getSgIdList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			sg_id
+		FROM
+			public.schedule_product_slot_sg
+		WHERE
+			schedule_product_slot_id = #{schedule_product_slot_id}::int
+	</select>
+	
+	<!-- 슬롯에 광고가 존재할 때 광고가 유효한지 체크 -->
+	<select id="isExpireSg" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			public.dsp_sg_manager
+		WHERE
+			id IN
+			<foreach collection="sgIdList" item="sg_id_list" open="(" close=")" separator=",">
+				#{sg_id_list.sg_id}::int
+			</foreach>			
+		AND status IN(0, 1, 2)
+	</select>
+	
+	<!-- 광고 소재 detail -->
+	<select id="getMaterialDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			file_path
+			, file_name
+			, file_type
+			, ratio_type
+		FROM
+			public.dsp_sg_material dsp
+		WHERE
+			id = #{material_id}::int
+	</select>
+	
+	<sql id="dsp_sg_manager_order">
+		<choose>
+			<when test='sort_type == "CA"'>
+				ORDER BY A.campaign_name 
+			</when>
+			<when test='sort_type == "CD"'>
+				ORDER BY A.campaign_name DESC
+			</when>
+			<when test='sort_type == "SA"'>
+				ORDER BY A.sg_name 
+			</when>
+			<when test='sort_type == "SD"'>
+				ORDER BY A.sg_name DESC
+			</when>
+			<when test='sort_type == "PA" or sort_type == "APA" or sort_type == "APD"'>
+				ORDER BY A.price 
+			</when>
+			<when test='sort_type == "PD"'>
+				ORDER BY A.price DESC
+			</when>
+			<when test='sort_type == "DA"'>
+				ORDER BY A.request_date 
+			</when>
+			<when test='sort_type == "DD"'>
+				ORDER BY A.request_date DESC
+			</when>
+			<when test='sort_type == "EA" or sort_type == "AEA" or sort_type == "AED"'>
+				ORDER BY A.exposure_count
+			</when>
+			<when test='sort_type == "ED"'>
+				ORDER BY A.exposure_count DESC
+			</when>
+			<when test='sort_type == "PT"'>
+				ORDER BY A.pay_type DESC, remain_exposure_count DESC, end_ymd DESC
+			</when>
+			<otherwise>
+				ORDER BY A.request_date
+			</otherwise>
+		</choose>
+	</sql>	
+	
+	<!-- 캠페인 정보와 함께 광고 조회 -->
+	<select id="getList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			AA.*
+		FROM
+		(
+			SELECT
+				ROW_NUMBER() OVER(<include refid="dsp_sg_manager_order"></include>) as seq
+				, A.*
+			FROM
+			(
+				SELECT
+					dsm.id as sg_id
+					, dsm.status
+					, dsm.name as sg_name
+					, dsm.price
+					, dsm.start_ymd 
+					, dsm.end_ymd 
+					, dsm.exposure_target
+					, dsm.insert_date
+					, TO_CHAR(dsm.request_date, 'YYYY-MM-DD HH24:MI') as request_date
+					, COALESCE(E.exposure_count, 0) as exposure_count
+					, dsm.remain_exposure_count
+					, dc.id as campaign_id 
+					, dc.name as campaign_name
+					, dc.pay_type
+					, dc.member_id
+				FROM
+					public.dsp_sg_manager dsm 
+				JOIN
+					public.dsp_campaign dc 
+				ON
+					dc.id = dsm.campaign_id
+				LEFT JOIN
+				(
+					SELECT
+						SUM(cs.total_count) as exposure_count
+						, sg_id
+					FROM
+						dsp_report.count_sg cs
+					<where>
+					  <choose>
+						<when test='demandList != null and demandList != ""'>
+						  	AND dsp_id IN
+							<foreach collection="demandList" item="demand" open="(" close=")" separator=",">
+								#{demand.dsp_id}::int
+							</foreach>			
+						</when>
+						<otherwise>
+							AND dsp_id = #{login_id}::int
+						</otherwise>
+					  </choose>
+					</where>
+					AND TO_CHAR(NOW(), 'YYYY-MM-DD') > data_ymd
+					GROUP BY sg_id
+				) as E
+				ON
+					E.sg_id = dsm.id
+				<where>
+				  <choose>
+					<when test='demandList != null and demandList != ""'>
+					  	AND member_id IN
+						<foreach collection="demandList" item="demand" open="(" close=")" separator=",">
+							#{demand.dsp_id}::int
+						</foreach>			
+					</when>
+					<otherwise>
+						AND member_id = #{login_id}::int
+					</otherwise>
+				  </choose>
+				</where>
+				<if test='status != null'>
+				AND dsm.status = #{status}::int 
+				</if>
+			) as A
+		) as AA
+		ORDER BY AA.seq DESC
+	</select>
+	<!-- // 광고주 -->
+	
+</mapper>

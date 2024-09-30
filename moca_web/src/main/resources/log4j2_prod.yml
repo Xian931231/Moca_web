@@ -1,0 +1,67 @@
+Configutation:
+  name: Default
+  status: warn
+
+  Properties:
+    Property:
+    - name: "log-path"
+      value: "/home/mocafe/logs"
+    - name: pattern
+      value: "%highlight{[%-5level]}{FATAL=bg_red, ERROR=red, WARN=yellow, INFO=cyan, DEBUG=green} %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"
+
+  Appenders:
+    Console:
+      name: Console_Appender
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: ${pattern}
+#    File:
+#      name: File_Appender
+#      fileName: ${log-path}/${date:yyyy-MM-dd}_web.log
+#      PatternLayout:
+#        pattern: ${pattern}
+    RollingFile:
+      - name: Basic_RollingFile_Appender
+        fileName: ${log-path}/system_basic.log
+        filePattern: "${log-path}/basic_archive/rollingfile_%d{yyyy-MM-dd}.log.gz"
+        PatternLayout:
+          pattern: ${pattern}
+        Policies:
+          TimeBasedTriggeringPolicy:
+            Interval: 1
+            modulate: true
+        DefaultRollOverStrategy:
+          max: "24"
+          fileIndex: "max"
+      - name: Error_RollingFile_Appender
+        fileName: ${log-path}/system_error.log
+        filePattern: "${log-path}/error_archive/rollingfile_%d{yyyy-MM-dd}.log.gz"
+        PatternLayout:
+          pattern: ${pattern}
+        Policies:
+          TimeBasedTriggeringPolicy:
+            Interval: 1
+            modulate: true
+#          SizeBasedTriggeringPolicy:
+#            size: "10 MB"
+        DefaultRollOverStrategy:
+          max: "24"
+          fileIndex: "max"
+          
+          
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: Console_Appender
+    Logger:
+      - name: com.mocafelab.web
+        additivity: false
+        level: debug
+        AppenderRef:
+          - ref: Basic_RollingFile_Appender
+      - name: com.mocafelab.web.exception
+        additivity: false
+        level: debug
+        AppenderRef:
+          - ref: Error_RollingFile_Appender

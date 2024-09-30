@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/externalLayout}">
+<th:block layout:fragment="content">
+	<main class="main-panel product moCafePanel">
+      <div class="content device">
+        <div class="titleCont">
+          <h2>측정장비 시리얼 넘버 관리</h2>
+        </div>        
+        <div class="productSpecification device tab-content.advTablesCpm">
+          <div class="measuring-sub-title">
+            <div>
+              <p>선택 장비명</p>
+            </div>
+            <div id="sensorName">
+            </div>
+          </div>
+          <div class="measuring-sub-title">
+            <div>
+              <p>모델명</p>
+            </div>
+            <div id="modelName">
+            </div>
+          </div>
+          <div class="deviceTopBtn">
+            <button type="button" class="btn-lg btn-dark" data-src="serialAdd" data-act="clickAddSerialForm">기기 등록 추가</button>
+            <button type="button" class="btn-lg btn-dark" data-toggle="modal" data-src="serialAdd" data-act="clickSerialAddModal">다수 등록 추가</button>
+          </div>
+          <div class="tableWrap">
+            <div class="tableInner">
+              <table class="table advTable2 measur">
+                <colgroup>
+                  <col width="100px">
+                  <!-- <col width="*"> -->
+                  <col width="*">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <!-- <th>모델명</th> -->
+                    <th>시리얼 넘버</th>
+                  </tr>
+                </thead>
+                <tbody id="listBody">
+                  
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="management_acc">
+	        <div class="addFile">
+	          <input type="file" accept=".xls, .xlsx" class="pad_file" id="fileSelect" name="filename" data-src="serialAdd" data-act="changeFile">
+	          <label class="pad_file-label form-control selected" for="fileSelect" data-src="serialAdd" data-act="clickAddExcel"></label>
+	       </div>
+         </div>
+        </div>
+        <div class="productSelectBtn">
+          <a href="javascript:;" data-src="serialAdd" data-act="clickCancel">
+            <button type="button" class="btn-lg btn-clear">작성취소</button>
+          </a>
+          <a href="javascript:;" data-src="serialAdd" data-act="clickaddSensorDevice">
+            <button type="button" class="btn-lg btn-dark">작성내용 저장</button>
+          </a>
+        </div>
+      </div>
+      <!--추가개수 모달-->
+      <div class="modal fade" id="serialNumAddModal" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog product device">
+          <div class="modal-content">
+            <div class="modal-body">
+              <div class="modal-device">
+                <label>추가 개수</label>
+                <input type="text" id="bulkAddCnt" placeholder="숫자 입력">
+              </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-lg btn-clear" id="device-btn1" data-dismiss="modal">취소</button>
+                <button type="button" class="btn-lg btn-dark" id="device-btn2" data-dismiss="modal" data-src="serialAdd" data-act="clickBulkAddSerialNum">일괄 등록</button>             
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+<script th:src="@{/js/page/external/sensor/serialAdd.js}"></script>
+	<script>
+		externalLayout.setCallback(serialAdd.init);
+	</script>
+</th:block>
+</html>

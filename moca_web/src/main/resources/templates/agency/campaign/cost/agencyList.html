@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+    
+    <th:block layout:fragment="content">
+	    <main class="main-panel">
+	      <div class="pagePath">
+	        광고 관리<span>&gt;</span>광고 집행요청 관리
+	      </div>
+	      <div class="content">
+	        <div class="titleCont">
+	          <h2>광고 집행요청 관리</h2>
+	        </div>
+	        <div class="tab-content advTablesCpm moCafeCont">
+	          <div class="moCafeFormWrap ctrl">
+	            <form action="" onsubmit="return false;">
+	              <fieldset>
+	                <legend class="blind">검색</legend>
+	                <div class="input-daterange ag" id="datepicker">
+	                  <label for="s-date">
+	                    <input type="text" class="sDate form-control" id="s-date" name="start" placeholder=""><i></i>
+	                  </label>
+	                  <span>&nbsp;&nbsp;~&nbsp;&nbsp;</span>
+	                  <label for="e-date">
+	                    <input type="text" class="eDate form-control" id="e-date" name="end" placeholder=""><i></i>
+	                  </label>
+	                </div>
+                	<div>
+	                  <span class="selectFinWrap">
+	                    <span>
+	                      <select name="agency-role" id="agency-role" class="selectpicker" data-src="costList" data-act="changeAgencyRole">
+	                        <option value="" >전체 구분</option>
+	                      </select>
+	                    </span>
+	                    <span>
+	                      <select name="agency-staff" id="agency-staff" class="selectpicker" data-src="costList" data-act="changeAgencyStaff">
+	                        <option value="" selected>전체 담당자</option>
+	                      </select>
+	                    </span>
+	                    <span>
+	                      <select name="agency-demand" id="agency-demand" class="selectpicker">
+	                        <option value="" selected>전체 광고주</option>
+	                      </select>
+	                    </span>
+	                    <span>
+	                      <select name="sg-status" id="sg-status" class="selectpicker">
+	                        <option value="">전체 진행상태</option>
+			                <option value="PAY_COMPLETE">입금 완료</option>
+			                <option value="PAY_WAIT">입금 대기</option>
+			                <option value="REFUND_COMPLETE">환불 완료</option>
+			                <option value="REFUND_WAIT">환불 대기</option>
+			                <option value="1">승인 완료</option>
+			                <option value="9">승인 거부</option>
+			                <option value="100">승인 대기</option>
+	                      </select>
+	                    </span>
+	                  </span>
+	                  <span class="grSearch">
+	                    <select name="search_type" id="search_type" class="selectpicker">
+	                      <option value="demand_uname" selected>광고주명</option>
+	                      <option value="demand_uid">광고주 ID</option>
+	                      <option value="sg_name">광고명</option>
+	                    </select>
+	                    <input type="text" id="search_value" data-src="costList" data-act="enterSearch" /><button type="button" class="btn-sm" data-src="costList" data-act="clickSearch">검색</button>
+	                  </span>
+	                </div>
+	              </fieldset>
+	            </form>
+	          </div>
+	          
+	          <!-- 집행요청 금액관리 테이블 / 시작 -->
+	          <div class="tableWrap cost">
+	            <div class="tableInner">
+	              <table class="table cost">
+	                <colgroup>
+	                  <col width="120px">
+	                  <col width="90px">
+	                  <col width="76px">
+	                  <col width="330px">
+	                  <col width="110px">
+	                  <col width="110px">
+	                  <col width="120px">
+	                  <col width="120px">
+	                  <col width="*">
+	                </colgroup>
+	                <thead>
+	                  <tr>
+	                    <th>광고주</th>
+	                    <th>담당자</th>
+	                    <th>과금방식</th>
+	                    <th>광고명</th>
+	                    <th>광고신청 일자</th>
+	                    <th>광고시작 요청일</th>
+	                    <th>집행 금액<br />(VAT 별도)</th>
+	                    <th>입금 상태</th>
+	                    <th>승인 현황</th>
+	                  </tr>
+	                </thead>
+	                <tbody id="list-body">
+	                  
+	                </tbody>
+	              </table>
+	            </div>
+	          </div>
+	          <!--<div class="btnBtmWrap">
+	            <button type="button" class="btn-lg btn-dark">EXCEL로 다운 받기</button>
+	          </div>-->
+	          <!-- 집행요청 금액관리 테이블 / 끝 -->
+	          <!-- 페이지네이션 / 시작 -->
+	          <nav aria-label="Page navigation">
+	            <ul id="list-page" class="pagination justify-content-center">
+	            </ul>
+	          </nav>
+	          <!-- 페이지네이션 / 끝 -->
+	        </div>
+	        <!--테이블 내 버튼 모달 : 시작-->
+	        <!--입금 완료 버튼 모달 : 시작-->
+	        <div class="modal fade depoModal" id="diposit-modal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+	          <div class="modal-dialog modalInputFile">
+	            <div class="modal-content">
+	              <div class="modal-header">
+	                <h5 class="modal-title">입금 내용 확인</h5>
+	                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	                  <span aria-hidden="true">&times;</span>
+	                </button>
+	              </div>
+	              <div class="modal-body">
+	                <form action="">
+	                  <fieldset>
+	                    <legend class="blind">입금 내용 확인 및 수정하기</legend>
+	                    <ul class="vdSetWrap depo">
+	                      <li>
+	                        <span>입금자명</span>
+	                        <span id="depositor"></span>
+	                      </li>
+	                      <li>
+	                        <span>입금액</span>
+	                        <span id="deposit-price"></span>
+	                      </li>
+	                    </ul>
+	                  </fieldset>
+	                </form>
+	              </div>
+	              <div class="modal-footer">
+	                <button type="button" class="btn btn-sm btn-dark" data-dismiss="modal">확인</button>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+	        <!--입금 완료 버튼 모달 : 끝-->
+	        <!--승인 거부 버튼 모달 : 시작-->
+	        <div class="modal fade depoModal" id="approval-modal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+	          <div class="modal-dialog cost">
+	            <div class="modal-content">
+	              <div class="modal-header">
+	                <h5 class="modal-title">승인 거부 사유</h5>
+	                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	                  <span aria-hidden="true">&times;</span>
+	                </button>
+	              </div>
+	              <div class="modal-body">
+	                <form action="">
+	                  <fieldset>
+	                    <legend class="blind">승인 거부 사유 입력하기</legend>
+	                    <div class="vdSetWrap ag">
+	                      <p id="reject-reason"></p>
+	                    </div>
+	                  </fieldset>
+	                </form>
+	              </div>
+	              <div class="modal-footer">
+	                <button type="button" class="btn btn-sm btn-dark" data-dismiss="modal">확인</button>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+	        <!--승인 거부 버튼 모달 : 끝-->
+	        <!--테이블 내 버튼 모달 : 끝-->
+	      </div>
+	    </main>
+    </th:block>
+
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/agency/campaign/cost/agencyList.js}"></script>
+	<script>
+		layout.setCallback(agencyCostList.init);
+	</script>
+</th:block>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<th:block layout:fragment="content">
+  <main class="main-panel">
+    <div class="pagePath">
+      광고 관리<span>&gt;</span>새 캠페인 / 광고 등록<span>&gt;</span>광고 신청 정보 입력
+    </div>
+    <div class="content">
+      <div class="titleCont">
+        <h2 id="campaignName"></h2>
+      </div>
+      <div class="adv-content advForms cppCpm">
+        <div class="formWrap formInputInfo">
+          <form action="">
+            <div class="innerForm">
+              <ul class="formList newCamp">
+                <li>
+                  <div>광고 제목</div>
+                  <div>
+                    <input type="text" id="sgName">
+                  </div>
+                </li>
+                <li>
+                  <div>광고업종 카테고리</div>
+                  <div>
+                    <select name="category" id="mainCategory" class="selectpicker" data-src="addCpp" data-act="changeSelect">
+                      <option value="" selected>대분류 카테고리</option>
+                    </select>
+                    <select name="category" id="middleCategory" class="selectpicker" data-src="addCpp" data-act="changeSelect">
+                      <option value="" selected>중분류 카테고리</option>
+                    </select>
+                    <select name="category" id="subCategory" class="selectpicker" data-src="addCpp" data-act="changeSubSelect">
+                      <option value="" selected>소분류 카테고리</option>
+                    </select>
+                    <!-- 전체 카테고리 보기 모달 버튼 -->
+                    <button type="button" class="btn-sm btn-dark btn-cost" data-src="addCpp" data-act="modalCategory" data-toggle="modal" data-target="#modalCategory">전체 카테고리 보기</button>
+                  </div>
+                </li>
+                <li>
+                  <div>광고 기간</div>
+                  <div class="input-daterange dataPickGroup" id="datepicker" data-src="addCpp" data-act="changeDate">
+                    <label for="startYmd">
+                      <input type="text" class="sDate form-control" id="startYmd" name="start">
+                      <i></i>
+                    </label>
+                    <span>~&nbsp;&nbsp;부터</span>
+                    <label for="endYmd">
+                      <input type="text" class="eDate form-control" id="endYmd" name="end">
+                      <i></i>
+                    </label>
+                    <span>까지</span>
+                    <!--placeholder="잔액 소진 시까지"-->
+                  </div>
+                </li>
+                <li>
+                  <div>소재 분류</div>
+                  <div class="selectRadio">
+                    <div>
+                      <input type="radio" id="selImg" name="matOption" value="IMAGE" data-src="addCpp" data-act="changeMaterialType" checked>
+                      <label for="selImg" value="img">
+                        <span>이미지</span>
+                      </label>
+                    </div>
+                    <div>
+                      <input type="radio" id="selVid" name="matOption" value="VIDEO" data-src="addCpp" data-act="changeMaterialType">
+                      <label for="selVid" value="video">
+                        <span>동영상</span>
+                      </label>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div>소재 노출시간</div>
+                  <div class="selectRadio">
+                    <div>
+                      <input type="radio" id="sel15sec" name="matTimeOption" value="15" data-src="addCpp" data-act="changeExposureTime" checked>
+                      <label for="sel15sec" value="15">
+                        <span>15초</span>
+                      </label>
+                    </div>
+                    <div>
+                      <input type="radio" id="sel30sec" name="matTimeOption" value="30" data-src="addCpp" data-act="changeExposureTime">
+                      <label for="sel30sec" value="30">
+                        <span>30초</span>
+                      </label>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div>매체 / 상품 선택</div>
+                  <div class="costBox mediaPaper">
+                    <input type="text" id="product" class="w280" readonly><label for="product" class="costLabel"></label>
+                    <!-- 매체/지면 선택 모달 버튼 -->
+                    <button type="button" class="btn-sm btn-dark" data-src="addCpp" data-act="modalProduct">매체 / 상품 선택</button>
+                  </div>
+                </li>
+                <li>
+                  <div>광고 소재</div>
+                  <div class="addFile newCpp">
+                    <!--아래 광고 i.videoSize 소재 사이즈는  
+                    매체/지면 선택 시 보여지는 영역-->
+                    <!--<i class="videoSize">1920x1080(300mb 이하)</i>-->
+                    <div>
+                      <input type="text" class="custom-file-input" id="materialFile" name="filename" data-src="addCpp" data-act="changeMaterialFile">
+                      <label id="materialFileName" class="custom-file-label" for="materialFile">파일을 선택하세요</label>
+                      <!--아래 'p>span' 은 파일 첨부시 띄울 문구-->
+                      <p>
+                        <!--케이스1 문구-->
+                        <span id="fileErrorMsg"></span>
+                        <!--케이스2 문구 주석 처리-->
+                        <!--<span>해상도가 일치하지 않습니다.</span>-->
+                        <!--케이스3 문구 주석 처리-->
+                        <!--<span>재생 시간이 일치하지 않습니다.</span>-->
+                        <!--케이스4 문구 주석 처리-->
+                        <!--<span>용량이 초과됐습니다.</span>-->
+                      </p>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div>광고 신청 금액</div>
+                  <div class="costBox">
+                    <button type="button" class="btn-sm btn-dark" data-src="addCpp" data-act="calculatePrice">계산하기</button> &nbsp; &nbsp; &nbsp;
+                    <!--금액입력란 주석 처리-->
+                    <p id="price"></p>
+                    <span>
+                      <i>※</i> VAT 별도 </span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="btnGroupTwin">
+              <button type="button" class="btn-lg btn-clear" data-src="addCpp" data-act="cancelSg"> 광고등록 취소 </button>
+              <!-- 광고 저장 및 승인 요청 모달 버튼 -->
+              <button type="button" class="btn-lg btn-dark" data-src="addCpp" data-act="addSg"> 광고 저장 및 승인 요청 </button>
+            </div>
+          </form>
+          <!-- 전체 카테고리 보기 모달 시작 -->
+          <div class="modal fade" id="modalCategory" data-keyboard="false" tabindex="-1" aria-labelledby="allCategoryLabel" aria-hidden="true">
+            <div class="modal-dialog categoryDialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">카테고리 검색</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  <div class="modalSearchBox">
+                    <label for="codeName">카테고리명 :&nbsp;</label>
+                    <input type="search" id="codeName" data-src="addCpp" data-act="enterCategory">
+                    <button type="button" class="btn-sm btn-dark" data-src="addCpp" data-act="searchCategory">검색</button>
+                  </div>
+                  <div class="modalTableWrap">
+                    <div class="modalTableInner">
+                      <table class="table">
+                        <colgroup>
+                          <col width="108.39px">
+                          <col width="173.44px">
+                          <col width="173.44px">
+                          <col width="*">
+                        </colgroup>
+                        <thead>
+                          <tr>
+                            <th scope="col">대분류</th>
+                            <th scope="col">중분류</th>
+                            <th scope="col">소분류</th>
+                            <th scope="col">선택</th>
+                          </tr>
+                        </thead>
+                        <tbody id="categoryBody">
+                        </tbody>
+                      </table>
+                    </div>
+                    <!--테이블 : 소진액 / 시작-->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 전체 카테고리 보기 모달 끝 -->
+          <!-- 매체/지면 선택 모달 시작 -->
+          <div class="modal fade mediaPaperCallUp" id="mediaPaperCallUp" data-keyboard="false" tabindex="-1" aria-labelledby="mediaPaperCallUpLabel" aria-hidden="true">
+            <div class="modal-dialog categoryDialog pdct">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">CPP 진행 상품 리스트</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  <div class="input-daterange modalInput-Date" id="productDatepicker">
+                    <label for="productStartYmd">
+                      <input type="text" class="sDate form-control" id="productStartYmd" name="start">
+                      <i></i>
+                    </label>
+                    <span>~&nbsp;&nbsp;부터</span>
+                    <label for="productEndYmd">
+                      <input type="text" class="eDate form-control" id="productEndYmd" name="end">
+                      <i></i>
+                    </label>
+                    <span>까지</span>
+                    <span><i>※</i> 최소 진행기간 7일 </span>
+                    <button type="button" data-src="addCpp" data-act="searchProduct" class="btn-sm btn-clear">조회</button>
+                  </div>
+                  <div class="modalCppListBox">
+                    <select name="product" id="companySelect" class="selectpicker" data-src="addCpp" data-act="changeCompany">
+                      <option value="" selected disabled>매체</option>
+                    </select>
+                    <select name="product" id="categorySelect" class="selectpicker" data-src="addCpp" data-act="changeCategory">
+                      <option value="" selected disabled>분류</option>
+                    </select>
+                    <select name="product" id="productSelect" class="selectpicker">
+                      <option value="" selected disabled>상품</option>
+                    </select>
+                    <span class="chk">
+                      <input type="checkbox" id="isPossible" name="goodsOk" value="ok" checked>
+                      <label for="isPossible">
+                        <span>선택가능한 상품만 보기</span>
+                      </label>
+                    </span>
+                  </div>
+                  <div class="modalTableWrap">
+                    <div class="modalTableInner cpp">
+                      <table class="table">
+                        <colgroup>
+                          <col width="80.06px">
+                          <col width="113.03px">
+                          <col width="84.77px">
+                          <col width="207.23px">
+                          <col width="94.19px">
+                          <col width="65.94px">
+                          <col width="65.94px">
+                          <col width="94.19px">
+                          <col width="113.03px">
+                          <col width="*">
+                        </colgroup>
+                        <thead>
+                          <tr>
+	                        <th scope="col">상태</th>
+	                        <th scope="col">매체</th>
+	                        <th scope="col">분류</th>
+	                        <th scope="col">상품</th>
+	                        <th scope="col">화면크기</th>
+	                        <th scope="col">비율</th>
+	                        <th scope="col">시간</th>
+	                        <th scope="col">종료일</th>
+	                        <th scope="col">
+	                          일일 금액(원)<br />
+	                          <span>VAT별도</span>
+	                        </th>
+                            <th scope="col">선택</th>
+                          </tr>
+                        </thead>
+                        <!--선택 가능한 상품만 보기 디폴트로
+                        tr에 .onGoing 추가 시 
+                        선택불가, 진행중 리스트는 가려짐-->
+                        <tbody id="productBody">
+                        </tbody>
+                      </table>
+                    </div>
+                    <!--테이블 : 소진액 / 시작-->
+                  </div>
+                  <nav aria-label="Page navigation">
+                    <ul id="listPage" class="pagination justify-content-center">
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 매체/지면 선택 모달 끝 -->
+        </div>
+      </div>
+    </div>
+  </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/demand/campaign/sg/addCpp.js}"></script>
+	<script>
+		layout.setCallback(addCpp.init);
+	</script>
+</th:block>

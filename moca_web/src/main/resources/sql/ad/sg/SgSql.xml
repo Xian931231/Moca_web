@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.ad.sg.SgMapper">
+
+	<delete id="removeSgManager">
+		DELETE FROM dsp_sg_manager 
+		WHERE 
+			id = #{sg_id}
+	</delete>
+	
+	<delete id="removeSgWeek">
+		DELETE FROM dsp_sg_week 
+		WHERE 
+			sg_id = #{sg_id}
+	</delete>
+	
+	<delete id="removeSgArea">
+		DELETE FROM dsp_sg_area
+		WHERE 
+			sg_id = #{sg_id}
+	</delete>
+	<delete id="removeSgMaterial">
+		DELETE FROM dsp_sg_material 
+		WHERE 
+			sg_id = #{sg_id}
+	</delete>
+	
+	<!-- 관리자 -->
+	<sql id="sql_sg_list_where">
+		<if test="sg_name != null and sg_name != '' ">
+			AND sm.name LIKE CONCAT('%', #{sg_name}, '%')
+		</if>
+		<if test="member_name != null and member_name != '' ">
+			AND m.uname LIKE CONCAT('%', #{member_name}, '%')
+		</if>
+		<if test="status != null and !status.equals('')">
+			AND sm.status = #{status}::bigint
+		</if>
+		<if test="pay_status_code != null and !pay_status_code.equals('')">
+			AND sm.pay_status_code = #{pay_status_code}
+		</if>
+	</sql>
+	
+	<!-- 광고 리스트 -->
+	<select id="getList" resultType="HashMap">
+		SELECT
+		    sm.id AS sg_id
+		    , sm.campaign_id 
+		    , dc.member_id
+		    , dc.pay_type
+		    , m.uname
+		    , m.uid
+		    , m.company_name
+		    , sm.name
+		    , sm.price 
+		    , sm.start_ymd
+		    , sm.end_ymd 
+		    , to_char(sm.request_date, 'YYYY-MM-DD') AS request_date
+		    , sm.target_area_yn 
+		    , sm.main_category_code 
+		    , sm.middle_category_code 
+		    , sm.sub_category_code 
+		    , sm.pay_price 
+		    , sm.status 
+		    , sm.pay_status_code
+		    , sm.stop_date
+		    , sm.stop_reason 
+		    , sm.reject_reason
+		    , sm.approve_date 
+		    , sm.update_date
+		    , sm.display_start_date
+		    , m.agency_id
+		    , (SELECT company_name FROM member.member WHERE id = m.agency_id) AS agency_name
+		    , (SELECT uid FROM member.member WHERE id = m.agency_id) AS agency_uid
+		    , sm.start_ymd <![CDATA[ <= ]]> to_char(now(), 'YYYY-MM-DD') AS is_progress 
+		FROM
+		   	public.dsp_sg_manager sm
+		JOIN public.dsp_campaign dc
+		ON sm.campaign_id = dc.id
+		JOIN member.member m 
+		ON dc.member_id = m.id
+		<where>
+			<include refid="sql_sg_list_where"></include>
+			<if test="campaign_id != null and campaign_id != '' ">
+				sm.campaign_id = #{campaign_id}::bigint
+			</if>
+		</where>
+		ORDER BY sm.request_date DESC
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 광고 리스트 총 개수 -->
+	<select id="getListCnt" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+		   	public.dsp_sg_manager sm
+		JOIN public.dsp_campaign dc
+		ON sm.campaign_id = dc.id
+		JOIN member.member m 
+		ON dc.member_id = m.id
+		<where>
+			<include refid="sql_sg_list_where"></include>
+			<if test="campaign_id != null and campaign_id != '' ">
+				sm.campaign_id = #{campaign_id}
+			</if>
+		</where>
+	</select>
+	
+	<!-- 광고 상세 정보 -->
+	<select id="getDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			sm."name"
+			, sm.start_ymd 
+			, sm.end_ymd 
+			, sm.price 
+			, sm.status 
+			, to_char(sm.approve_date, 'YYYY-MM-DD HH24:MI') AS approve_date
+			, to_char(sm.stop_date, 'YYYY-MM-DD HH24:MI') AS stop_date  
+			, sm.stop_reason 
+			, m.uid 
+			, m.uname 
+			, m.biz_kind 
+			, m.company_name 
+			, m.agency_id
+			, m.email
+			, m.company_email
+			, m.bank_name
+			, m.bank_name
+			, (
+				CASE WHEN m.bank_account_number IS NULL THEN  
+					m.bank_account_number
+				ELSE 
+					convert_from(decrypt(decode(m.bank_account_number, 'hex'), #{secret_bank_account_number}::bytea, 'aes'), 'utf8')
+				END
+			) AS bank_account_number
+			, m.bank_account_holder
+			, (SELECT company_name FROM member.member WHERE id = m.agency_id) AS agency_name
+			, sp.notes
+			, sp.product_name
+			, sm.pay_status_code
+			, dc.pay_type
+			, (SELECT code_name FROM public.code WHERE code = sm.main_category_code) AS main_category
+			, (SELECT code_name FROM public.code WHERE code = sm.middle_category_code) AS middle_category
+			, (SELECT code_name FROM public.code WHERE code = sm.sub_category_code) AS sub_category
+			, sm.exposure_target 
+			, sm.exposure_limit 
+			, sm.target_area_yn 
+			, sm.target_week_yn 
+			, sm.target_week_yn 
+			, sm.exposure_horizon_type 
+			, sm.exposure_vertical_type 
+			, sm.material_ratio
+			, sm.display_start_date
+			, sm.start_ymd <![CDATA[ <= ]]> to_char(now(), 'YYYY-MM-DD') AS is_progress 
+		FROM
+			public.dsp_sg_manager sm
+		JOIN public.dsp_campaign dc
+		ON sm.campaign_id = dc.id
+		JOIN member.member m 
+		ON dc.member_id = m.id
+		LEFT JOIN ssp_product sp
+		ON sm.ssp_product_id = sp.id
+		<where>
+			<if test="sg_id != null and sg_id != '' ">
+				AND sm.id = #{sg_id}::bigint
+			</if>
+		</where>
+	</select>
+	
+	<!-- 광고 상세 정보 - 소재 정보 -->
+	<select id="getMaterialDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  dsm.id AS material_id
+			, dsm.name
+			, dsm.file_name
+			, dsm.file_size
+			, dsm.file_path
+			, dsm.playtime
+			, dsm.width
+			, dsm.height
+			, dsm.default_yn
+			, dsm.page_size_code
+			, dsm.ratio_type
+			, ds.exposure_horizon_type
+			, ds.exposure_vertical_type
+			, ds.exposure_time
+			, ds.material_ratio
+			, ds.material_kind
+			, c.description
+		FROM
+			public.dsp_sg_material dsm
+		JOIN public.dsp_sg_manager ds
+		ON ds.id = dsm.sg_id
+		JOIN public.code c
+		ON c.code = dsm.page_size_code
+		WHERE
+			sg_id = #{sg_id}
+	</select>
+	
+	<!-- 광고 승인/거절 -->
+	<update id="modifyApprovalStatus" parameterType="HashMap">
+		UPDATE 
+			public.dsp_sg_manager
+		SET 
+			approve_date = NOW()
+			<choose>
+				<when test='approval == "Y"'>
+					, status = 1
+				</when>
+				<when test='approval == "N"'>
+					, status = 9
+			  		,reject_reason = #{reject_reason}
+				</when>
+			</choose>
+		<where>
+			id = #{sg_id}::int
+		</where>
+	</update>
+	
+	<!-- 승인거부 사유 수정 -->
+	<update id="modifyRejectReason" parameterType="HashMap">
+		UPDATE
+			public.dsp_sg_manager
+		SET
+			reject_reason = #{reject_reason}
+		WHERE
+			id = #{sg_id}::int
+		AND status = 9	
+	</update>
+	
+	<!-- 요청(대기)중인 광고인지 체크 -->
+	<select id="isWaitSg" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			public.dsp_sg_manager
+		WHERE
+			id = #{sg_id}::int
+		AND status = 0
+	</select>
+	
+	<!-- 입금 완료 상태인지 검사 -->
+	<select id="isPayComplete" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			public.dsp_sg_manager dsm 
+		JOIN
+			public.dsp_sg_pay_log dspl 
+		ON dsm.id = dspl.sg_id
+		WHERE
+			dsm.id = #{sg_id}::int
+		AND	dsm.pay_status_code = 'PAY_COMPLETE'
+	</select>
+	
+	<!-- 광고 긴급 종료 -->
+	<update id="stopSg" parameterType="HashMap">
+		UPDATE
+			public.dsp_sg_manager
+		SET
+			status = 7
+			, stop_date = NOW()
+			, stop_reason = #{stop_reason}
+			, stop_member_id = #{login_id}::int
+		WHERE
+			id = #{sg_id}::int
+	</update>
+	
+	<!-- 진행중인 광고인지 확인 -->
+	<select id="isProceed" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.dsp_sg_manager
+		WHERE
+			id = #{sg_id}::int
+		AND	status = 1
+	</select>
+	
+	<!-- 캠페인/광고 관리 > 광고 리스트 -->
+	<select id="getSgListByDemand" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			id
+			, campaign_id
+			, name
+			, price
+			, start_ymd 
+			, end_ymd 
+			, status
+			, to_char(approve_date, 'YYYY-MM-DD HH24:MI') AS approve_date
+			, to_char(stop_date, 'YYYY-MM-DD HH24:MI') AS stop_date
+			, to_char(display_start_date, 'YYYY-MM-DD HH24:MI') AS display_start_date
+			, to_char(display_end_date, 'YYYY-MM-DD HH24:MI') AS display_end_date
+			, COALESCE(rt.total) AS impressions
+		FROM
+			dsp_sg_manager dsm
+		LEFT JOIN
+			(SELECT 
+				sg_id 
+				, SUM(total_count) AS total
+			FROM
+				dsp_report.count_sg_area
+			GROUP BY sg_id) AS rt
+		ON rt.sg_id = dsm.id
+		<where>
+  		  <if test='search_type == "S" and search_value != null and search_value != ""'>
+			AND name LIKE CONCAT('%', #{search_value}, '%')
+		  </if>
+		  <if test='search_status != null and !search_status.equals("") and search_status != "8"'>
+		  	AND status = #{search_status}
+		  </if>
+		  <if test='search_status == "8"'>
+		  	AND (status = 7	OR status = 8)
+		  </if>
+		</where>
+	</select>
+	
+	<sql id='sql_end_sg_list_where'>
+		<if test='end_reason_type != null and end_reason_type != ""'>
+			<choose>
+				<when test='end_reason_type == "1"'>
+					AND dc.pay_type = 'CPP' AND dsm.status = 8
+				</when>
+				<when test='end_reason_type == "2"'>
+					AND dc.pay_type = 'CPM' AND dsm.status = 8
+				</when>
+				<when test='end_reason_type == "3"'>
+					AND dsm.status = 7
+				</when>
+			</choose>
+		</if>
+	</sql>
+	
+	<!-- 모든 종료된광고 조회 -->
+	<select id="getEndSgList" resultType="HashMap">
+		SELECT	
+			  dsm.sg_id
+			, dsm.sg_name
+			, dsm.stop_reason
+			, dsm.sg_end_date
+			, dsm.status
+			, dc.pay_type 
+			, dc.member_id
+			, dc.name as campaign_name
+			, demand.id as demand_id
+			, demand.uid as demand_uid
+			, demand.company_name as demand_company_name
+			, agency.id as agency_id
+			, agency.uid as agency_uid
+			, agency.company_name as agency_company_name
+			, (SELECT COALESCE(SUM(ac.total_count) ,0) FROM traffic.ad_count ac WHERE ac.sg_id = dsm.sg_id) AS total_count
+		FROM(
+			SELECT
+				  id as sg_id
+				, campaign_id 
+				, name as sg_name
+				, status
+				, stop_reason
+				, CASE 
+					WHEN dsm.stop_date IS NOT NULL 
+					THEN TO_CHAR(dsm.stop_date, 'YYYY-MM-DD HH24:MI')
+					ELSE TO_CHAR(dsm.display_end_date, 'YYYY-MM-DD HH24:MI')
+				  END AS sg_end_date			
+			FROM
+				public.dsp_sg_manager dsm 
+			WHERE
+				status IN(7, 8) AND
+			<if test='search_start_date != null and search_start_date != "" and search_end_date != null and search_end_date != ""'>
+				CASE 
+					WHEN dsm.stop_date IS NOT NULL 
+					THEN TO_CHAR(dsm.stop_date, 'YYYY-MM-DD') BETWEEN #{search_start_date} AND #{search_end_date} 
+					WHEN dsm.display_end_date IS NOT NULL
+					THEN TO_CHAR(dsm.display_end_date, 'YYYY-MM-DD') BETWEEN #{search_start_date} AND #{search_end_date} 
+					ELSE end_ymd BETWEEN #{search_start_date} AND #{search_end_date}
+				END
+			</if>
+		) dsm
+		JOIN public.dsp_campaign dc
+		ON dc.id = dsm.campaign_id
+		JOIN member.member demand
+		ON demand.id = dc.member_id
+		LEFT JOIN member.member agency
+		ON demand.agency_id = agency.id
+		<where>
+			<include refid="sql_end_sg_list_where"></include>
+		</where>
+		ORDER BY 
+			sg_end_date desc, sg_id
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 모든 종료된 광고 조회 개수 -->
+	<select id="getEndSgListCnt" resultType="Integer">
+		SELECT	
+			COUNT(*)
+		FROM(
+			SELECT
+				  id as sg_id
+				, campaign_id 
+				, name as sg_name
+				, status
+				, stop_reason
+				, CASE 
+					WHEN dsm.stop_date IS NOT NULL 
+					THEN TO_CHAR(dsm.stop_date, 'YYYY-MM-DD HH24:MI')
+					ELSE TO_CHAR(dsm.display_end_date, 'YYYY-MM-DD HH24:MI')
+				  END AS sg_end_date				
+			FROM
+				public.dsp_sg_manager dsm
+			WHERE
+				status IN(7, 8) AND
+			<if test='search_start_date != null and search_start_date != "" and search_end_date != null and search_end_date != ""'>
+				CASE 
+					WHEN dsm.stop_date IS NOT NULL 
+					THEN TO_CHAR(dsm.stop_date, 'YYYY-MM-DD') BETWEEN #{search_start_date} AND #{search_end_date} 
+					WHEN dsm.display_end_date IS NOT NULL
+					THEN TO_CHAR(dsm.display_end_date, 'YYYY-MM-DD') BETWEEN #{search_start_date} AND #{search_end_date} 
+					ELSE end_ymd BETWEEN #{search_start_date} AND #{search_end_date}
+				 END
+			</if>
+		) dsm
+		JOIN public.dsp_campaign dc
+		ON dc.id = dsm.campaign_id
+		JOIN member.member demand
+		ON demand.id = dc.member_id
+		LEFT JOIN member.member agency
+		ON demand.agency_id = agency.id
+		<where>
+			<include refid="sql_end_sg_list_where"></include>
+		</where>
+	</select>
+	
+	<!-- 환급 시 어떤 입금내역에 대한 환급인지 id 가져오기 -->
+	<select id="getDepositPayLogId" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			id as pay_log_id
+		FROM
+			public.dsp_sg_pay_log dspl
+		WHERE
+			kind = 'D'
+		AND sg_id = #{sg_id}::int
+		AND price = #{price}::int
+		AND NOT EXISTS (
+			SELECT
+				1
+			FROM
+				dsp_sg_pay_log d
+			WHERE
+				dspl.id IN (d.deposit_pay_log_id)
+			AND d.kind = 'R'
+			AND d.deposit_pay_log_id IS NOT NULL
+		)
+	</select>
+	
+	<!-- 광고 입금 금액 로그 쌓기 -->
+	<select id="addSgPayLog" parameterType="HashMap" resultType="HashMap">
+		INSERT INTO public.dsp_sg_pay_log (
+			sg_id
+			, price
+			, update_member_id
+			, insert_date
+			, kind
+			<if test='pay_log_id != null and pay_log_id != ""'>
+			, deposit_pay_log_id
+			</if>
+		) VALUES (
+			#{sg_id}::int
+			, #{price}::int
+			, #{login_id}::int
+			, NOW()
+			, #{kind}
+			<if test='pay_log_id != null and pay_log_id != ""'>
+			, #{pay_log_id}::int
+			</if>
+		)
+		RETURNING to_char(insert_date, 'YYYY-MM-DD HH24:MI') AS pay_date
+	</select>
+	
+	<!-- 광고 입급액 변경 -->
+	<select id="modifyPayPrice" parameterType="HashMap" resultType="HashMap">
+		UPDATE
+			public.dsp_sg_manager
+		SET
+			pay_price = #{pay_price}::int
+			, pay_status_code = #{pay_status_code}
+			<if test='total_pay_price != null and total_pay_price !=""'>
+			, total_pay_price = #{total_pay_price}::int
+			</if>
+			<if test='reject_reason != null and reject_reason != ""'>
+			, reject_reason = #{reject_reason}
+			</if>
+			<if test='pay_status_code == "REFUND_WAIT" or pay_status_code == "REFUND_COMPLETE"'>
+			, approve_date = NOW()
+			</if>
+			<if test='status != null and !status.equals("")'>
+			, status = #{status}
+			</if>
+		WHERE
+			id = #{sg_id}::int
+		RETURNING id, to_char(approve_date, 'YYYY-MM-DD HH24:MI') AS approve_date
+	</select>
+	
+	<!-- // 관리자 -->
+</mapper>

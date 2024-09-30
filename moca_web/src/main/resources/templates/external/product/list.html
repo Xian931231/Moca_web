@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/externalLayout}">
+<th:block layout:fragment="content">
+	<main class="main-panel moCafePanel">
+      <div class="content">
+        <div class="titleCont">
+          <h2>상품사양 등록/수정</h2>
+        </div>
+        <div class="tab-content advTablesCpm">
+          <div class="management">
+          <div class="moCafeFormWrap">
+            <div class="pad-select">
+              <span class="device-text">선택 매체</span>
+              <span class="selectFinWrap">
+                <select id="supplySb" class="selectpicker" data-src="productList" data-act="changeSupply"></select>
+              </span>
+            </div>
+            <div class="pad-select">
+              <span class="device-text">선택 분류</span>
+              <span class="selectFinWrap">
+              <select id="categorySb" class="selectpicker" data-src="productList" data-act="changeCategory"></select>
+            </span>
+            </div>
+          </div>
+          
+          <!-- 테이블 / 시작 -->
+          <div class="tableWrap">
+            <div class="tableInner">
+              <table class="table advTable1">
+                <colgroup>
+                  <col width="500px">
+                  <col width="*">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>상품명</th>
+                    <th>사양 등록일</th>
+                  </tr>
+                </thead>
+                <tbody id="listBody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 전체 / 끝 -->
+        </div>
+        </div>
+      </div>
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/external/product/list.js}"></script>
+	<script>
+		externalLayout.setCallback(productList.init);
+	</script>
+</th:block>
+</html>

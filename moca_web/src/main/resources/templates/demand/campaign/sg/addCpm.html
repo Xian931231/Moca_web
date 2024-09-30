@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<th:block layout:fragment="content">
+<main class="main-panel">
+  <div class="pagePath">
+    광고 관리<span>&gt;</span>새 캠페인 / 광고 등록<span>&gt;</span>광고 신청 정보 입력
+  </div>
+  <div class="content">
+    <div class="titleCont">
+      <h2 id="campaignName"></h2>
+    </div>
+    <div class="adv-content advForms cppCpm">
+      <div class="formWrap formInputInfo">
+        <form action="">
+          <div class="innerForm">
+            <ul class="formList newCamp">
+              <li>
+                <div>광고 제목</div>
+                <div>
+                  <input id="sgName" type="text">
+                </div>
+              </li>
+              <li>
+                <div>광고업종 카테고리</div>
+                <div>
+                  <select name="category" id="mainCategory" class="selectpicker" data-src="addCpm" data-act="changeSelect">
+                    <option value="" selected>대분류 카테고리</option>
+                  </select>
+                  <select name="category" id="middleCategory" class="selectpicker" data-src="addCpm" data-act="changeSelect">
+                    <option value="" selected>중분류 카테고리</option>
+                  </select>
+                  <select name="category" id="subCategory" class="selectpicker">
+                    <option value="" selected>소분류 카테고리</option>
+                  </select>
+                  <!-- 전체 카테고리 보기 모달 버튼 -->
+                  <button type="button" class="btn-sm btn-dark btn-cost" data-src="addCpm" data-act="modalCategory" data-toggle="modal" data-target="#modalCategory">전체 카테고리 보기</button>
+                </div>
+              </li>
+              <li>
+                <div>광고 시작일</div>
+                <div class="input-group date dataPickGroup newCpm" id="startDate">
+                  <label for="startYmd">
+                    <input id="startYmd" type="text" class="sDate form-control" name="start">
+                    <span class="input-group-addon"></span>
+                  </label>
+                </div>
+              </li>
+              <li>
+                <div>노출 옵션 추가</div>
+                <div class="selectRadio">
+                  <div>
+                    <input type="radio" id="otN" name="expOption" value="N" data-src="addCpm" data-act="changeExpOption" checked>
+                    <label for="otN">
+                      <span>사용 안 함</span>
+                    </label>
+                  </div>
+                  <div>
+                    <input type="radio" id="otY" name="expOption" value="T" data-src="addCpm" data-act="changeExpOption">
+                    <label for="otY">
+                      <span>시간</span>
+                    </label>
+                  </div>
+                  <div>
+                    <input type="radio" id="otD" name="expOption" value="A" data-src="addCpm" data-act="changeExpOption">
+                    <label for="otD">
+                      <span>지역</span>
+                    </label>
+                  </div>
+                </div>
+              </li>
+              <!--노출 지역 설정 사용 시 나타나는 시간 선택 레이아웃-->
+              <li id="areaOption" class="selectDataBox" style="display:none">
+                <div class="dateBoxWrap">
+                  <select name="area" id="siCategory" data-src="addCpm" data-act="changeArea" class="selectpicker">
+                    <option value="" selected disabled>지역1</option>
+                  </select>
+                  <select name="area" id="guCategory" class="selectpicker">
+                    <option value="" selected disabled>지역2</option>
+                  </select>
+                </div>
+              </li>
+              <!--노출 시간 설정 사용 시 나타나는 시간 선택 레이아웃-->
+              <li id="timeOption" class="selectTimeBox" style="display:none">
+                <div class="timeBoxWrap">
+                  <table>
+                    <colgroup>
+                      <col>
+                      <col>
+                      <col>
+                      <col>
+                      <col>
+                      <col>
+                      <col>
+                      <col>
+                    </colgroup>
+                    <thead id="week">
+                      <tr>
+                        <th>시간 / 요일</th>
+                        <th data-id="1" class="day monday">
+                          <span>월</span>
+                          <div class="form-check">
+                            <label class="form-check-label form-check-toggle">
+                              <input id="week1" class="form-check-input" type="checkbox" checked="checked" />
+                              <span data-src="addCpm" data-act="weekUseYn"></span>
+                            </label>
+                          </div>
+                        </th>
+                        <th data-id="2" class="day tuesday">
+                          <span>화</span>
+                          <div class="form-check">
+                            <label for="week2" class="form-check-label form-check-toggle">
+                              <input id="week2" class="form-check-input" type="checkbox" checked="checked" />
+                              <span data-src="addCpm" data-act="weekUseYn"></span>
+                            </label>
+                          </div>
+                        </th>
+                        <th data-id="3" class="day wednesday">
+                          <span>수</span>
+                          <div class="form-check">
+                            <label class="form-check-label form-check-toggle">
+                              <input id="week3" class="form-check-input" type="checkbox" checked="checked" />
+                              <span data-src="addCpm" data-act="weekUseYn"></span>
+                            </label>
+                          </div>
+                        </th>
+                        <th data-id="4" class="day thursday">
+                          <span>목</span>
+                          <div class="form-check">
+                            <label class="form-check-label form-check-toggle">
+                              <input id="week4" class="form-check-input" type="checkbox" checked="checked" />
+                              <span data-src="addCpm" data-act="weekUseYn"></span>
+                            </label>
+                          </div>
+                        </th>
+                        <th data-id="5" class="day friday">
+                          <span>금</span>
+                          <div class="form-check">
+                            <label class="form-check-label form-check-toggle">
+                              <input id="week5" class="form-check-input" type="checkbox" checked="checked" />
+                              <span data-src="addCpm" data-act="weekUseYn"></span>
+                            </label>
+                          </div>
+                        </th>
+                        <th data-id="6" class="day saturday">
+                          <span>토</span>
+                          <div class="form-check">
+                            <label class="form-check-label form-check-toggle">
+                              <input id="week6" class="form-check-input" type="checkbox" checked="checked" />
+                              <span data-src="addCpm" data-act="weekUseYn"></span>
+                            </label>
+                          </div>
+                        </th>
+                        <th data-id="0" class="day sunday">
+                          <span>일</span>
+                          <div class="form-check">
+                            <label class="form-check-label form-check-toggle">
+                              <input id="week0" class="form-check-input" type="checkbox" checked="checked" />
+                              <span data-src="addCpm" data-act="weekUseYn"></span>
+                            </label>
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody id="timeBody">
+                    </tbody>
+                  </table>
+                </div>
+                <button type="button" data-src="addCpm" data-act="resetTimeOption" class="btn-sm btn-dark">시간 선택 초기화</button>
+              </li>
+              <li>
+                <div>소재 분류</div>
+                <div class="selectRadio">
+                  <div>
+                    <input type="radio" id="selImg" name="matOption" value="IMAGE" data-src="addCpm" data-act="changeMaterialType" checked>
+                    <label for="selImg">
+                      <span>이미지</span>
+                    </label>
+                  </div>
+                  <div>
+                    <input type="radio" id="selVid" name="matOption" value="VIDEO" data-src="addCpm" data-act="changeMaterialType">
+                    <label for="selVid">
+                      <span>동영상</span>
+                    </label>
+                  </div>
+                </div>
+              </li>
+              <li>
+                <div>소재 노출시간</div>
+                <div class="selectRadio">
+                  <div>
+                    <input type="radio" id="sel15sec" name="matTimeOption" value="15" data-src="addCpm" data-act="changeTimeOption" checked>
+                    <label for="sel15sec" value="15">
+                      <span>15초</span>
+                    </label>
+                  </div>
+                  <div>
+                    <input type="radio" id="sel30sec" name="matTimeOption" value="30" data-src="addCpm" data-act="changeTimeOption">
+                    <label for="sel30sec" value="30">
+                      <span>30초</span>
+                    </label>
+                  </div>
+                </div>
+              </li>
+              <li>
+                <div>목표 노출 수</div>
+                <div class="costBox">
+                  <!--100 미만 입력 시 #viewCountMsg1 모달 뜨도록-->
+                  <input type="text" id="exposureTarget" class="w210" min="100" data-src="addCpm" data-act="targetChange" value="1000" maxLength=5>
+                  <label for="exposureTarget" class="cntLabel">회</label>
+                  <span class="btnGroupCount">
+<!--                     <button type="button" class="btn btn-sm btn-dark" data-src="addCpm" data-act="calculateTarget" data-cnt="-100">- 100</button> -->
+<!--                     <button type="button" class="btn btn-sm btn-dark" data-src="addCpm" data-act="calculateTarget" data-cnt="100">+ 100</button> -->
+                    <button type="button" class="btn btn-sm btn-dark" data-src="addCpm" data-act="calculateTarget" data-cnt="-1000">- 1000</button>
+                    <button type="button" class="btn btn-sm btn-dark" data-src="addCpm" data-act="calculateTarget" data-cnt="1000">+ 1000</button>
+                  </span>
+                  <p class="optCaution">
+                    <span>
+                      <i>※</i> 목표 노출수는 1000단위로만 설정 가능합니다. </span>
+                  </p>
+                </div>
+              </li>
+              <li>
+                <div>일 노출 제한 설정</div>
+                <div class="costBox">
+                  <input type="text" id="exposureLimit" class="w210 todayLimit" data-src="addCpm" data-act="limitChange" data-target="#viewCountMsg2" maxLength=5 disabled>
+                  <label for="exposureLimit" class="cntLabel">회</label>
+                  <span class="sideChk">
+                     <span class="chk"><input type="checkbox" name="todayLimitless" id="notUseLimit" data-src="addCpm" data-act="notUseLimit" checked><label for="notUseLimit">&nbsp; 사용 안 함</label></span>
+                   </span>
+                </div>
+              </li>
+              <li class="matOptGroup">
+                <div>광고 소재</div>
+                <div class="addFile newCpm">
+                  <div class="binaryRadio">
+                    <!--택일-->
+                    <span>
+                      <input type="radio" id="selVertiHori" name="sizeBinary" value="D"  data-src="addCpm" data-act="changeSizeBinary" checked>
+                      <label for="selVertiHori">
+                        <span>가로/세로</span>
+                      </label>
+                    </span>
+                    <span>
+                      <input type="radio" id="selOneToOne" name="sizeBinary" value="S" data-src="addCpm" data-act="changeSizeBinary" >
+                      <label for="selOneToOne">
+                        <span>1:1</span>
+                      </label>
+                    </span>
+                  </div>
+                  <ul id="material" class="addFileBinary">
+                    <!--가로/세로 선택 시-->
+                    <li id="horivert" class="vertiHori fileBinary">
+                      <div>
+                        <span class="chk">
+                          <input type="checkbox" name="hvCheckBox" id="horizontal" value="horizontal" data-src="addCpm" data-act="changeMaterialOption" data-id="horizontalInfo" checked>
+                          <label for="horizontal">&nbsp; 가로</label>
+                        </span>
+                        <span class="chk">
+                          <input type="checkbox" name="hvCheckBox" id="vertical" value="vertical" data-src="addCpm" data-act="changeMaterialOption" data-id="verticalInfo">
+                          <label for="vertical">&nbsp; 세로</label>
+                        </span>
+                      </div>
+                      <ul class="oneOrBothList">
+                        <!--가로 선택 시-->
+                        <li id="horizontalInfo" class="both1">
+                          <div class="selectRadio matSizeChkGroup">
+                            <strong>가로</strong>
+                            <div>
+                              <input type="radio" id="horizFixOption" name="horizOption" value="fix" data-src="addCpm" data-act="horizontalOption" checked>
+                              <label for="horizFixOption">
+                                <span>선택 사이즈에만 노출</span>
+                              </label>
+                            </div>
+                            <div>
+                              <input type="radio" id="horizFluidOption" name="horizOption" value="fluid" data-src="addCpm" data-act="horizontalOption">
+                              <label for="horizFluidOption">
+                                <span>유동적 소재 사용</span>
+                              </label>
+                            </div>
+                            <span class="mytooltip">
+                              <i class="popTip tooltip-item"></i>
+                              <span class="tooltip-content clearfix">
+                                <span class="imgToolTip">
+                                  <img src="/assets/imgs/vidSizeTip.jpg">
+                                </span>
+                                <span class="tooltip-text"> 업로드한 소재를 기반으로 <br />다양한 사이즈의 디스플레이에 유동적으로 노출 </span>
+                              </span>
+                            </span>
+                          </div>
+                          <div id="horizontalFix" class="selFix-hori">
+                            <div class="matSizeChk">
+                              <span>1920x1080(16:9) <span class="emph">
+                                  <i>기본</i>
+                                </span>
+                              </span>
+                              <span class="chk">
+                                <input type="checkbox" id="matSizeOpt2" name="horiMatSizeOption" data-src="addCpm" data-act="changeMaterialOption" data-id="sizeOption2">
+                                <label for="matSizeOpt2">&nbsp;1600x1200(4:3)</label>
+                              </span>
+                              <span class="chk">
+                                <input type="checkbox" id="matSizeOpt3" name="horiMatSizeOption" data-src="addCpm" data-act="changeMaterialOption" data-id="sizeOption3">
+                                <label for="matSizeOpt3">&nbsp;2560x1080(21:9)</label>
+                              </span>
+                              <p class="optCaution">
+                                <span>
+                                  <i>※</i> 1920x1080(16:9) 사이즈가 기본 사이즈이며, 희망 사이즈를 선택하여 각각의 소재를 업로드 할 수 있습니다. </span>
+                              </p>
+                            </div>
+                            <div class="matSizeOpt1">
+                              <i class="videoSize">1920x1080(300mb 이하)</i>
+                              <input type="file" class="custom-file-input first" id="hFixFile1920" name="filename" data-src="addCpm" data-act="changeMaterialFile" data-size="1920x1080">
+                              <label class="custom-file-label first" for="hFixFile1920">파일을 선택하세요</label>
+                              <!--아래 'p>span' 은 파일 첨부시 띄울 문구-->
+                              <p>
+                                <span></span>
+                              </p>
+                            </div>
+                            <!--처음 파일 등록 시 뜨는 추가 파일 등록란-->
+                            <div id="sizeOption2" class="matSizeOpt matSizeOpt2">
+                              <i class="videoSize second">1600x1200(300mb 이하)</i>
+                              <input type="file" class="custom-file-input" id="hFixFile1600" name="filename" data-src="addCpm" data-act="changeMaterialFile" data-size="1600x1200">
+                              <label class="custom-file-label addition" for="hFixFile1600">파일을 선택하세요</label>
+                              <!--아래 'p>span' 은 파일 첨부시 띄울 문구-->
+                              <p>
+                                <span></span>
+                              </p>
+                            </div>
+                            <div id="sizeOption3" class="matSizeOpt matSizeOpt3">
+                              <i class="videoSize third">2560x1080(300mb 이하)</i>
+                              <input type="file" class="custom-file-input" id="hFixFile2560" name="filename" data-src="addCpm" data-act="changeMaterialFile" data-size="2560x1080">
+                              <label class="custom-file-label addition" for="hFixFile2560">파일을 선택하세요</label>
+                              <!--아래 'p>span' 은 파일 첨부시 띄울 문구-->
+                              <p>
+                                <span></span>
+                              </p>
+                            </div>
+                          </div>
+                          <!-- 유동적 소재 -->
+                          <div id="horizontalFluid" class="selFlu-hori d-none">
+                            <div class="matSizeOpt1">
+                              <i class="videoSize">1920x1080(300mb 이하)</i>
+                              <input type="file" class="custom-file-input first" id="hFluFile1920" name="filename" data-src="addCpm" data-act="changeMaterialFile" data-size="1920x1080">
+                              <label class="custom-file-label first" for="hFluFile1920">파일을 선택하세요</label>
+                              <!--아래 'p>span' 은 파일 첨부시 띄울 문구-->
+                              <p>
+                                <span></span>
+                              </p>
+                            </div>
+                          </div>
+                        </li>
+                        <!--세로 선택 시-->
+                        <li id="verticalInfo" class="both2">
+                          <div class="selectRadio matSizeChkGroup">
+                            <strong>세로</strong>
+                            <div>
+                              <input type="radio" id="vertiFix" name=vertiOption value="fix" data-src="addCpm" data-act="verticalOption" checked>
+                              <label for="vertiFix">
+                                <span>선택 사이즈에만 노출</span>
+                              </label>
+                            </div>
+                            <div>
+                              <input type="radio" id="vertiFluid" name="vertiOption" value="fluid" data-src="addCpm" data-act="verticalOption">
+                              <label for="vertiFluid">
+                                <span>유동적 소재 사용</span>
+                              </label>
+                            </div>
+                            <span class="mytooltip">
+                              <i class="popTip tooltip-item"></i>
+                              <span class="tooltip-content clearfix">
+                                <span class="imgToolTip">
+                                  <img src="/assets/imgs/vidSizeTip.jpg">
+                                </span>
+                                <span class="tooltip-text"> 업로드한 소재를 기반으로 <br />다양한 사이즈의 디스플레이에 유동적으로 노출 </span>
+                              </span>
+                            </span>
+                          </div>
+                          <div id="verticalFix" class="selFix-verti">
+                            <!--사이즈 추가-->
+                            <div class="matSizeChk">
+                              <span>1080x1920(9:16) <span class="emph">
+                                  <i>기본</i>
+                                </span>
+                              </span>
+                              <span class="chk">
+                                <input type="checkbox" id="matSizeOpt4" name="vertiMatSizeOption" data-src="addCpm" data-act="changeMaterialOption" data-id="vertiSizeOption2">
+                                <label for="matSizeOpt4">&nbsp;1200x1600(3:4)</label>
+                              </span>
+                              <span class="chk">
+                                <input type="checkbox" id="matSizeOpt5" name="vertiMatSizeOption" data-src="addCpm" data-act="changeMaterialOption" data-id="vertiSizeOption3">
+                                <label for="matSizeOpt5">&nbsp;1080x2560(9:21)</label>
+                              </span>
+                              <p class="optCaution">
+                                <span>
+                                  <i>※</i> 1080x1920(9:16) 사이즈가 기본 사이즈이며, 희망 사이즈를 선택하여 각각의 소재를 업로드 할 수 있습니다. </span>
+                              </p>
+                            </div>
+                            <div class="matSizeOpt1">
+                              <i class="videoSize">1080x1920(300mb 이하)</i>
+                              <input type="file" class="custom-file-input first" id="vFixFile1920" name="filename" data-src="addCpm" data-act="changeMaterialFile" data-size="1080x1920">
+                              <label class="custom-file-label first" for="vFixFile1920">파일을 선택하세요</label>
+                              <!--아래 'p>span' 은 파일 첨부시 띄울 문구-->
+                              <p>
+                                <span></span>
+                              </p>
+                            </div>
+                            <!--처음 파일 등록 시 뜨는 추가 파일 등록란-->
+                            <div id="vertiSizeOption2" class="matSizeOpt matSizeOpt4">
+                              <i class="videoSize second">1200x1600(300mb 이하)</i>
+                              <input type="file" class="custom-file-input" id="vFixFile1600" name="filename" data-src="addCpm" data-act="changeMaterialFile" data-size="1200x1600">
+                              <label class="custom-file-label addition" for="vFixFile1600">파일을 선택하세요</label>
+                              <!--아래 'p>span' 은 파일 첨부시 띄울 문구-->
+                              <p>
+                                <span></span>
+                              </p>
+                            </div>
+                            <div id="vertiSizeOption3" class="matSizeOpt matSizeOpt5">
+                              <i class="videoSize third">1080x2560(300mb 이하)</i>
+                              <input type="file" class="custom-file-input" id="vFixFile2560" name="filename" data-src="addCpm" data-act="changeMaterialFile" data-size="1080x2560">
+                              <label class="custom-file-label addition" for="vFixFile2560">파일을 선택하세요</label>
+                              <!--아래 'p>span' 은 파일 첨부시 띄울 문구-->
+                              <p>
+                                <span></span>
+                              </p>
+                            </div>
+                          </div>
+                          <div id="verticalFluid" class="selFlu-verti d-none">
+                            <div class="matSizeOpt1">
+                              <i class="videoSize">1080x1920(300mb 이하)</i>
+                              <input type="file" class="custom-file-input first" id="vFluFile1920" name="filename" data-src="addCpm" data-act="changeMaterialFile" data-size="1080x1920">
+                              <label class="custom-file-label first" for="vFluFile1920">파일을 선택하세요</label>
+                              <!--아래 'p>span' 은 파일 첨부시 띄울 문구-->
+                              <p>
+                                <span></span>
+                              </p>
+                            </div>
+                          </div>
+                        </li>
+                      </ul>
+                    </li>
+                    <!--1:1 선택시-->
+                    <li id="oneToOne" class="oneToOne fileBinary" style="display: none">
+                      <div class="matSizeOpt1">
+                        <i class="videoSize">1080x1080 (300mb 이하)</i>
+                        <input type="file" class="custom-file-input first" id="oneFile1080" name="filename" data-src="addCpm" data-act="changeMaterialFile" data-size="1080x1080">
+                        <label class="custom-file-label first" for="oneFile1080">파일을 선택하세요</label>
+                        <!--아래 'p>span' 은 파일 첨부시 띄울 문구-->
+                        <p>
+                          <span></span>
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+              <li>
+                <div>광고 신청 금액</div>
+                <div class="costBox">
+                  <button type="button" class="btn-sm btn-dark" data-src="addCpm" data-act="calculatePrice">계산하기</button> &nbsp; &nbsp; &nbsp;
+                  <!--금액입력란 주석 처리-->
+ 				  <p id="price"></p>
+                  <span>
+                    <i>※</i> VAT 별도 </span>
+                </div>
+              </li>
+            </ul>
+            
+          </div>
+          <div class="btnGroupTwin">
+            <button type="button" class="btn-lg btn-clear" data-src="addCpm" data-act="cancelSg"> 광고등록 취소 </button>
+            <!-- 광고 저장 및 승인 요청 모달 버튼 -->
+            <button type="button" class="btn-lg btn-dark" data-src="addCpm" data-act="addSg"> 광고 저장 및 승인 요청 </button>
+          </div>
+        </form>
+        <!-- 목표 노출 수 모달 시작 -->
+        <div class="modal fade" id="exposureTargetModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="viewCountMsg1Label" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <p>최소 노출횟수는 1000 입니다.</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-dark" data-dismiss="modal">확인</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 목표 노출 수 모달 시작 -->
+        <!-- 일 노출 제한 설정 모달 시작 -->
+        <div class="modal fade" id="exposureLimitModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="viewCountMsg2Label" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <p>일 노출 제한 횟수는 목표 노출수보다 <br />많이 설정할 수 없습니다. </p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-dark" data-dismiss="modal">확인</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 일 노출 제한 설정 모달 시작 -->
+        <!-- 전체 카테고리 보기 모달 시작 -->
+        <div class="modal fade" id="modalCategory" data-keyboard="false" tabindex="-1" aria-labelledby="allCategoryLabel" aria-hidden="true">
+          <div class="modal-dialog categoryDialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">카테고리 검색</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <div class="modalSearchBox">
+                  <label for="codeName">카테고리명 :&nbsp;</label>
+                  <input type="search" id="codeName" data-src="addCpm" data-act="enterCategory">
+                  <button type="button" class="btn-sm btn-dark" data-src="addCpm" data-act="searchCategory">검색</button>
+                </div>
+                <div class="modalTableWrap">
+                  <div class="modalTableInner">
+                    <table class="table">
+                      <colgroup>
+                        <col width="108.39px">
+                        <col width="173.44px">
+                        <col width="173.44px">
+                        <col width="*">
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th scope="col">대분류</th>
+                          <th scope="col">중분류</th>
+                          <th scope="col">소분류</th>
+                          <th scope="col">선택</th>
+                        </tr>
+                      </thead>
+                      <tbody id="categoryBody">
+                      </tbody>
+                    </table>
+                  </div>
+                  <!--테이블 : 소진액 / 시작-->
+                </div>
+                <nav aria-label="Page navigation">
+                  <ul id="listPage" class="pagination justify-content-center">
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/demand/campaign/sg/addCpm.js}"></script>
+	<script>
+		layout.setCallback(addCpm.init);
+	</script>
+</th:block>
+</html>

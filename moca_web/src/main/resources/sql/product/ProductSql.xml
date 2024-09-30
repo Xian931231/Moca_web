@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.product.ProductMapper">
+
+	<!-- 매체/상품 목록 조회 -->
+	<select id="getSupplyProductList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  m.company_name
+			, m.id AS member_id
+			, m.uname
+			, m.balance_day
+			, sc.category_name
+			, sc.id AS category_id
+			, sp.product_name
+			, sp.screen_resolution
+			, to_char(sp.insert_date, 'YYYY-MM-DD') AS insert_date
+			, sp.start_ymd 
+			, sp.end_ymd 
+			<![CDATA[
+			, sp.end_ymd BETWEEN to_char(now(), 'YYYY-MM-DD') AND to_char(now() + interval '6 month', 'YYYY-MM-DD') AS imminent
+			]]>
+			, coalesce (s.cpp_slot_count, 0) AS cpp_slot_cnt 
+			, coalesce (s.cpm_slot_count, 0) AS cpm_slot_cnt 
+			, coalesce (s.cpm_slot_count + s.cpp_slot_count, 0) AS total_slot_cnt 
+			, s.schedule_name
+			, s.id AS schedule_id
+		FROM
+			public.ssp_product sp
+		JOIN public.ssp_category sc
+		ON sc.id = sp.category_id
+		JOIN member.member m
+		ON m.id = sc.member_id
+		LEFT JOIN public.schedule_product scp
+		ON scp.product_id = sp.id
+		LEFT JOIN public.schedule s
+		ON s.id = scp.schedule_id
+		WHERE
+			m.utype = 'S'
+		AND m.status = 'A'
+		<if test='date_type == "I" and start_date != "" and end_date != ""'>
+			AND to_char(sp.insert_date, 'YYYY-MM-DD') BETWEEN #{start_date} and #{end_date} 
+		</if>
+		<if test='date_type == "S" and start_date != "" and end_date != ""'>
+			AND sp.start_ymd BETWEEN #{start_date} and #{end_date} 
+		</if>
+		<if test='date_type == "E" and start_date != "" and end_date != ""'>
+			AND sp.end_ymd BETWEEN #{start_date} and #{end_date}
+		</if>
+		<if test='search_type == "S" and search_value != null and search_value != ""'>
+			AND m.company_name LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		<if test='search_type == "C" and search_value != null and search_value != ""'>
+			AND sc.category_name LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		<if test='search_type == "P" and search_value != null and search_value != ""'>
+			AND sp.product_name LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		<if test='search_type == "N" and search_value != null and search_value != ""'>
+			AND m.uname LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		ORDER BY m.company_name, sc.category_name
+	</select>
+	
+	<!-- 분류 목록 -->
+	<select id="getCategoryList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  sc.id AS category_id
+			, m.id AS member_id
+			, m.company_name
+			, sc.category_name
+			, (SELECT
+					COUNT(*)
+				FROM
+					public.ssp_product
+				WHERE
+					category_id = sc.id) AS product_cnt
+		FROM
+			public.ssp_category sc
+		JOIN member.member m
+		ON m.id = sc.member_id
+		WHERE m.status = 'A'
+		AND m.utype = 'S'
+		<if test='member_id != null and member_id != ""'>
+			AND m.id = #{member_id}
+		</if>
+		ORDER BY sc.insert_date DESC
+	</select>
+	
+	<!-- 매체 > 분류 목록 -->
+	<select id="getCategoryListBySupply" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  sc.id AS category_id
+			, m.id AS member_id
+			, m.company_name
+			, sc.category_name
+		FROM
+			public.ssp_category sc
+		JOIN member.member m
+		ON m.id = sc.member_id
+		<where>
+			<if test='search_type == "S" and search_value != null and search_value != ""'>
+				AND m.company_name LIKE CONCAT('%', #{search_value}, '%')
+			</if>
+			<if test="product_list != null and product_list != ''">
+			AND m.id IN 
+			<foreach item='productList' collection='product_list' separator=',' open='(' close=')'>
+				#{productList}
+			</foreach>
+		  </if>
+		</where>
+		ORDER BY sc.insert_date DESC
+	</select>
+	
+	<!-- 분류 목록 개수 -->
+	<select id="getCategoryCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_category sc
+		JOIN member.member m
+		ON m.id = sc.member_id
+		<where>
+			<if test='member_id != null and member_id != ""'>
+				AND m.id = #{member_id}
+			</if>
+		</where>
+	</select>
+
+	<!-- 분류 추가 -->
+	<select id="addCategory" parameterType="HashMap" resultType="HashMap">
+		INSERT INTO public.ssp_category (
+			  category_name
+			, member_id
+			, insert_member_id
+			, insert_date
+		)
+		VALUES (
+			  #{category_name}
+			, #{member_id}::bigint
+			, #{login_id}::bigint
+			, now()
+		)
+		RETURNING id AS ssp_category_id
+	</select>
+	
+	<!-- 동일 매체 내 분류명 중복 확인 -->
+	<select id="hasSupplyCategory" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_category
+		WHERE
+			member_id = #{member_id}::bigint
+		AND category_name = #{category_name}::varchar
+	</select>
+	
+	<!-- 분류 삭제 -->
+	<delete id="removeCategory" parameterType="HashMap">
+		DELETE FROM 
+			public.ssp_category
+		WHERE
+			id = #{ssp_category_id}::bigint
+	</delete>
+	
+	<!-- 아이콘 수정 -->
+	<update id="modifyCategoryIcon" parameterType="HashMap">
+		UPDATE public.ssp_category
+		SET 
+			icon_image = #{icon_image}
+			<choose>
+				<when test='icon_file_name != null and icon_file_name !=""'>
+					, icon_file_name = #{icon_file_name}
+				</when>
+				<otherwise>
+					, icon_file_name = ''
+				</otherwise>
+			</choose>
+			, update_member_id = #{login_id}::bigint
+			, update_date = now()
+		WHERE
+			id = #{ssp_category_id}::bigint
+	</update>
+	
+	<!-- 상품 유무 확인 -->
+	<select id="hasProduct" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS product_id
+			, product_name
+			, category_id
+			, product_image AS saved_product_image
+		FROM
+			public.ssp_product
+		<where>
+			<if test='ssp_category_id != null and ssp_category_id != ""'>
+			AND category_id = #{ssp_category_id}::bigint
+			</if>
+			<if test='ssp_product_id != null and ssp_product_id != ""'>
+			AND id = #{ssp_product_id}::bigint
+			</if>
+		</where>
+	</select>
+	
+	<!-- 상품 유무 확인 -->
+	<select id="hasProductCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			 COUNT(*)
+		FROM
+			public.ssp_product
+		WHERE
+			category_id = #{ssp_category_id}::bigint
+	</select>
+	
+	<!-- 상품명 중복 확인 -->
+	<select id="hasProductName" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_product
+		WHERE
+			product_name = #{product_name}::varchar
+		AND category_id = #{category_id}::bigint
+	</select>
+	
+	<!-- 상품 목록 -->
+	<select id="getProductList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  sp.id AS product_id
+			, sp.product_name
+			, to_char(sp.update_date, 'YYYY-MM-DD') AS update_date
+			, sc.id AS category_id
+			, sc.category_name
+		FROM
+			public.ssp_product sp
+		JOIN public.ssp_category sc
+		ON sc.id = sp.category_id
+		JOIN member.member m
+		ON m.id = sc.member_id
+		WHERE
+			sc.id = #{ssp_category_id}		
+		ORDER BY sp.insert_date DESC		
+	</select>
+	
+	<!-- 상품 목록 개수 -->
+	<select id="getProductCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_product sp
+		JOIN public.ssp_category sc
+		ON sc.id = sp.category_id
+		JOIN member.member m
+		ON m.id = sc.member_id
+		WHERE
+			sc.id = #{ssp_category_id}				
+	</select>
+	
+	<!-- 상품 추가 -->
+	<insert id="addProduct" parameterType="HashMap">
+		INSERT INTO public.ssp_product (
+ 			  category_id
+			, product_name
+			, price_rate
+			, start_ymd
+			, end_ymd
+			<if test='deny_category_code1 != null and deny_category_code2 != null and deny_category_code3 != null'>
+			, deny_category_code1
+			, deny_category_code2
+			, deny_category_code3
+			</if>
+			<if test='notes != null and notes != ""'>
+			, notes
+			</if>
+			, insert_date
+			, update_member_id
+		)
+		VALUES (
+			  #{category_id}::bigint
+			, #{product_name}
+			, #{price_rate}
+			, #{start_ymd}
+			, #{end_ymd}
+			<if test='deny_category_code1 != null and deny_category_code2 != null and deny_category_code3 != null'>
+			, #{deny_category_code1}
+			, #{deny_category_code2}
+			, #{deny_category_code3}
+			</if>
+			<if test='notes != null and notes != ""'>
+			, #{notes}
+			</if>
+			, now()
+			, #{login_id}::bigint
+		)
+	</insert>
+	
+	<!-- 상품 관리 - 상품 기본정보 수정 -->
+	<update id="modifyProduct" parameterType="HashMap">
+		UPDATE public.ssp_product
+		SET	
+			  product_name = #{product_name}
+			, price_rate = #{price_rate}
+			, start_ymd = #{start_ymd}
+			, end_ymd = #{end_ymd}
+			, deny_category_code1 = #{deny_category_code1}
+			, deny_category_code2 = #{deny_category_code2}
+			, deny_category_code3 = #{deny_category_code3}
+			<if test='notes != null and notes != ""'>
+			, notes = #{notes}
+			</if>
+			, update_date = now()
+			, update_member_id = #{login_id}::bigint
+		WHERE
+			id = #{ssp_product_id}
+	</update>
+	
+	<!-- 상품 관리 - 상품 사양 등록 -->
+	<update id="modifyProductSpec" parameterType="HashMap">
+		UPDATE public.ssp_product 
+		SET 
+			  os = #{product_os}
+			, status = 'S'
+			, support_format = #{support_format}
+			, screen_rate = #{screen_rate}
+			, screen_resolution = #{screen_resolution}
+			, screen_size = #{screen_size}
+			, storage = #{storage}
+			, install_position = #{install_position}
+			, install_direction = #{install_direction}
+			, support_audio = #{support_audio}
+			, update_date = now()
+			, spec_insert_date = now()
+			, update_member_id = #{login_id}::bigint
+			<if test='product_image != null and product_image != ""'>
+			, product_image = #{product_image}
+			, product_file_name = #{product_file_name}
+			</if>
+		WHERE
+			id = #{ssp_product_id}
+	</update>
+	
+	<!-- 상품 상세보기 -->
+	<select id="getProductDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  sp.id AS product_id
+			, sp.product_name
+			, sp.price_rate
+			, sp.start_ymd
+			, sp.end_ymd
+			, sp.deny_category_code1
+			, (SELECT code_name FROM public.code WHERE code = deny_category_code1) AS deny_category_main
+			, sp.deny_category_code2
+			, (SELECT code_name FROM public.code WHERE code = deny_category_code2) AS deny_category_middle
+			, sp.deny_category_code3
+			, (SELECT code_name FROM public.code WHERE code = deny_category_code3) AS deny_category_sub
+			, sp.notes
+			, sp.product_image
+			, sp.os
+			, c.code_name AS os_name
+			, sp.support_format
+			, sp.screen_rate
+			, sp.screen_resolution
+			, sp.screen_size 
+			, sp.storage
+			, sp.install_position
+			, sp.install_direction
+			, sp.support_audio
+			, sp.status
+			, sp.device_insert_date
+			, sc.member_id AS ssp_member_id
+			, (SELECT company_name FROM member.member m WHERE m.id = sc.member_id) AS ssp_company_name
+			, sc.category_name AS category_name
+		FROM
+			public.ssp_product sp
+		JOIN public.ssp_category sc 
+		ON sp.category_id = sc.id 
+		LEFT JOIN public.code c
+		ON c.code = sp.os
+		WHERE
+			sp.id = #{ssp_product_id}::bigint
+	</select>
+	
+	<!-- 상품 삭제 -->
+	<delete id="removeProduct" parameterType="HashMap">
+		DELETE FROM
+			public.ssp_product
+		WHERE
+			id = #{ssp_product_id}
+	</delete>
+	
+	<!-- 상품 판매 시작 -->
+	<update id="startProductSale" parameterType="HashMap">
+		UPDATE public.ssp_product
+		SET sale_yn = 'Y'
+		WHERE
+			id = #{ssp_product_id}
+	</update>
+	
+	<!-- CPP 진행 상품 리스트 -->
+	<!-- P : 진행중 / N : 선택불가 / Y : 선택가능 -->
+	<select id="getCppProductList" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+			m.id AS member_id
+			, m.company_name
+			, sc.id AS category_id
+			, sc.category_name 
+			, sp.id AS product_id
+			, sp.product_name 
+			, sp.screen_resolution
+			, sp.install_direction
+			, p.play_time
+			, sp.price_rate 
+			, sp.deny_category_code1 
+			, sp.deny_category_code2 
+			, sp.deny_category_code3 
+			, p.slot_cnt
+			, p.selected_cnt
+			, sp.support_format
+			<![CDATA[ 
+			, CASE WHEN p.slot_cnt = p.selected_cnt THEN 'P' 
+				   WHEN sp.deny_category_code3 = #{sub_category_code} 
+				   		OR p.play_time <> #{play_time}
+				   		OR sp.end_ymd < #{end_ymd} 
+			]]>
+				<if test='screen_resolution != null and screen_resolution != ""'>
+					<![CDATA[
+				   		OR screen_resolution <> #{screen_resolution}
+					]]>
+				</if>
+				<choose>
+					<when test='material_kind == "IMAGE"'>
+						OR (support_format not like '%jpg%' AND support_format not like '%png%')
+					</when>
+					<when test='material_kind == "VIDEO"'>
+						OR support_format not like '%mp4%'
+					</when>
+				</choose>
+				   		OR sp.start_ymd > #{start_ymd} 
+				   		OR sp.sale_yn = 'N' THEN 'N'
+				   ELSE 'Y' END AS select_yn
+			, CASE WHEN p.slot_cnt = p.selected_cnt THEN (
+				SELECT
+					end_ymd
+				FROM
+					public.dsp_sg_manager dsm
+				JOIN vw_schedule_product vsp2
+				ON
+					vsp2.sg_id = dsm.id
+				AND vsp2.product_id = dsm.ssp_product_id 
+				WHERE
+					 status IN (0, 1, 2)
+				AND dsm.ssp_product_id = sp.id
+				ORDER BY
+					dsm.end_ymd asc
+				LIMIT 1
+			) END AS sg_end_ymd 
+		<include refid="cpp_product_list_where"></include>
+		ORDER BY m.company_name ASC, sc.category_name ASC, p.product_id DESC
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- CPP 진행 상품 개수 -->
+	<select id="getCppProductCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		<include refid="cpp_product_list_where"></include>
+	</select>
+
+	<!-- CPP 진행 상품 리스트 검색조건 -->
+	<sql id="cpp_product_list_where">
+		FROM
+		(
+			SELECT
+			 	COUNT(A.*) as slot_cnt
+			 	, COUNT(B.*) as selected_cnt
+			 	, A.product_id
+			 	, A.play_time
+			FROM
+		 	(
+				SELECT
+					slot_id
+					, vsp.product_id
+					, vsp.play_time
+				FROM
+					vw_schedule_product vsp
+				<where>
+					<if test='select_possible_yn == "Y"'>
+						vsp.play_time = #{play_time}::int
+					</if>
+				</where>
+				GROUP BY slot_id, product_id, play_time
+			) as A
+			LEFT JOIN
+			(
+				SELECT
+					slot_id 
+					, dsm.id
+				FROM
+					vw_schedule_product vsp
+				JOIN
+					dsp_sg_manager dsm 
+				ON
+					vsp.sg_id = dsm.id
+				<where>
+					<if test='select_possible_yn == "Y"'>
+						vsp.play_time = #{play_time}::int
+					</if>
+				AND dsm.status IN (0, 1, 2)
+				</where>
+			) as B
+			ON A.slot_id = B.slot_id
+			GROUP BY A.product_id, A.play_time
+		) p
+		JOIN public.ssp_product sp 
+		ON sp.id = p.product_id
+		JOIN public.ssp_category sc
+		ON sc.id = sp.category_id
+		JOIN member.member m 
+		ON m.id = sc.member_id
+		<where>
+			<![CDATA[
+			AND sp.support_format IS NOT NULL AND sp.support_format <> ''
+			]]>
+			<if test='member_id != null and member_id != ""'>
+			AND m.id = #{member_id}
+			</if>
+			<if test='ssp_category_id != null and ssp_category_id != ""'>
+			AND sc.id = #{ssp_category_id}
+			</if>
+			<if test='ssp_product_id != null and ssp_product_id != ""'>
+			AND sp.id = #{ssp_product_id}
+			</if>
+			
+			<if test='select_possible_yn == "Y"'>
+			AND sp.sale_yn = 'Y'
+			AND p.product_id NOT IN (SELECT id FROM public.ssp_product WHERE deny_category_code3 = #{sub_category_code})
+			<if test='screen_resolution != null and screen_resolution != ""'>
+				AND sp.screen_resolution = #{screen_resolution}
+			</if>
+			<![CDATA[
+			AND p.slot_cnt <> p.selected_cnt
+			AND sp.start_ymd <= #{start_ymd}
+			]]>
+			AND sp.end_ymd >= #{end_ymd}
+			<choose>
+				<when test='material_kind == "IMAGE"'>
+					AND (support_format LIKE '%jpg%' OR support_format LIKE '%png%')
+				</when>
+				<when test='material_kind == "VIDEO"'>
+					AND (support_format LIKE '%mp4%')
+				</when>
+			</choose>
+			</if>
+		</where>
+	</sql>
+
+	<!-- 카테고리 상세 -->
+	<select id="getCategoryDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  sc.id AS ssp_category_id
+			, sc.category_name
+			, sc.member_id AS supply_id
+			, sc.icon_image
+			, m.company_name
+		FROM
+			public.ssp_category sc
+		JOIN member.member m
+		ON m.id = sc.member_id
+		WHERE
+			sc.id = #{ssp_category_id}
+	</select>
+	
+	<!-- 광고가 진행중인 상품 확인 -->
+	<select id="hasProgressSgInProduct" parameterType="HashMap" resultType="Integer">
+		SELECT	
+			COUNT(*)
+		FROM 
+			public.schedule_product sp
+		WHERE 
+			product_id = #{ssp_product_id}
+	</select>
+</mapper>

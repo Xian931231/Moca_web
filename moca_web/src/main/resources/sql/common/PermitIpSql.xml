@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.common.CommonMapper">
+	<!-- 권한별 허용된 IP 대역이 있는지 확인 -->
+	<select id="hasPermitIp" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM 
+			member.permit_ip
+		WHERE 
+			utype = #{login_utype}
+		AND inet (#{request_ip}) BETWEEN from_ip AND to_ip
+	</select>
+</mapper>

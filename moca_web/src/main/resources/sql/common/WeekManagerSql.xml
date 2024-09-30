@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.common.CommonMapper">
+	<!-- 설정된 옵션값 조회 -->
+	<select id="getWeekTime" resultType="HashMap">
+		SELECT 
+			week_code
+			, week_name
+			, hour_00
+			, hour_01
+			, hour_02
+			, hour_03
+			, hour_04
+			, hour_05
+			, hour_06
+			, hour_07
+			, hour_08
+			, hour_09
+			, hour_10
+			, hour_11
+			, hour_12
+			, hour_13
+			, hour_14
+			, hour_15
+			, hour_16
+			, hour_17
+			, hour_18
+			, hour_19
+			, hour_20
+			, hour_21
+			, hour_22
+			, hour_23
+		FROM 
+			public.week_manager
+		<where>
+			<if test='week_code != null and week_code != ""'>
+			AND week_code = #{week_code} :: integer
+			</if>
+		</where>
+		ORDER BY 
+			CASE 
+				week_code WHEN 0 THEN 9
+			ELSE 
+				week_code
+			END
+	</select>
+	
+	<!-- 옵션값 저장 -->
+	<insert id="modifyWeekTime">
+		INSERT INTO public.week_manager (
+			week_code
+			, hour_00
+			, hour_01
+			, hour_02
+			, hour_03
+			, hour_04
+			, hour_05
+			, hour_06
+			, hour_07
+			, hour_08
+			, hour_09
+			, hour_10
+			, hour_11
+			, hour_12
+			, hour_13
+			, hour_14
+			, hour_15
+			, hour_16
+			, hour_17
+			, hour_18
+			, hour_19
+			, hour_20
+			, hour_21
+			, hour_22
+			, hour_23
+		) VALUES (
+			#{week_code} ::smallint
+			, #{hour_00} ::smallint
+			, #{hour_01} ::smallint
+			, #{hour_02} ::smallint
+			, #{hour_03} ::smallint
+			, #{hour_04} ::smallint
+			, #{hour_05} ::smallint
+			, #{hour_06} ::smallint
+			, #{hour_07} ::smallint
+			, #{hour_08} ::smallint
+			, #{hour_09} ::smallint
+			, #{hour_10} ::smallint
+			, #{hour_11} ::smallint
+			, #{hour_12} ::smallint
+			, #{hour_13} ::smallint
+			, #{hour_14} ::smallint
+			, #{hour_15} ::smallint
+			, #{hour_16} ::smallint
+			, #{hour_17} ::smallint
+			, #{hour_18} ::smallint
+			, #{hour_19} ::smallint
+			, #{hour_20} ::smallint
+			, #{hour_21} ::smallint
+			, #{hour_22} ::smallint
+			, #{hour_23} ::smallint
+		)
+		ON CONFLICT (week_code) 
+		DO UPDATE 
+			SET 
+				hour_00 = #{hour_00} ::smallint
+				, hour_01 = #{hour_01} ::smallint
+				, hour_02 = #{hour_02} ::smallint
+				, hour_03 = #{hour_03} ::smallint
+				, hour_04 = #{hour_04} ::smallint
+				, hour_05 = #{hour_05} ::smallint
+				, hour_06 = #{hour_06} ::smallint
+				, hour_07 = #{hour_07} ::smallint
+				, hour_08 = #{hour_08} ::smallint
+				, hour_09 = #{hour_09} ::smallint
+				, hour_10 = #{hour_10} ::smallint
+				, hour_11 = #{hour_11} ::smallint
+				, hour_12 = #{hour_12} ::smallint
+				, hour_13 = #{hour_13} ::smallint
+				, hour_14 = #{hour_14} ::smallint
+				, hour_15 = #{hour_15} ::smallint
+				, hour_16 = #{hour_16} ::smallint
+				, hour_17 = #{hour_17} ::smallint
+				, hour_18 = #{hour_18} ::smallint
+				, hour_19 = #{hour_19} ::smallint
+				, hour_20 = #{hour_20} ::smallint
+				, hour_21 = #{hour_21} ::smallint
+				, hour_22 = #{hour_22} ::smallint
+				, hour_23 = #{hour_23} ::smallint
+	</insert>	
+	
+</mapper>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/externalLayout}">
+<th:block layout:fragment="content">
+	    <main class="main-panel product">
+      <div class="content device">
+        <div class="titleCont">
+          <h2 id="productName"></h2>
+        </div>        
+        <div class="productSpecification device tab-content.advTablesCpm">
+          <div class="deviceTopBtn">
+            <button type="button" class="btn-lg btn-dark" data-src="deviceAdd" data-act="clickAddDeviceForm">기기 등록 추가</button>
+            <button type="button" class="btn-lg btn-dark" data-src="deviceAdd" data-act="clickModelNameAddModal"> 모델명 일괄 등록</button>
+          </div>
+          <div class="tableWrap">
+            <div class="tableInner">
+              <table class="table advTable2">
+                <colgroup>
+                  <col width="100px">
+                  <col width="*">
+                  <col width="*">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>모델명</th>
+                    <th>시리얼 넘버</th>
+                  </tr>
+                </thead>
+                <tbody id="listBody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+         <div class="management_acc">
+	      <div class="addFile">
+	        <input type="file" accept=".xls, .xlsx" class="pad_file" id="fileSelect" name="filename" data-src="deviceAdd" data-act="changeFile">
+	        <label class="pad_file-label form-control selected" for="fileSelect" data-src="deviceAdd" data-act="clickAddExcel"></label>
+	      </div>
+        </div>
+        </div>
+        <div class="productSelectBtn">
+          <a href="javascript:;">
+            <button type="button" class="btn-lg btn-clear" data-src="deviceAdd" data-act="clickCancel">작성취소</button>
+          </a>
+          <a href="javascript:;">
+            <button type="button" class="btn-lg btn-dark" data-src="deviceAdd" data-act="clickAddDevice">작성내용 저장</button>
+          </a>
+        </div>
+      </div>
+      <!--모델명 모달-->
+      <div class="modal fade" id="modelNameAddModal" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog product device">
+          <div class="modal-content">
+            <!-- <div class="modal-header">
+              <h2>사진 등록</h2>
+            </div> -->
+            <div class="modal-body">
+              <div class="modal-device">
+                <label>모델명</label>
+                <input type="text" id="bulkAddModelName" placeholder="AN-13245354">
+              </div>
+              <div class="modal-device">
+                <label>추가 개수</label>
+                <input type="text" id="bulkAddCnt" placeholder="숫자 입력">
+              </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-lg btn-clear" data-dismiss="modal">취소</button>
+                <button type="button" class="btn-lg btn-dark" data-src="deviceAdd" data-act="clickBulkAddMoadlName">일괄 등록</button>             
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/external/device/add.js}"></script>
+	<script>
+		externalLayout.setCallback(deviceAdd.init);
+	</script>
+</th:block>
+</html>

@@ -1,0 +1,696 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.ad.schedule.ScheduleMapper">
+	<!-- 편성표 리스트 -->
+	<select id="getList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  s.id AS schedule_id
+			, s.schedule_name
+			, TO_CHAR(insert_date, 'YYYY-MM-DD') AS insert_date
+			, s.cpp_slot_count
+			, s.cpm_slot_count
+		FROM
+			public.schedule s 
+		WHERE
+			s.use_yn = 'Y'
+		ORDER BY 
+			s.id desc 
+		<if test='limit != null and offset != null'>
+		LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 편성표 리스트 총 개수 -->
+	<select id="getListCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.schedule s 
+		WHERE
+			use_yn = 'Y'
+	</select>
+	
+	<!-- 편성표에 등록된 상품 조회 -->
+	<select id="getProductList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  sp.id AS schedule_product_id
+			, sp.schedule_id
+			, sp.product_id
+			, p.product_name
+			, sc.category_name
+			, m.company_name
+			, s.cpp_slot_count 
+			, (
+				SELECT 
+					COUNT(*)
+				FROM
+					public.schedule_product_slot sps JOIN public.schedule_product_slot_sg spss 
+					ON sps.id  = spss.schedule_product_slot_id AND sp.id = sps.schedule_product_id
+					JOIN public.dsp_sg_manager dsm 
+					ON dsm.id = spss.sg_id AND dsm.end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD') AND dsm.status IN (0,1,2)
+			  ) AS cpp_matching_cnt
+		FROM
+			public.schedule_product sp
+		JOIN public.ssp_product p 
+		ON sp.product_id = p.id AND sp.schedule_id = #{schedule_id}
+		JOIN public.ssp_category sc 
+		ON p.category_id = sc.id
+		JOIN public.schedule s 
+		ON sp.schedule_id = s.id 
+		JOIN member.member m
+		ON sc.member_id = m.id
+		<where>
+			<if test='product_id != null and product_id != ""'>
+				sp.product_id = #{product_id}
+			</if>
+		</where>
+		ORDER BY
+			sp.id
+	</select>
+	
+	<!-- 편성표 상세 -->
+	<select id="getDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS schedule_id
+			, schedule_name
+			, cpp_slot_count
+			, cpm_slot_count
+			, TO_CHAR(insert_date, 'YYYY-MM-DD') AS INSERT_DATE
+		FROM
+			public.schedule
+		WHERE
+			id = #{schedule_id}
+			AND use_yn = 'Y'
+	</select>
+	
+	<!-- 편성표에 등록된 슬롯 리스트 -->
+	<select id="getSlotList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  ss.id AS slot_id
+			, ss.slot_order
+			, ss.slot_type
+			, ss.play_time
+			, ss.sort_info
+			, (
+				SELECT 
+					COUNT(*)
+				FROM
+					public.schedule_product_slot sps JOIN public.schedule_product_slot_sg spss 
+					ON sps.id  = spss.schedule_product_slot_id AND sps.slot_id = ss.id
+					JOIN public.dsp_sg_manager dsm 
+					ON dsm.id = spss.sg_id AND dsm.end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD') AND dsm.status IN (0,1,2)
+			  ) AS matching_sg_cnt
+		  	<if test='product_id != null and product_id != ""'>
+		  	  , A.sg_id
+		  	  , A.sg_name
+		  	  , A.schedule_product_id
+		  	  , A.schedule_product_slot_id
+		 	</if>
+		FROM
+			public.schedule_slot ss
+			<if test='product_id != null and product_id != ""'>
+				LEFT JOIN
+				(
+					SELECT
+						spss.sg_id, spss.sg_name, sps.slot_id, sp.id AS schedule_product_id, sps.id AS schedule_product_slot_id
+					FROM
+						public.schedule_product sp 
+						JOIN public.schedule_product_slot sps
+						ON sp.id = sps.schedule_product_id AND sp.product_id = #{product_id}
+						LEFT JOIN (
+							SELECT
+								  spss.schedule_product_slot_id
+								, dsm.id as sg_id
+								, dsm.name as sg_name
+							FROM
+								public.schedule_product_slot_sg spss
+							JOIN public.dsp_sg_manager dsm
+							ON spss.sg_id = dsm.id AND dsm.end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD') AND dsm.status IN (0,1,2)
+						) spss
+						ON spss.schedule_product_slot_id = sps.id
+		  		) A
+				ON ss.id = A.slot_id				
+			</if>
+		WHERE
+			ss.schedule_id = #{schedule_id}
+			<if test='slotType != null and slotType != ""'>
+				AND ss.slot_type = #{slotType}
+			</if>
+		ORDER BY
+			slot_order
+	</select>
+	
+	<!-- 편성표 삭제 -->
+	<update id="removeSchedule" parameterType="HashMap">
+		UPDATE
+			public.schedule
+		SET
+			use_yn = 'N'
+		WHERE
+			<choose>
+				<when test='schedule_id_list != null and !schedule_id_list.isEmpty()'>
+					id IN
+					<foreach item="schedule_id" collection="schedule_id_list" separator="," open="(" close=")">
+						#{schedule_id}
+					</foreach>
+				</when>
+				<otherwise>
+					id = #{schedule_id}	
+				</otherwise>
+			</choose>
+	</update> 
+	
+	<!-- 진행중인 CPP광고 체크 -->
+	<select id="hasInProgressCpp" parameterType="Integer" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.schedule s
+		JOIN public.schedule_product sp
+		ON s.id = sp.schedule_id AND s.id = #{schedule_id}
+		JOIN public.schedule_product_slot sps 
+		ON sp.id = sps.schedule_product_id
+		JOIN public.schedule_product_slot_sg spss 
+		ON sps.id = spss.schedule_product_slot_id 
+		JOIN public.dsp_sg_manager dsm 
+		ON spss.sg_id = dsm.id AND dsm.end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD') AND dsm.status IN (0,1,2) 
+	</select>
+	
+	<!-- 편성표 등록 -->
+	<insert id="addSchedule" parameterType="HashMap" useGeneratedKeys="true" keyProperty="schedule_id">
+		INSERT INTO public.schedule (
+			  schedule_name
+			, cpp_slot_count
+			, cpm_slot_count
+			, insert_date
+		) VALUES (
+			  #{schedule_name}
+			, #{cpp_slot_count}
+			, #{cpm_slot_count}
+			, NOW()
+		) 
+	</insert>
+	
+	<!-- 편성표 슬롯 등록 -->
+	<insert id="addScheduleSlot" parameterType="HashMap" useGeneratedKeys="true" keyProperty="slot_id"> 
+		INSERT INTO public.schedule_slot (
+			  schedule_id
+			, slot_order
+			, slot_type
+			, play_time
+			, sort_info
+		) VALUES (
+			  #{schedule_id}
+			, #{slot_order}
+			, #{slot_type}
+			, #{play_time}::smallint
+			, #{sort_info}::jsonb
+		)
+	</insert>
+
+	<!-- 편성표에 속하는 상품 등록 -->
+	<insert id="addScheduleProduct" parameterType="HashMap" useGeneratedKeys="true" keyProperty="schedule_product_id">
+		INSERT INTO public.schedule_product (
+			  schedule_id
+			, product_id
+		) VALUES (
+			  #{schedule_id}
+			, #{product_id}
+		)
+	</insert>
+	
+	<!-- 
+		편성표에 속하는 상품 유효성 
+		종료 날짜 체크 및 이미 등록된 상품인지 체크
+	-->
+	<select id="hasValidProduct" parameterType="Integer" resultType="HashMap">
+		SELECT
+			  is_valid
+			, product_name
+		FROM (
+		SELECT
+			CASE 
+				WHEN 
+					(SELECT 
+						COUNT(*) 
+					FROM 
+						public.schedule_product sp2 
+					WHERE 
+						sp2.product_id = #{product_id}
+					<if test='schedule_id != null and schedule_id != ""'>
+						AND schedule_id != #{schedule_id}
+					</if>
+					) > 0
+				THEN 
+					'R'
+				ELSE 
+					'Y'
+			END AS is_valid
+			, product_name
+		FROM 
+			public.ssp_product sp 
+		WHERE 
+			id = #{product_id} AND end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+		UNION ALL
+		SELECT
+			'N' AS is_valid
+			, '' AS product_name
+		) A
+		LIMIT 1
+	</select>
+	
+	<!-- 편성표 수정 -->
+	<update id="modifySchedule" parameterType="HashMap">
+		UPDATE
+			public.schedule
+		SET
+			  schedule_name = #{schedule_name}
+			, cpp_slot_count = #{cpp_slot_count}
+			, cpm_slot_count = #{cpm_slot_count}
+		WHERE
+			id = #{schedule_id}
+	</update>
+	
+	<!-- 슬롯 수정 -->
+	<update id="modifyScheduleSlot" parameterType="HashMap">
+		UPDATE
+			public.schedule_slot
+		SET
+			  slot_order = #{slot_order}
+			, slot_type = #{slot_type}
+			, play_time = #{play_time}::smallint
+			, sort_info = #{sort_info}::jsonb
+		WHERE
+			id = #{schedule_slot_id}
+	</update>
+	
+	<!-- 편성표 슬롯 삭제 -->
+	<delete id="removeScheduleSlot" parameterType="HashMap">
+		DELETE FROM 
+			public.schedule_slot
+		WHERE
+			<choose>
+				<when test='schedule_id_list != null and !schedule_id_list.isEmpty()'>
+					schedule_id IN
+					<foreach item="schedule_id" collection="schedule_id_list" separator="," open="(" close=")">
+						#{schedule_id}
+					</foreach>
+				</when>
+				<otherwise>
+					id = #{slot_id}	
+				</otherwise>
+			</choose>
+	</delete>
+	
+	<!-- 편성표에 속하는 상품 삭제 -->
+	<delete id="removeScheduleProduct" parameterType="HashMap">
+		DELETE FROM
+			public.schedule_product
+		<where>
+			<choose>
+				<when test='product_id != null and product_id != ""'>
+					product_id = #{product_id}
+				</when>
+				<when test='schedule_id != null and schedule_id != ""'>
+					schedule_id = #{schedule_id}
+				</when>
+				<otherwise>
+					id = #{schedule_product_id}				
+				</otherwise>
+			</choose>
+		</where>
+	</delete>
+	
+	<!-- 매칭된 광고가 있는지 체크 -->
+	<select id="hasMatchingSg" parameterType="Integer" resultType="Integer">
+		SELECT 
+			COUNT(*) 
+		FROM 
+			public.schedule_product_slot sps 
+			JOIN public.schedule_product_slot_sg spss 
+			ON sps.id = spss.schedule_product_slot_id 
+			<choose>
+				<when test='schedule_product_id != null and schedule_product_id != ""'>
+					AND sps.schedule_product_id = #{schedule_product_id}
+				</when>
+				<otherwise>
+					AND sps.slot_id = #{slot_id}
+				</otherwise>
+			</choose>
+			JOIN public.dsp_sg_manager dsm 
+			ON spss.sg_id = dsm.id AND dsm.end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD') AND dsm.status IN(0,1,2)
+	</select>
+
+	<!-- 상품의 정보: 매체 > 분류 > 상품 -->
+	<select id="getProductDetail" resultType="HashMap">
+		SELECT 
+			p.id product_id
+			, p.product_name 
+			, p.status
+			, c.category_name
+			, m.company_name supply_name
+		FROM 
+			public.ssp_product p
+			JOIN public.ssp_category c
+			ON p.category_id = c.id  AND p.id = #{product_id}
+			JOIN member.member m
+			ON c.member_id = m.id
+	</select>
+	
+	<!-- 상품이 등록된 스케쥴 조회 -->
+	<select id="getProductSchedule" resultType="HashMap">
+		SELECT
+			id schedule_product_id
+			, schedule_id 
+			, product_id 
+		FROM 
+			public.schedule_product sp
+		WHERE 
+			product_id = #{product_id}
+	</select>
+	
+	<!-- 같은 스케쥴의 광고 중 재생시간이 같은 광고 -->
+	<select id="getSameScheduleSgList" resultType="HashMap">
+		SELECT
+			ss.id slot_id
+			, sps.sg_id 
+			, dsm.name
+			, dsm.material_kind 
+			, dsm.start_ymd 
+			, dsm.end_ymd 
+			, (CASE 
+				WHEN slot_id = #{slot_id} THEN 'Y'
+				ELSE 'N'
+				END) choose_slot_id
+		FROM 
+			public.schedule_slot ss 
+			JOIN public.schedule_product_sg sps 
+			ON ss.id = sps.slot_id AND ss.schedule_id = #{schedule_id} AND ss.play_time = #{play_time}
+			JOIN public.dsp_sg_manager dsm 
+			ON sps.sg_id = dsm.id
+	</select>
+	
+	<!-- CPP 광고 지정 정보 제거 -->
+	<delete id="removeScheduleProductSlotSg">
+		DELETE FROM
+			public.schedule_product_slot_sg
+		WHERE 
+			<choose>
+				<when test='schedule_product_slot_id != null and schedule_product_slot_id != ""'> 
+					schedule_product_slot_id = #{schedule_product_slot_id}
+				</when>
+				<otherwise>
+					sg_id = #{sg_id}::bigint
+				</otherwise>
+			</choose>
+	</delete>
+	
+	<!-- CPP 광고 지정 정보 등록 -->
+	<insert id="addScheduleProductSlotSg">
+		INSERT INTO public.schedule_product_slot_sg (
+			  schedule_product_slot_id
+			, sg_id
+		) VALUES (
+			  #{schedule_product_slot_id}
+			, #{sg_id}
+		)
+	</insert>
+	
+	<!-- 상품, 슬롯 중복 확인 -->
+	<select id="hasScheduleProductSlot" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.schedule_product_sg
+		WHERE
+			slot_id = #{slot_id}
+		AND schedule_product_id = #{schedule_product_id}
+	</select>
+	
+	<!-- 상품 product_id 가져오기 -->
+	<select id="getScheduleProductId" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			product_id AS ssp_product_id
+		FROM	
+			public.schedule_product
+		WHERE
+			id = #{schedule_product_id}
+	</select>
+	
+	<!-- 상품과 연결된 편성표 ID 변경 -->
+	<update id="modifyProductScheduleId" parameterType="HashMap">
+		UPDATE
+			public.schedule_product
+		SET
+			schedule_id = #{schedule_id}
+		WHERE
+			id = #{schedule_product_id}
+	</update>
+	
+	<!-- 편성표에 등록가능한 상품이 남은 매체사 조회 -->
+	<select id="getSupplyList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS member_id 
+			, company_name
+		FROM
+			member.member
+		WHERE
+			id IN (
+				SELECT 
+					DISTINCT(member_id)
+				FROM
+					public.ssp_category sc2 
+				WHERE
+					id IN(
+						SELECT
+							DISTINCT(category_id ) 
+						FROM
+							public.ssp_product
+						WHERE
+							device_insert_date IS NOT NULL
+							AND start_ymd <![CDATA[ <= ]]> TO_CHAR(NOW(), 'YYYY-MM-DD') 
+							AND end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+							AND id NOT IN (
+								SELECT 
+									product_id 
+								FROM 
+									public.schedule_product
+								<where>
+									<if test='except_schedule_id != null and except_schedule_id != ""'>
+										AND schedule_id != #{except_schedule_id}
+									</if>
+									<if test='except_product_id != null and except_product_id != ""'>
+										AND product_id != #{except_product_id}
+									</if>
+								</where>
+				  			)
+					)
+			)
+		ORDER BY 
+			company_name 
+	</select>
+	
+	<!-- 편성표에 등록 가능한 상품이 남은 분류 조회 -->
+	<select id="getCategoryList" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+			  id AS category_id
+			, category_name 
+		FROM
+			public.ssp_category sc2 
+		WHERE
+			member_id = #{member_id}
+			AND id IN(
+				SELECT
+					DISTINCT(category_id) 
+				FROM
+					public.ssp_product
+				WHERE
+				device_insert_date IS NOT NULL 
+				AND start_ymd <![CDATA[ <= ]]> TO_CHAR(NOW(), 'YYYY-MM-DD') 
+				AND end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+				AND id NOT IN(
+						SELECT 
+							product_id 
+						FROM 
+							public.schedule_product
+						<where>
+							<if test='except_schedule_id != null and except_schedule_id != ""'>
+								AND schedule_id != #{except_schedule_id}
+							</if>
+							<if test='except_product_id != null and except_product_id != ""'>
+								AND product_id != #{except_product_id}
+							</if>
+						</where>
+					)
+			)
+	</select>
+	
+	<!-- 남은 상품 조회 (스팩등록 완성되고 타 편성표에 등록 안된 상품)-->
+	<select id ="getRemainProductList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS product_id
+			, product_name
+		FROM
+			public.ssp_product
+		WHERE
+			category_id = #{category_id} 
+			AND device_insert_date IS NOT NULL
+			AND start_ymd <![CDATA[ <= ]]> TO_CHAR(NOW(), 'YYYY-MM-DD')
+			AND end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+			AND id NOT IN (
+				SELECT 
+					product_id 
+				FROM 
+					public.schedule_product
+				<where>
+					<if test='except_schedule_id != null and except_schedule_id != ""'>
+						AND schedule_id != #{except_schedule_id}
+					</if>
+					<if test='except_product_id != null and except_product_id != ""'>
+						AND product_id != #{except_product_id}
+					</if>
+				</where>
+		  )
+		ORDER BY 
+			id
+	</select>
+	
+	<!-- 편성표 상품에 속한 광고 리스트 -->
+	<select id="getScheduleProductSgList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  dsm.id AS sg_id 
+			, dsm.name AS sg_name
+			, dsm.exposure_time
+			, dsm.material_kind
+			, dsm.start_ymd
+			, dsm.end_ymd
+		FROM 
+			public.schedule_product_slot sps 
+			JOIN public.schedule_product_slot_sg spss 
+			ON sps.id = spss.schedule_product_slot_id 
+			JOIN public.dsp_sg_manager dsm 
+			ON dsm.id = spss.sg_id 
+		WHERE
+			sps.schedule_product_id = (SELECT id FROM public.schedule_product sp WHERE product_id = #{product_id})
+			AND dsm.end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+			AND dsm.status IN(0,1,2)
+	</select> 
+	
+	<!-- 상품당 맵핑되는 슬롯 정보 등록 -->
+	<insert id="addScheduleProductSlot" parameterType="HashMap" useGeneratedKeys="true" keyProperty="schedule_product_slot_id">
+		INSERT INTO public.schedule_product_slot (
+			  schedule_product_id
+			, slot_id
+		) VALUES (
+			  #{schedule_product_id}
+			, #{slot_id}		
+		) 
+	</insert>
+
+	<!-- 상품과 맵핑된 슬롯 정보 삭제 -->
+	<delete id="removeScheduleProductSlot" parameterType="HashMap">
+		DELETE FROM
+			public.schedule_product_slot
+		WHERE
+			<choose>
+				<when test='schedule_product_id != null and schedule_product_id != ""'>
+					schedule_product_id = #{schedule_product_id}
+				</when>
+				<otherwise>
+					slot_id = #{slot_id}
+				</otherwise>
+			</choose>
+	</delete>
+	
+	<!-- 편성표 상품 상세 조회 -->
+	<select id="getScheduleProduct" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS schedule_product_id 
+			, schedule_id
+			, product_id
+		FROM
+			public.schedule_product
+		WHERE
+			product_id = #{product_id}
+	</select>
+	
+	<!-- 편성표 상품에 속한 슬롯 정보 -->
+	<select id="getScheduleProductSlot" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS schedule_product_slot_id
+			, schedule_product_id
+			, slot_id
+		FROM
+			public.schedule_product_slot
+		WHERE
+			<choose>
+				<when test='schedule_product_id != null and schedule_product_id != ""'>
+					schedule_product_id = #{schedule_product_id}
+				</when>
+				<otherwise>
+					slot_id = #{slot_id}
+				</otherwise>
+			</choose>
+	</select>
+	
+	<!-- CPP 광고 정보 -->
+	<select id="getScheduleProductSlotSg" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS schedule_product_slot_sg_id
+			, schedule_product_slot_id
+			, sg_id
+		FROM
+			public.schedule_product_slot_sg
+		WHERE
+			schedule_product_slot_id = #{schedule_product_slot_id}
+	</select>
+	
+	<!-- 신청하려는 cpp광고 조건에 맞는 상품의 슬롯 목록 -->
+	<select id="getPossibleSlotList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			sps.id as schedule_product_slot_id
+			, MAX(A.sg_id) as sg_id
+			, A.slot_id
+		FROM (
+			SELECT
+				vsps.slot_id
+				, vsps.product_id
+				, vsps.schedule_id
+				, vsps.slot_order
+				, vsps.sg_id
+			FROM
+				public.vw_schedule_product_slot vsps
+			LEFT JOIN
+				public.ssp_product sp 
+			ON vsps.product_id = sp.id 
+			WHERE
+			<![CDATA[
+				sp.start_ymd <= #{start_ymd} -- 광고 시작일
+			]]>
+			AND sp.end_ymd >= #{end_ymd} -- 광고 종료일
+			AND product_id = #{ssp_product_id}::int -- 상품 id
+			AND slot_type = 'C' -- cpp
+			AND vsps.play_time = #{exposure_time}::int -- playtime
+		) A
+		LEFT JOIN
+			public.schedule_product sp2 
+		ON A.schedule_id = sp2.schedule_id
+		AND A.product_id = sp2.product_id
+		LEFT JOIN
+			public.schedule_product_slot sps
+		ON sps.schedule_product_id = sp2.id
+		AND sps.slot_id = A.slot_id
+		GROUP BY sps.id, A.slot_id, A.slot_order
+		ORDER BY A.slot_order
+	</select>
+	
+	<!-- 슬롯과 연결된 광고 개수  -->
+	<select id="getScheduleProductSlotSgCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			 COUNT(*)
+		FROM
+			public.schedule_product_slot_sg
+		WHERE
+			schedule_product_slot_id = #{schedule_product_slot_id}
+	</select>
+</mapper>

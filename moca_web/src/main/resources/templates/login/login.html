@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+    <head>
+        <!-- 공통 헤더 -->
+        <th:block th:replace="fragments/header :: commonHeaderFragment"></th:block>
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" th:href="@{/assets/bootstrap/css/bootstrap.min.css}">
+        <link rel="stylesheet" th:href="@{/assets/bootstrap/css/bootstrap-select.min.css}">
+        <link rel="stylesheet" th:href="@{/assets/bootstrap/css/bootstrap-datepicker3.min.css}">
+        <!-- only css -->
+        <link href="https://cdn.jsdelivr.net/npm/reset-css@5.0.1/reset.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" th:href="@{/assets/css/login.css}">
+    </head>
+    <body>
+        <div class="wrapper">
+        <section id="login" class="section2">
+            <div class="container" id="container">
+                <div class="form-container sign-up-container">
+                    <form action="#">
+                        <h1>회원가입</h1>
+                        <div class="cc-selector">
+                            <table>
+                                <tr>
+                                    <td>
+                                        <input id="cus" type="radio" name="select-type" value="demand"/>
+                                        <label class="drinkcard-cc cust" for="cus">광고주</label>
+                                    </td>
+                                    <td>
+                                        <input id="agency" type="radio" name="select-type" value="agency"/>
+                                        <label class="drinkcard-cc agency"for="agency">대행사</label>
+                                    </td>
+                                    <td>
+                                        <input id="media" type="radio" name="select-type" value="supply"/>
+                                        <label class="drinkcard-cc media"for="media">매체사</label>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p></p>
+                            <fieldset>
+                                <h2 class="radioP">
+                                    <input id="age_above" type="checkbox" name="select-age" value="age_above" required />
+                                    <label for="age_above">
+                                    <span>만 14세 이상입니다. [필수]</span>
+                                    </label>
+                                </h2>
+                            </fieldset>
+                            <p></p>
+                        </div>
+                        <button class="join_box_btn1" type="button" data-toggle="modal" data-src="login" data-act="clickJoin">가입하기</button>
+                        <!-- </a>   -->
+                    </form>
+                </div>
+                <div class="form-container sign-in-container">
+                    <form action="#">
+                        <div class="login_logo">
+                            <img th:src="@{/assets/imgs/logo_moca_bk.png}" alt="모카">
+                        </div>
+                        <div class="login_box">
+                            <input type="ID" id="loginId" data-src="login" data-act="loginId" aria-describedby="emailHelp" placeholder="ID" />
+                            <input type="password" id="loginPw" data-src="login" data-act="loginPw" placeholder="Password" />
+                            <p></p>
+                            <table>
+                                <td>
+                                    <a href="javascript:;" data-src="login" data-act="clickFindId">
+                                        <h2>ID 찾기</h2>
+                                    </a>
+                                </td>
+                                <td>&nbsp;/&nbsp;</td>
+                                <td>
+                                    <a href="javascript:;" data-src="login" data-act="clickFindPw">
+                                        <h2>PW 찾기</h2>
+                                    </a>
+                                </td>
+                            </table>
+                            <p></p>
+                            <button type="button" class="login-btn" data-toggle="modal" data-src="login" data-act="clickLogin" id="loginBtn" is-run="0">로그인</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="overlay-container">
+                    <div class="overlay">
+                        <div class="overlay-panel overlay-left">
+                            <h1 class="logo-w"><img th:src="@{/assets/imgs/logo_moca.png}" alt=""></h1>
+                            <p></p>
+                            <button class="ghost" id="signIn" data-src="login" data-act="signIn">로그인</button>
+                        </div>
+                        <div class="overlay-panel overlay-right">
+                            <h1>환영합니다.</h1>
+                            <p></p>
+                            <button class="ghost" id="signUp" data-src="login" data-act="signUp">회원가입</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- 공통 스크립트 -->
+        <th:block th:replace="fragments/footerScript :: footerScriptFragment"></th:block>
+        <th:block th:replace="fragments/footerScript :: platformFooterScriptFragment"></th:block>
+        <script th:src="@{/js/page/login/login.js}"></script>
+        <script>
+            $(document).ready(function(){
+            	login.init();
+            });
+        </script>
+    </body>
+</html>

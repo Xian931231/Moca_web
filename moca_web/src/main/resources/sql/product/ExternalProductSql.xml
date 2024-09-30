@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.product.ExternalProductMapper">
+
+	<!-- 상품 리스트 -->
+	<select id="getList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS product_id
+			, product_name
+			, TO_CHAR(spec_insert_date, 'YYYY-MM-DD') AS spec_insert_date
+			, TO_CHAR(device_insert_date, 'YYYY-MM-DD') AS device_insert_date
+		FROM
+			public.ssp_product
+		WHERE
+			category_id = #{category_id}
+			AND end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+			<if test="is_exist_not_matching_device != null and is_exist_not_matching_device != ''">
+				AND id IN(
+					SELECT
+						DISTINCT product_id
+					FROM
+						public.ssp_device sd
+					WHERE
+						status = 'Y'
+						<choose>
+							<when test='except_motor_id != null and except_motor_id != ""'>
+								AND (motor_id IS NULL OR motor_id = #{except_motor_id})	
+							</when>
+							<otherwise>
+								AND motor_id IS NULL
+							</otherwise>
+						</choose>
+					)
+			</if>
+		ORDER BY
+			id DESC
+	</select>
+	
+	<!-- 상품 사양 상세 -->
+	<select id="getProductSpecDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+		      id AS product_id
+		    , category_id
+		    , (SELECT member_id FROM public.ssp_category WHERE id = sp.category_id) AS supply_id
+		    , product_name
+			, os AS product_os
+			, support_format
+			, screen_rate
+			, screen_resolution
+			, screen_size
+			, storage
+			, install_position
+			, install_direction
+			, support_audio
+			, product_image 
+			, status
+			, TO_CHAR(spec_insert_date, 'YYYY-MM-DD') AS spec_insert_date
+			, TO_CHAR(device_insert_date, 'YYYY-MM-DD') AS device_insert_date
+		FROM
+			public.ssp_product sp
+		WHERE
+			id = #{product_id}
+	</select>
+	
+	<!-- 상품 사양 등록 / 수정 -->
+	<update id="addProductSpec" parameterType="HashMap">
+		UPDATE
+			public.ssp_product
+		SET
+			  os = #{product_os}
+			, support_format = #{support_format}
+			, screen_rate = #{screen_rate}
+			, screen_resolution = #{screen_resolution}
+			, screen_size = #{screen_size}
+			, storage = #{storage}::int
+			, install_position = #{install_position}
+			, install_direction = #{install_direction}
+			, support_audio = #{support_audio}
+			<if test='add_product_image != null and add_product_image != ""'>
+				, product_image = #{add_product_image}
+				, product_file_name = #{add_product_file_name}
+			</if>
+			, update_member_id = #{external_login_id}::bigint
+			, update_date = NOW()
+			<if test='status != null and status == "P"'>
+				, spec_insert_date = NOW()
+				, status = 'S'
+			</if>
+		WHERE
+			id = #{product_id}
+	</update>
+	
+	<!-- 매체 조회 -->
+	<select id="getSupplyList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS member_id
+			, company_name
+		FROM
+			member.member
+		WHERE 
+		    utype = 'S'
+		    AND status = 'A'
+		    AND	id IN (
+			SELECT 
+				DISTINCT(member_id)
+			FROM 
+				ssp_category sc
+			<where>
+				<if test='is_exist_product != null and is_exist_product == "Y"'>
+					AND id IN (
+						SELECT 
+							DISTINCT(category_id)
+						FROM
+							ssp_product sp
+						WHERE
+							end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+					)		
+				</if>		
+				<if test='is_exist_motor_position != null and is_exist_motor_position == "Y"'>
+					AND id IN (
+						SELECT
+							DISTINCT(category_id)
+						FROM
+							public.ssp_motor_position
+					)
+				</if>
+			</where>
+			) 
+		ORDER BY
+			company_name 
+	</select>
+	
+	<!-- 분류 조회 -->
+	<select id="getCategoryList" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+			  id AS category_id
+			, category_name
+			, member_id
+		FROM 
+			ssp_category sc
+		<where>
+			member_id = #{member_id}
+			<if test='is_exist_product != null and is_exist_product == "Y"'>	
+				AND id IN (
+					SELECT 
+						distinct(category_id)
+					FROM
+						ssp_product sp
+					WHERE
+						end_ymd >= TO_CHAR(NOW(), 'YYYY-MM-DD')
+				)
+			</if>
+			<if test='is_exist_motor_position != null and is_exist_motor_position == "Y"'>
+				AND id IN (
+					SELECT
+						DISTINCT(category_id)
+					FROM
+						public.ssp_motor_position
+				)
+			</if>
+		</where>
+		ORDER BY
+			category_name 
+	</select>
+	
+</mapper>

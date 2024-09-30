@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<th:block layout:fragment="content">
+    <main class="main-panel">
+      <div class="pagePath">
+        광고 관리<span>&gt;</span>새 캠페인 / 광고 등록<span>&gt;</span>새 캠페인 만들기
+      </div>
+      <div class="content">
+        <div class="titleCont">
+          <h2>새 캠페인 만들기</h2>
+        </div>
+        <div class="adv-content advForms">
+          <p>
+            캠페인은 광고를 신청할 때 가장 먼저 생성해야 하는 단위로 예산, 과금방식에 따라 광고를 분류하고 관리하실 수 있습니다.<br />
+            기존에 생성된 캠페인에 광고를 진행하시려면 <a href="/demand/campaign/list">[ 캠페인/광고 관리 ▶ ]</a> 메뉴를 이용해 주세요.
+          </p>
+          <div class="formWrap">
+            <form onsubmit="return false;">
+              <div class="innerForm">
+                <ul class="formList newCamp">
+                  <li>
+                    <div>캠페인 이름</div>
+                    <div>
+                      <input type="text" id="name" class="form-control" maxLength="30">
+                    </div>
+                  </li>
+                  <li>
+                    <div>과금방식 선택</div>
+                    <div>
+                      <select id="payType" class="selectpicker">
+                        <option value="CPM" selected>CPM</option>
+                        <option value="CPP">CPP</option>
+                      </select>
+                      <i class="popTip" data-toggle="tooltip" data-placement="top" title="CPM : 광고가 노출된 횟수 당 단가를&#10;책정하는 과금 방식.&#10;&#10;CPP : 정해진 기간 동안 고정된 금액으로&#10;광고를 게재하는 과금 방식."></i>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <!-- Button trigger modal -->
+              <div class="btnGroupTwin">
+                <button type="button" class="btn-lg btn-clear" data-src="campaignAdd" data-act="addCampaign">
+                  캠페인만 생성하기
+                </button>
+                <button type="button" class="btn-lg btn-dark" data-src="campaignAdd" data-act="addCampaignMoveSgAdd">
+                 <!-- cpm일 경우 01_Ctr-01_cpm.html 링크 -->
+                 <!-- cpp일 경우 01_Ctr-01_cpp.html 링크 -->
+                  생성한 캠페인에 광고신청 하기
+                </button>
+              </div>
+            </form>      
+          </div>
+        </div>
+      </div>
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/demand/campaign/add.js}"></script>
+	<script>
+		layout.setCallback(campaignAdd.init);
+	</script>
+</th:block>
+</html>

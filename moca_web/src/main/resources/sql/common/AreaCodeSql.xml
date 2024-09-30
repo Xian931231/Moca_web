@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.common.CommonMapper">
+
+	<!-- 위치 정보 조회 -->
+	<select id="getLocation" resultType="HashMap">
+		SELECT
+			si_name
+			, gu_name
+			, dong_name
+			, adm_cd
+			, adm_cd2
+			, adm_cd3
+		FROM 
+		    public.area_code
+		WHERE
+		     ST_CONTAINS(geo_data, ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude},')')))
+	</select>
+	
+	<!-- 지역정보 조회 si 목록 -->
+	<select id="getAreaCodeBySi" resultType="HashMap">
+		SELECT
+			si_code
+			, si_name 
+			, si_cpoint 
+			, st_x(si_cpoint) AS si_latitude
+			, st_y(si_cpoint) AS si_longitude
+		FROM 
+			public.area_code ac
+		<where>
+			<if test='si_code != null and si_code != ""'>
+				AND si_code = #{si_code}
+			</if>
+		</where>
+		GROUP BY si_code, si_name, si_cpoint
+		ORDER BY si_code
+	</select>
+	
+	<!-- 지역정보 조회 gu 목록 -->
+	<select id="getAreaCodeByGu" resultType="HashMap">
+		SELECT
+			si_code
+			, si_name 
+			, si_cpoint
+			, st_x(si_cpoint) AS si_latitude
+			, st_y(si_cpoint) AS si_longitude
+			, gu_code
+			, gu_name 
+			, gu_cpoint
+			, st_x(gu_cpoint) AS gu_latitude
+			, st_y(gu_cpoint) AS gu_longitude
+		FROM 
+			public.area_code ac
+		<where>
+			<if test='si_code != null and si_code != ""'>
+				AND si_code = #{si_code}
+			</if>
+			<if test='gu_code != null and gu_code != ""'>
+				AND gu_code = #{gu_code}
+			</if>
+		</where> 
+		GROUP BY si_code, si_name, si_cpoint, gu_code, gu_name, gu_cpoint
+		ORDER BY si_code, gu_code
+	</select>
+	
+	<!-- 지역정보 조회 dong 목록 -->
+	<select id="getAreaCodeByDong" resultType="HashMap">
+		SELECT
+			si_code
+			, si_name 
+			, st_x(si_cpoint) AS si_latitude
+			, st_y(si_cpoint) AS si_longitude
+			, gu_code
+			, gu_name 
+			, gu_cpoint
+			, st_x(gu_cpoint) AS gu_latitude
+			, st_y(gu_cpoint) AS gu_longitude
+			, gu_cpoint
+			, dong_code
+			, dong_name
+			, dong_cpoint
+			, st_x(dong_cpoint) AS dong_latitude
+			, st_y(dong_cpoint) AS dong_longitude
+		FROM 
+			public.area_code ac
+		<where>
+			<if test='si_code != null and si_code != ""'>
+				AND si_code = #{si_code}
+			</if>
+			<if test='gu_code != null and gu_code != ""'>
+				AND gu_code = #{gu_code}
+			</if>
+		</where> 
+		GROUP BY si_code, si_name, si_cpoint, gu_code, gu_name, gu_cpoint, dong_code, dong_name, dong_cpoint
+		ORDER BY si_code, gu_code, dong_code
+	</select>
+</mapper>

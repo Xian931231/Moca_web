@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+	<th:block layout:fragment="content">
+		<main class="main-panel">
+			<div class="pagePath">
+	        	회원관리<span>&gt;</span>회원정보 수정
+			</div>
+		    <div class="join-all">
+				<div class="formWrap formInputInfo">
+		      		<form class="join-form" onsubmit="return false">
+		        		<h2>기본 정보</h2>
+		        		<div class="innerForm join">
+			          		<ul class="join-center">
+			            		<li class="join-userId">
+			              			<span class="form-label">아이디</span>
+			              			<p id="uid"></p>
+					            </li>
+			    		        <li class="join-pw">
+									<span class="form-label">기존 비밀번호</span>
+									<input type="password" class="form-control" name="oldPassWord" id="oldPassWord" autocomplete="new-password">
+			            		</li>
+			            		<li class="join-pw">
+			              			<span class="form-label">비밀번호 변경</span>
+			              			<input type="password" class="form-control" name="newPassWord" id="newPassWord" autocomplete="new-password">
+			            		</li>
+			            		<li class="join-pw">
+			              			<span class="form-label">변경 비밀번호 확인</span>
+			              			<input type="password" class="form-control" name="reNewPassWord" id="reNewPassWord" autocomplete="new-password">
+			            		</li>
+			            		<li class="join-email">
+			              			<span class="form-label">이메일</span>
+			              			<div>
+			                			<input type="text" name="strEmail01" id="companyEmail1" class="form-control email" placeholder="Mocafe123" data-src="demandMember" data-act="changeEmail">
+			                			<span>@</span>
+			                			<input type="text" name="strEmail02" id="companyEmail2" class="form-control email"  data-src="demandMember" data-act="changeEmail">
+			                			<select name="selectDomain" id="selectDomain" class="selectpicker" data-src="demandMember" data-act="changeDomain">
+			                  				<option value="directInput" selected>직접 입력</option>
+							                <option value="naver.com">naver.com</option>
+							                <option value="gmail.com">gmail.com</option>
+							                <option value="nate.com">nate.com</option>
+							                <option value="daum.com">daum.com</option>
+							                <option value="hanmail.com">hanmail.com</option>
+			                			</select>
+			                			<button type="button" class="userId-btn" id="sendAuthCode" data-src="demandMember" data-act="sendAuthCode">인증번호 전송하기<!--인증번호 다시 받기--></button>
+			              			</div>
+			            		</li>
+			            		<li class="join-email-number">
+			              			<span class="form-label">인증번호 입력</span>
+			              			<input type="text" class="form-control" name="authKey" id="authKey">
+			              			<span class="stopwatch" id="authTimer">5:00</span>
+			              			<button type="button" class="userId-btn" data-src="demandMember" data-act="authKeyCheck">인증번호 확인</button>
+			              			<p id="emailConfirm" style="visibility:hidden">이메일 인증이 완료되었습니다.</p>
+			            		</li>
+			            		<li class="join-url">
+			              			<span class="form-label">대표 URL <span>[선택]</span></span>
+			              			<input type="text" class="form-control" name="url" id="url" placeholder="http://www.mocafe.com">
+			            		</li>
+			            		<li class="join-checkbox">
+			              			<span class="chk"><b>수신동의<span>[선택]</span></b>
+				              			<input type="checkbox" name="acceptEmail" id="acceptEmail" >
+				              			<label for="acceptEmail"></label>
+				              			<span>E-Mail</span>
+				              			<input type="checkbox" name=acceptSms id="acceptSms" >
+				              			<label for="acceptSms"></label>
+				              			<span>SMS</span>
+			            			</span>
+			            		</li>
+			            	</ul>
+						</div>
+						<h2>업무 담당자 정보 입력</h2>
+						<div class="innerForm join">
+							<ul class="join-center">
+					            <li class="join-contact-Name">
+					              <span class="form-label">담당자 이름</span>
+					              <input type="text" class="form-control" name="uname" id="uname" placeholder="">
+					            </li>
+					              <li class="join-phone">
+					              <span class="form-label">담당자 연락처</span>
+					              <input type="tel" class="form-control" name="mobile" id="mobile" placeholder="" data-src="demandMember" data-act="autoHypenPhone">
+					            </li>
+					            <li class="join-email">
+					              <span class="form-label">담당자 이메일</span>
+					              <input type="email" class="form-control" name="userEmail" id="userEmail" placeholder="" autocomplete="new-password">
+					              <span class="chk">
+					                <input type="checkbox" id="correctBase" name="correctBase" data-src="demandMember" data-act="clickSameEmail">
+					                <label for="correctBase"><span>기본 정보와 동일합니다.</span></label>
+					              </span>
+					            </li>
+				            </ul>
+			          	</div>
+						<ul class="join-box">
+				            <li class="join-btn">
+				              <a href="javascript:;">
+				              <button type="button" class="previous-btn" data-src="demandMember" data-act="moveMainPage">정보수정 취소</button>
+				              </a>
+				            </li>
+				            <li class="join-btn">
+				              <a href="javascript:;">
+				              <button type="button" class="completion-btn" data-src="demandMember" data-act="modifyMemberInfo">회원정보 수정하기</button>
+				              </a>
+				            </li>
+			          	</ul>
+		          		<h2>사업자 정보</h2>
+		          		<div class="innerForm join">
+			            	<ul class="join-center">
+			              		<li class="join-corporate">
+		                			<p>사업자 정보는 직접 수정하실 수 없습니다.<br>
+			                  		사업자등록증을 업로드 하시고 수정을 요청해주세요.
+			                  		</p>
+			                		<span class="form-label">상호(법인명)</span>
+			                		<input type="text" class="form-control" name="companyName" id="companyName" readonly>
+			              		</li>
+			              		<li class="join-business_number">
+					                <span class="form-label">사업자등록번호</span>
+					                <input type="text" class="form-control" name="companyRegnum" id="companyRegnum" readonly>
+			              		</li>	
+			              		<li class="join-representative">
+			              		
+					                <span class="form-label">대표자 성명</span>
+					                <input type="text" class="form-control" name="ceoName" id="ceoName" readonly>
+			              			<li class="join-occupation">
+						                <span class="form-label">업태</span>
+						                <input type="text" class="form-control" name="bizKind" id="bizKind" readonly>
+			              			</li>
+			              			<li class="join-business">
+						                <span class="form-label">업종</span>
+						                <input type="text" class="form-control" name="bizType" id="bizType" readonly>
+			              			</li>	
+			              			<li class="join-address">
+						                <span class="form-label">사업장 주소</span>
+						                <div>
+						                	<input type="text" class="form-control" name="companyAddress1" id="companyAddress1" readonly>
+						                </div>
+			              			</li>
+			              			<li class="join-detailed_add">
+						                <span class="form-label">상세주소</span>
+						                <input type="text" class="form-control" name="companyAddress2" id="companyAddress2" readonly>
+			              			</li>
+			              			<li class="join-license">
+						                <span class="form-label">사업자등록증</span>
+						                <div class="addFile">
+											<input type="file" class="custom-file-input" id="companyRegnumImage" name="companyRegnumImage" accept=".jpg,.pdf,.png" data-src="demandMember" data-act="changeImg"><label class="custom-file-label form-control selected" for="companyRegnumImage"></label>
+						                </div>
+			              			</li>
+			            	</ul>
+		          		</div>
+		          		<ul class="join-box">
+							<li>
+			              		<button type="button" class="previous-btn"  data-toggle="modal" data-target="#withdrawal" >회원탈퇴 요청</button>
+			              		<button type="button" class="license-btn" data-src="demandMember" data-act="modifyCompanyRegnumImage">사업자 정보 수정 요청</button>
+							</li>
+		          		</ul>
+					</form>
+		    	</div>
+		    </div>
+		   <!--회원탈퇴 안내 모달-->
+            <div class="modal fade" id="withdrawal" data-keyboard="false" tabindex="-1" aria-labelledby="allCategoryLabel" aria-hidden="true">
+               <div class="modal-dialog withdrawal">
+                  <div class="modal-content">
+                     <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                     </div><div class="container"></div>
+                     <div class="modal-body">
+                        <p>
+                           종료되지 않은 광고가 있을 시 회원탈퇴가 불가하며<br>
+                           탈퇴를 요청하신 후에는 플랫폼 이용이 제한됩니다.<br>
+                           계속 진행하시겠습니까?
+                        </p>
+                     </div>
+                     <div class="modal-footer">
+                        <button type="button" class="btn-sm btn-clear" id="withdrawal-btn" data-dismiss="modal" aria-label="Close">탈퇴 취소</button>
+		            	<button type="button" class="btn-sm btn-dark" data-src="demandMember" data-act="processingSgChk">회원 탈퇴</button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+		    <!--회원탈퇴 비밀번호 모달-->
+		    <div class="modal fade" id="allCategory" data-keyboard="false" tabindex="-1" aria-labelledby="allCategoryLabel" aria-hidden="true">
+		      <div class="modal-dialog agency">
+		        <div class="modal-content ad">
+		          <div class="modal-header">
+		            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+		              <span aria-hidden="true">&times;</span>
+		            </button>
+		          </div>
+		          <div class="modal-body">
+		            <div class="modalSearchBox">
+		              <label for="modalSearch">비밀번호 확인</label>
+		              <input type="password" id="modalSearch" placeholder="비밀번호 입력">
+		            </div>
+		            <div class="modal-btn">
+		              <button type="button" class="btn-sm btn-clear" data-dismiss="modal" aria-label="Close">취소</button>
+		              <button type="button" class="modal-close-btn" id="agency-btn" data-src="demandMember" data-act="removeMember">확인</button>
+		            </div>
+		          </div>
+		        </div>
+		      </div>
+		    </div>    
+		</main>
+	</th:block>
+	<th:block layout:fragment="script">
+		<script th:src="@{/js/page/member/modify.js}"></script>
+		<script th:src="@{/js/page/demand/member/info/modify.js}"></script>
+		<script>
+			layout.setCallback(demandMember.init);
+		</script>
+	</th:block>
+</html>

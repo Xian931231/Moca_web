@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+   <th:block layout:fragment="content">
+      <main class="main-panel moCafePanel">
+         <div class="pagePath">
+            정산 관리
+         </div>
+         <div class="content">
+            <div class="titleCont">
+               <h2>정산 관리</h2>
+            </div>
+            <div class="tab-content allProfitCont">
+               <div class="moCafeFormWrap allProfitWrap">   
+                  <form action="">
+                     <fieldset>
+                        <legend class="blind">검색</legend>
+                        <span class="btnCtrlWrap">
+                           <select id="searchStatus" name="selList1" class="selectpicker">
+                                 <option value="A" selected>전체</option>
+                                 <option value="R">진행중</option>
+                                 <option value="C">지급 완료</option>
+                           </select>
+                           <select id="searchStartYear" class="yearMonth"></select>
+                           <select id="searchStartMonth" class="selectpicker yearMonth">
+                              <option value="01">1월</option>
+                              <option value="02">2월</option>
+                              <option value="03">3월</option>
+                              <option value="04">4월</option>
+                              <option value="05">5월</option>
+                              <option value="06">6월</option>
+                              <option value="07">7월</option>
+                              <option value="08">8월</option>
+                              <option value="09">9월</option>
+                              <option value="10">10월</option>
+                              <option value="11">11월</option>
+                              <option value="12">12월</option>
+                           </select>
+                           <span>&nbsp;~&nbsp;</span>
+                           <select id="searchEndYear" class="yearMonth"></select>
+                           <select id="searchEndMonth" class="selectpicker yearMonth">
+                              <option value="01">1월</option>
+                              <option value="02">2월</option>
+                              <option value="03">3월</option>
+                              <option value="04">4월</option>
+                              <option value="05">5월</option>
+                              <option value="06">6월</option>
+                              <option value="07">7월</option>
+                              <option value="08">8월</option>
+                              <option value="09">9월</option>
+                              <option value="10">10월</option>
+                              <option value="11">11월</option>
+                              <option value="12">12월</option>
+                           </select>
+                        </span>
+                        <button type="button" class="btn-sm btn-schSingle" data-src="list" data-act="clickSearch">조회</button>
+                     </fieldset>
+                  </form>
+                  <div class="info allProfit">
+                     <p id="balanceMemberInfo">
+                        <!-- <span>입금 은행 : ABC</span>
+                        <span>계좌번호 : 12343-54-544632</span>
+                        <span>예금주 : LG전자</span>
+                        <span>정산일 : 매월 28일</span>
+                        <span>요율 : 00%</span> -->
+                     </p>
+                     <span class="caution"><i>※</i>VAT 별도</span>
+                  </div>
+               </div>
+               <!--테이블 : 정산 관리 / 시작-->
+               <div class="tableWrap calc">
+                  <div id="blankDiv" class="notnotnot" style="display: none;">검색 결과가 없습니다.</div>
+                  <div id="listDiv">
+                     <div class="tableInner">
+                        <table class="table">
+                           <colgroup>
+                              <col width="400px">
+                              <col width="400px">
+                              <col width="*">
+                           </colgroup>
+                           <thead>
+                              <tr>
+                                 <th>날짜</th>
+                                 <th>수익금(원)</th>
+                                 <th>상태</th>
+                              </tr>
+                           </thead>
+                           <tbody id="listBody">
+                           </tbody>
+                        </table>
+                        <div class="tableFooterFix calc">
+                           <ul>
+                              <li>합계</li>
+                              <li id="listSumPay"></li>
+                           </ul>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <!--테이블 : 정산 관리 / 끝-->
+               <!-- 페이지네이션 / 시작 -->
+               <nav aria-label="Page navigation">
+                  <ul id="listPage" class="pagination justify-content-center">
+                  </ul>
+               </nav>
+               <!-- 페이지네이션 / 끝 -->
+            </div>
+            <!-- 지급 완료 모달 : 시작 -->
+            <div class="modal fade" id="paidProfit" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="paidProfitLabel" aria-hidden="true">
+               <div class="modal-dialog">
+                  <div class="modal-content">
+                     <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                        </button>
+                     </div>
+                     <div class="modal-body">
+                        <p>
+                           <strong>
+                           AB은행 / 123-54-54632 / LG전자<br />
+                           지급일자 2023.08.01
+                           </strong>
+                        </p>
+                     </div>
+                     <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-dark" data-dismiss="modal">확인</button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <!-- 지급 완료 모달 : 끝 -->
+         </div>
+      </main>
+   </th:block>
+   <th:block layout:fragment="script">
+      <script th:src="@{/js/page/supply/balance/list.js}"></script>
+      <script>
+         layout.setCallback(balanceList.init);
+      </script>
+   </th:block>
+</html>

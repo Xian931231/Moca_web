@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.ad.campaign.CampaignMapper">
+	<!-- campaign용 -->
+	<sql id="sql_campaign_list_where">
+		<if test="campaign_name != null and campaign_name != '' ">
+			AND a.name LIKE CONCAT('%', #{campaign_name}, '%')
+		</if>
+		<if test="member_name != null and member_name != '' ">
+			AND a.uname LIKE CONCAT('%', #{campaign_name}, '%')
+		</if>
+		<if test="str_dt != null and str_dt != '' ">
+			AND a.insert_date >= #{str_dt}::timestamp
+		</if>
+		<if test="end_dt != null and end_dt != '' ">
+			AND a.insert_date  <![CDATA[ <= ]]> #{end_dt}::timestamp
+		</if>
+		<if test="pay_type != null and pay_type != '' ">
+			AND a.pay_type = #{pay_type}
+		</if>
+		<if test="status != null and status != '' ">
+			AND a.status = #{status}
+		</if>
+	</sql>
+	
+	<!-- 캠페인 리스트 -->
+	<select id="getCampaignList" resultType="HashMap">
+		SELECT
+		    a.id
+		    , a.name
+		    , a.member_id
+		    , a.uname
+		    , a.price
+		    , a.pay_type
+		    , a.price_balance
+		    , a.price_pay
+		    , a.status
+		    , a.sg_tot_cnt
+		    , a.sg_status_0
+		    , a.sg_status_1
+		    , a.sg_status_2
+		    , a.sg_status_3
+		    , a.sg_status_4
+		    , a.sg_status_8
+		    , a.sg_status_9
+		    , a.insert_date
+		FROM(
+		    SELECT
+		         dc.id
+		        , dc.name
+		        , dc.member_id 
+		        , m.uname
+		        , dc.price 
+		        , dc.pay_type 
+		        , dc.price_balance 
+		        , dc.price_pay 
+		        , (SELECT 
+		            CASE WHEN EXISTS 
+		                (
+		                    SELECT 1 FROM dsp_sg_manager ds WHERE status = 1 and ds.campaign_id = dc.id
+		                )
+		                THEN 1
+		                ELSE 2
+		            END AS status_result) status
+		        , (SELECT 
+                        count(*)
+                    FROM 
+                    	dsp_sg_manager ds
+                    WHERE
+                    	ds.campaign_id = dc.id ) as sg_tot_cnt
+                  , (
+                    SELECT
+                        count(*)
+                    FROM
+                        dsp_sg_manager ds
+                    WHERE
+                        status = 0
+                        and ds.campaign_id = dc.id
+                    ) as sg_status_0
+                , (
+                    SELECT
+                        count(*)
+                    FROM
+                        dsp_sg_manager ds
+                    WHERE
+                        status = 1
+                        and ds.campaign_id = dc.id
+                    ) as sg_status_1
+                , (
+	                SELECT
+	                    count(*)
+	                FROM
+	                    dsp_sg_manager ds
+	                WHERE
+	                    status = 2
+	                    and ds.campaign_id = dc.id
+	                ) as sg_status_2
+                , (
+	                SELECT
+	                    count(*)
+	                FROM
+	                    dsp_sg_manager ds
+	                WHERE
+	                    status = 3
+	                    and ds.campaign_id = dc.id
+                ) as sg_status_3
+                , (
+	                SELECT
+	                    count(*)
+	                FROM
+	                    dsp_sg_manager ds
+	                WHERE
+	                    status = 4
+	                    and ds.campaign_id = dc.id
+                ) as sg_status_4
+                , (
+	                SELECT
+	                    count(*)
+	                FROM
+	                    dsp_sg_manager ds
+	                WHERE
+	                    status = 8
+	                    and ds.campaign_id = dc.id
+                ) as sg_status_8
+                , (
+	                SELECT
+	                    count(*)
+	                FROM
+	                    dsp_sg_manager ds
+	                WHERE
+	                    status = 9
+	                    and ds.campaign_id = dc.id
+                ) as sg_status_9
+		        , dc.insert_date
+		    FROM 
+		        dsp_campaign dc
+		    JOIN
+		        member.member m
+		    ON
+		        dc.member_id = m.id
+		)a
+		<where>
+			<include refid="sql_campaign_list_where"></include>
+		</where>
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	<select id="getCampaignCnt" resultType="int">
+		SELECT
+	        COUNT(*)
+	    FROM 
+	        dsp_campaign dc
+	    JOIN
+	        member.member m
+	    ON
+	        dc.member_id = m.id
+	</select>
+	<!-- 캠페인 상세 -->
+	<select id="getCampaignDetail" resultType="HashMap">
+		SELECT
+	         dc.id
+	        , dc.name
+	        , dc.member_id 
+	        , m.uname
+	        , dc.price 
+	        , dc.pay_type 
+	        , dc.price_balance 
+	        , dc.price_pay 
+	        , (SELECT 
+	            CASE WHEN EXISTS 
+	                (
+	                    SELECT 1 FROM dsp_sg_manager ds WHERE status =1 and ds.campaign_id = dc.id
+	                )
+	                THEN 1
+	                ELSE 2
+	            END AS status_result) status
+	        , dc.insert_date
+	    FROM 
+	        dsp_campaign dc
+	    JOIN
+	        member.member m
+	    ON
+	        dc.member_id = m.id
+	    <where>
+	    	dc.id = #{campaign_id}
+	    </where>
+	</select>
+	<!-- 캠페인 내 광고 리스트 -->
+	<select id="getSgList" resultType="HashMap">
+		SELECT
+		    sm.id
+		    , sm.campaign_id 
+		    , dc.member_id
+		    , m.uname
+		    , sm.name
+		    , sm.price 
+		    , sm.budget_day 
+		    , sm.start_ymd
+		    , sm.end_ymd 
+		    , sm.deduction_type 
+		    , sm.insert_date 
+		    , sm.target_area_yn 
+		    , sm.category_id 
+		    , sm.pay_price 
+		    , sm.status 
+		    , sm.stop_date
+		    , sm.stop_reason 
+		    , sm.reject_reason
+		    , sm.approve_date 
+		    , sm.update_date
+		    , sm.start_hour 
+		    , dsm."name" as material_name
+		    , dsm.file_path 
+		    , dsm.file_name 
+		    , dsm.file_type 
+		FROM
+		   	public.dsp_sg_manager sm
+		JOIN public.dsp_campaign dc
+		ON sm.campaign_id = dc.id
+		JOIN member.member m 
+		ON dc.member_id = m.id
+		JOIN public.dsp_sg_material dsm 
+		ON sm.id = dsm.sg_id 
+		WHERE
+			sm.campaign_id = #{campaign_id}
+	</select>
+	
+	<!-- 캠페인/광고 관리 > 캠페인 리스트 -->
+	<select id="getCampaignListByDemand" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			id AS campaign_id
+			, pay_type
+			, name
+			, member_id
+		FROM
+			public.dsp_campaign
+		<where>
+		  <if test='search_type == "C"'>
+		  	<if test='search_value != null and search_value != ""'>
+		  	AND name LIKE CONCAT('%', #{search_value}, '%')
+		  	</if>
+		  </if>
+		  <if test='sg_list != null and sg_list != ""'>
+			AND id IN 
+			<foreach item="sgList" collection="sg_list" separator="," open="(" close=")">
+				#{sgList}
+			</foreach>
+		  </if>
+		</where>
+	</select>
+</mapper>

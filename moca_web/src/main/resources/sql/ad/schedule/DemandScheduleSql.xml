@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.ad.schedule.DemandScheduleMapper">
+	
+	<!-- CPM 등록된 광고정보 삭제 -->
+	<delete id="removeScheduleTableBlock">
+		DELETE FROM public.schedule_table_block
+		WHERE sg_id = #{sg_id}::int
+	</delete>
+	
+	<!-- CPP 등록된 광고정보 삭제 -->
+	<delete id="removeScheduleProductSlotSg">
+		DELETE FROM public.schedule_product_slot_sg
+		WHERE sg_id = #{sg_id}::int
+	</delete>
+	
+</mapper>

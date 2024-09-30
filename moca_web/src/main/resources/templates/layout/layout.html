@@ -1,0 +1,40 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+    <head>
+        <!-- 공통 헤더 -->
+        <th:block th:replace="fragments/header :: commonHeaderFragment"></th:block>
+        <!-- 공통 CSS -->
+        <th:block th:replace="fragments/headerScript :: headerScriptFragment"></th:block>
+        <!-- 모카페 플랫폼 CSS -->
+        <th:block th:replace="fragments/headerScript :: platformHeaderScriptFragment"></th:block>
+        <!-- 페이지별 css -->
+        <th:block layout:fragment="css"></th:block>
+    </head>
+    <body>
+        <!-- 로딩 -->
+        <th:block th:replace="fragments/loading :: loadingFragment"></th:block>
+        <div class="wrapper">
+            <!-- header -->
+            <th:block th:replace="fragments/header :: headerFragment"></th:block>
+            <!-- sidebar -->
+            <div class="sidebar">
+                <div id="sidebarList" class="myaccordion"></div>
+            </div>
+            <!-- content -->
+            <th:block layout:fragment="content"></th:block>
+        </div>
+        <!-- footer -->
+        <th:block th:replace="fragments/footer :: footerFragment"></th:block>
+    </body>
+    <!-- 공통 스크립트 -->
+    <th:block th:replace="fragments/footerScript :: footerScriptFragment"></th:block>
+    <!-- 모카페 플랫폼 스크립트 -->
+    <th:block th:replace="fragments/footerScript :: platformFooterScriptFragment"></th:block>
+    <!-- 페이지별 스크립트 -->
+    <th:block layout:fragment="script"></th:block>
+    <script>
+        $(document).ready(function(){
+        	layout.init();
+        });
+    </script>
+</html>

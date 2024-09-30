@@ -1,0 +1,566 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.dashboard.DashboardMapper">
+
+	<!-- 관리자 대시보드 데이터 -->
+	<select id="getDashboardDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			A.sg_request_count
+			, B.sg_proceed_count
+			, C.pay_wait_count
+			, D.pay_complete_count
+			, E.refund_wait_count
+			, F.refund_complete_count
+			, G.supply_wait_count
+			, H.supply_complete_count
+			, I.balance_wait_count
+			, J.balance_complete_count
+			, K.device_error_count
+			, L.device_run_count
+			, M.cpp_proceed_count
+			, N.cpp_soon_count
+			, O.cpm_proceed_count
+			, P.cpm_soon_count
+		FROM
+		(
+			SELECT
+				COUNT(*) as sg_request_count
+			FROM
+				public.dsp_sg_manager dsm 
+			WHERE
+				status = 0
+		) A
+		, (
+			SELECT
+				COUNT(*) as sg_proceed_count
+			FROM
+				public.dsp_sg_manager dsm
+			WHERE
+				status = 1
+			AND approve_date >= date_trunc('month', now())
+		) B	
+		, (
+			SELECT COUNT(*) as pay_wait_count
+			FROM
+				public.dsp_sg_manager dsm 
+			WHERE
+				pay_status_code = 'PAY_WAIT'
+		)C
+		, (
+			SELECT
+				COUNT(distinct sg_id) as pay_complete_count
+			FROM
+				public.dsp_sg_manager dsm
+			JOIN
+				public.dsp_sg_pay_log dspl 
+			ON
+				dsm.id = dspl.sg_id 
+			WHERE
+				dspl.kind = 'D'
+			AND	pay_status_code = 'PAY_COMPLETE'
+			AND dspl.insert_date >= date_trunc('month', now())
+		) D
+		, (
+			SELECT
+				COUNT(*) as refund_wait_count
+			FROM
+				public.dsp_sg_manager dsm
+			WHERE
+				pay_status_code = 'REFUND_WAIT'
+		) E
+		, (
+			SELECT
+				COUNT(distinct sg_id) as refund_complete_count
+			FROM
+				public.dsp_sg_manager dsm
+			JOIN
+				public.dsp_sg_pay_log dspl 
+			ON
+				dsm.id = dspl.sg_id 
+			WHERE
+				dspl.kind = 'R'
+			AND	pay_status_code = 'REFUND_COMPLETE'
+			AND dspl.insert_date >= date_trunc('month', now())
+		) F
+		,(
+			SELECT
+				COUNT(*) as supply_wait_count
+			FROM
+				member.member
+			WHERE
+				status = 'V'
+		) G
+		,(
+			SELECT
+				COUNT(*) as supply_complete_count
+			FROM
+				member.member
+			WHERE
+				status = 'A'
+			AND approve_process_date >= date_trunc('month', now())
+		) H
+		, (
+			SELECT
+				COUNT(*) as balance_wait_count
+			FROM
+				member.ssp_balance_info sbi
+			LEFT JOIN
+				member.member m
+			ON sbi.member_id = m.id 
+			WHERE
+				sbi.status = 'R'
+			AND m.status = 'A'
+			AND date_trunc('month', now()) > TO_DATE(CONCAT(balance_year, '-', balance_month), 'YYYY-MM-DD')
+			AND TO_CHAR(now() - interval '1 month', 'YYYY-MM-DD')::date - TO_DATE(CONCAT(balance_year, '-', balance_month, '-', m.balance_day), 'YYYY-MM-DD') >= -1
+		) I
+		, (
+			SELECT
+				COUNT(*) as balance_complete_count
+			FROM
+				member.ssp_balance_info sbi 
+			WHERE
+				sbi.status = 'C'
+			AND DATE_TRUNC('month', update_date) = DATE_TRUNC('month', now())
+		) J
+		, (
+			SELECT
+				COUNT(*) as device_error_count
+			FROM
+				public.ssp_device sd 
+			WHERE
+				status = 'R'
+		) K
+		, (
+			SELECT
+				COUNT(*) as device_run_count
+			FROM
+				public.ssp_device sd 
+			JOIN
+				public.ssp_product sp 
+			ON
+				sp.id = sd.product_id 
+			WHERE
+				sd.status = 'Y'
+			AND sp.status = 'S'
+			AND TO_CHAR(now(), 'YYYY-MM-DD') BETWEEN sp.start_ymd AND sp.end_ymd
+		) L
+		, (
+		 	SELECT
+		 		COUNT(*) as cpp_proceed_count
+		 	FROM
+		 		public.dsp_sg_manager dsm4
+			JOIN
+				public.dsp_campaign dc
+			ON	dsm4.campaign_id = dc.id 
+			WHERE
+				dc.pay_type = 'CPP'
+			AND status = 1
+			AND TO_CHAR(now(), 'YYYY-MM-DD') >= start_ymd
+		) M
+		, (
+		 	SELECT
+		 		COUNT(*) as cpp_soon_count
+		 	FROM
+		 		public.dsp_sg_manager dsm4
+		 	JOIN
+		 		public.dsp_campaign dc2 
+		 	ON	dc2.id = dsm4.campaign_id 
+			WHERE
+				status = 1
+			AND dc2.pay_type = 'CPP'
+			AND TO_CHAR(now(), 'YYYY-MM-DD') >= start_ymd
+			<![CDATA[
+			AND TO_DATE(end_ymd, 'YYYY-MM-DD') - TO_CHAR(now(), 'YYYY-MM-DD')::date <= 7 
+			]]>
+			AND TO_DATE(end_ymd, 'YYYY-MM-DD') - TO_CHAR(now(), 'YYYY-MM-DD')::date >= 0
+		) N
+		, (
+		 	SELECT
+		 		COUNT(*) as cpm_proceed_count
+		 	FROM
+		 		public.dsp_sg_manager dsm4
+			JOIN
+				public.dsp_campaign dc
+			ON	dsm4.campaign_id = dc.id 
+			WHERE
+				dc.pay_type = 'CPM'
+			AND status = 1
+			AND TO_CHAR(now(), 'YYYY-MM-DD') >= start_ymd
+		) O
+		, (
+		 	SELECT
+				COUNT(*) AS cpm_soon_count
+			FROM
+				public.dsp_sg_manager dsm4
+			JOIN
+				public.dsp_campaign dc
+			ON
+				dsm4.campaign_id = dc.id 
+			LEFT JOIN
+				(
+				SELECT
+					coalesce(SUM(ac.total_count), 0) as exposrue_count
+					, sg_id
+				FROM
+					traffic.ad_count ac
+				GROUP BY sg_id
+				) A
+			ON
+				A.sg_id = dsm4.id
+			WHERE
+				dc.pay_type = 'CPM'
+			AND status = 1
+			AND TO_CHAR(now(), 'YYYY-MM-DD') >= start_ymd
+			AND 100 > dsm4.exposure_target - A.exposrue_count
+		) P
+	</select>
+	
+	<!-- 총 노출 수 -->
+	<select id="getExposureTotal" parameterType="HashMap" resultType="int">
+		SELECT
+			COALESCE(SUM(total_count), 0) as count
+		FROM traffic.ad_count ac -- 공익, 디폴트 제외
+		WHERE
+			year = #{year}::text
+		AND month = #{month}::text
+	</select>
+	
+	<!-- 전전월, 전월, 해당월의 노출 데이터 -->
+	<select id="getExposureData" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			COALESCE(SUM(total_count), 0) as exposure_count
+			, day
+			, month
+			, year
+			, data_ymd
+		FROM traffic.ad_count ac -- 공익, 디폴트 제외
+		WHERE
+			TO_DATE(data_ymd, 'YYYY-MM-DD') > DATE_TRUNC('month', now() - interval '2 month')
+		GROUP BY data_ymd, day, month, year
+		ORDER BY data_ymd
+	</select>
+	
+	<!-- 총 집행금액 -->
+	<select id="getPriceTotal" parameterType="HashMap" resultType="int">
+		SELECT 
+			COALESCE (SUM(B.price), 0) as price
+		FROM (
+			SELECT
+				COALESCE(SUM(dspl.price), 0) - COALESCE(SUM(A.price), 0) as price
+			FROM public.dsp_sg_pay_log dspl
+			LEFT JOIN
+				(
+					SELECT deposit_pay_log_id, price
+					FROM public.dsp_sg_pay_log d
+					WHERE
+						d.kind = 'R'
+					AND deposit_pay_log_id IS NOT NULL
+				) A
+			ON A.deposit_pay_log_id = dspl.id
+			WHERE 
+				TO_CHAR(insert_date, 'YYYY') = #{year}::text
+			AND TO_CHAR(insert_date, 'MM') = #{month}::text
+			AND kind = 'D'
+			GROUP BY TO_CHAR(insert_date, 'YYYY'), TO_CHAR(insert_date, 'MM')
+		) B
+	</select>
+	
+	<!-- 월에 해당되는 일별 집행금액 -->
+	<select id="getPriceData" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			TO_CHAR(insert_date, 'YYYY') as year
+			, TO_CHAR(insert_date, 'MM') as month
+			, TO_CHAR(insert_date, 'DD') as day
+			, SUM(dspl.price) - COALESCE(SUM(A.price), 0) as price
+		FROM public.dsp_sg_pay_log dspl
+		LEFT JOIN
+		(
+			SELECT deposit_pay_log_id, price
+			FROM public.dsp_sg_pay_log d
+			WHERE
+				d.kind = 'R'
+			AND deposit_pay_log_id IS NOT NULL
+		) A
+		ON A.deposit_pay_log_id = dspl.id
+		WHERE 
+			TO_CHAR(insert_date, 'YYYY-MM-01')::date BETWEEN (TO_DATE(CONCAT(#{year}::text, '-', #{month}::text),'YYYY-MM-DD')) - interval '2 month' AND (TO_DATE(CONCAT(#{year}::text, '-', #{month}::text), 'YYYY-MM-DD'))
+		AND kind = 'D'
+		GROUP BY TO_CHAR(insert_date, 'YYYY'), TO_CHAR(insert_date, 'MM'), TO_CHAR(insert_date, 'DD')
+	</select>
+	
+	<!-- 전체 매체 수 -->
+	<select id="getSupplyCount" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(A.*)
+		FROM
+			(
+			SELECT
+				m.id
+			FROM
+				public.ssp_product sp
+			JOIN
+				public.ssp_device sd
+			ON	sd.product_id = sp.id
+			JOIN
+				member.member m
+			ON	m.id = sd.member_id
+			JOIN
+				traffic.ad_event_log ael
+			ON	ael.device = sd.serial_number
+			WHERE
+				log_status = 'S'
+			AND sg_kind NOT IN ('D', 'C')
+			AND m.status = 'A'
+			AND m.utype = 'S'
+			AND TO_CHAR(now(), 'YYYY-MM-DD') BETWEEN start_ymd and end_ymd
+			AND sp.status = 'S'
+			GROUP BY m.id, m.company_name
+			) A
+	</select>
+	
+	<!-- 운영 중인 상품 수 -->
+	<select id="getProductCount" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_product sp
+		WHERE 
+			sp.status = 'S'
+		AND TO_CHAR(now(), 'YYYY-MM-DD') BETWEEN sp.start_ymd AND sp.end_ymd
+	</select>
+	
+	<!-- 실시간 매체별 노출 수 -->
+	<select id="getSupplyExpousreTotal" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			COUNT(*) as exposure_count
+			, m.id as member_id
+			, m.company_name
+		FROM
+			public.ssp_product sp
+		JOIN
+			public.ssp_device sd
+		ON	sd.product_id = sp.id
+		JOIN
+			member.member m
+		ON	m.id = sd.member_id
+		JOIN
+			traffic.ad_event_log ael
+		ON	ael.device = sd.serial_number
+		WHERE
+			log_status = 'S'
+		AND sg_kind NOT IN ('D', 'C')
+		AND m.status = 'A'
+		AND m.utype = 'S'
+		AND TO_CHAR(now(), 'YYYY-MM-DD') BETWEEN start_ymd and end_ymd
+		AND sp.status = 'S'
+		GROUP BY m.id, m.company_name
+	</select>
+	
+	<!-- 실시간 구분 별 노출 수 -->
+	<select id="getCategoryExposureTotal" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			category_name
+			, A.category_count
+			, B.device_count
+			, sc.member_id
+		FROM
+			ssp_category sc 
+		JOIN
+			(
+			SELECT
+				COUNT(*) as category_count
+				, category_id
+			FROM traffic.ad_event_log ael 
+			JOIN
+				public.ssp_product sp 
+			ON	ael.product_id = sp.id
+			WHERE
+				log_status = 'S'
+			AND TO_CHAR(now(), 'YYYY-MM-DD') BETWEEN start_ymd and end_ymd
+			AND sg_kind NOT IN ('D', 'C')
+			GROUP BY sp.category_id
+			) A
+		ON	A.category_id = sc.id
+		JOIN
+			(
+			SELECT	
+				COUNT(*) as device_count
+				, sp.category_id 
+			FROM
+				public.ssp_device sd 
+			JOIN
+				public.ssp_product sp
+			ON	sd.product_id = sp.id
+			WHERE
+				TO_CHAR(now(), 'YYYY-MM-DD') BETWEEN start_ymd and end_ymd
+			AND sp.status = 'S'
+			GROUP BY sp.category_id 
+			) B
+		ON	A.category_id = B.category_id
+	</select>
+	
+	<!-- 시 별 노출 수 -->
+	<select id="getSiExposureTotal" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			ST_X(A.si_cpoint) as longitude
+			, ST_Y(A.si_cpoint) as latitude 
+			, A.si_name as area_name
+			, B.area_count
+		FROM
+			(
+			SELECT 
+				ac.si_code
+				, ac.si_name
+				, ac.si_cpoint
+			FROM
+				public.area_code ac
+			GROUP BY
+				ac.si_code, ac.si_name, ac.si_cpoint
+			) A
+		JOIN
+			(
+			SELECT
+				si_code
+				, COUNT(*) as area_count
+			FROM
+				traffic.ad_event_log ael
+			JOIN
+				public.ssp_product sp
+			ON	ael.product_id = sp.id
+			WHERE
+				log_status = 'S'
+			AND	TO_CHAR(now(), 'YYYY-MM-DD') BETWEEN sp.start_ymd and sp.end_ymd
+			AND sp.status = 'S'
+			AND sg_kind NOT IN ('D', 'C')
+			AND si_code IS NOT NULL
+			GROUP BY si_code
+			) B
+		ON A.si_code = B.si_code
+	</select>
+	
+	<!-- 구 별 노출 수 -->
+	<select id="getGuExposureTotal" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			ST_X(A.gu_cpoint) as longitude
+			, ST_Y(A.gu_cpoint) as latitude 
+			, A.gu_name as area_name
+			, B.area_count
+		FROM
+			(
+			SELECT 
+				ac.gu_code
+				, ac.gu_name
+				, ac.gu_cpoint
+			FROM
+				public.area_code ac
+			GROUP BY
+				ac.gu_code, ac.gu_name, ac.gu_cpoint, ac.si_code
+			) A
+		JOIN
+			(
+			SELECT
+				gu_code
+				, COUNT(*) as area_count
+			FROM
+				traffic.ad_event_log ael
+			JOIN
+				public.ssp_product sp
+			ON	ael.product_id = sp.id
+			WHERE
+				log_status = 'S'
+			AND	TO_CHAR(now(), 'YYYY-MM-DD') BETWEEN start_ymd and end_ymd
+			AND sg_kind NOT IN ('D', 'C')
+			AND si_code IS NOT NULL
+			GROUP BY gu_code, si_code
+			) B
+		ON A.gu_code = B.gu_code
+	</select>
+	
+	<!-- 차량 별 총 노출 수 -->
+	<select id="getMotorExposureTotal" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			sm.id as motor_id
+			, m.company_name
+			, sc.category_name 
+			, sm.car_number
+			, A.motor_exposure_count
+			, sm.cpoint
+			, sc.icon_image
+			, sc.icon_file_name			
+		FROM
+			public.ssp_motor sm
+		JOIN
+			public.ssp_motor_position smp 
+		ON	sm.ssp_motor_position_id = smp.id 
+		JOIN
+			public.ssp_category sc 
+		ON	sc.id = smp.category_id 
+		JOIN
+			member.member m
+		ON	m.id = sm.member_id
+		JOIN
+			(
+			SELECT
+				COUNT(*) as motor_exposure_count
+				, motor_id
+			FROM
+				traffic.ad_event_traffic aet 
+			JOIN
+				public.ssp_device sd 
+			ON	aet.device = sd.serial_number
+			WHERE
+				event_kind IN ('DS', 'PS')
+			AND sg_kind NOT IN('D', 'C')
+			GROUP BY sd.motor_id
+			) A	
+		ON	A.motor_id = sm.id
+		WHERE
+			m.status = 'A'
+		AND m.utype = 'S'
+		AND sm.status = '1'
+		AND cpoint IS NOT NULL
+		AND ST_Contains(ST_GeomFromText(CONCAT('POLYGON((', #{points}, '))'))::geometry , cpoint::geometry)
+		ORDER BY A.motor_exposure_count DESC
+	</select>
+	
+	<!-- 차량의 상품 별 노출 수 -->
+	<select id="getProductExposureTotal" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			sm.id as motor_id
+			, sm.car_number
+			, A.motor_exposure_count
+			, A.product_id
+			, sp.product_name 
+		FROM
+			public.ssp_motor sm
+		JOIN
+			(
+			SELECT
+				COUNT(*) as motor_exposure_count
+				, motor_id
+				, product_id
+			FROM
+				traffic.ad_event_traffic aet 
+			JOIN
+				public.ssp_device sd 
+			ON
+				aet.device = sd.serial_number
+			WHERE
+				event_kind IN ('DS', 'PS')
+			AND sg_kind NOT IN('D', 'C')
+			<if test='motorList != null and motorList !=""'>
+			  AND sd.motor_id IN
+				<foreach item="motor" collection="motorList" separator="," open="(" close=")">
+				  #{motor.motor_id}::int
+				</foreach>
+		    </if>
+			GROUP BY motor_id, product_id
+			) A	
+		ON	A.motor_id = sm.id
+		JOIN
+			public.ssp_product sp 
+		ON	A.product_id = sp.id
+		WHERE
+			TO_CHAR(now(), 'YYYY-MM-DD') BETWEEN start_ymd and end_ymd
+	</select>
+</mapper>

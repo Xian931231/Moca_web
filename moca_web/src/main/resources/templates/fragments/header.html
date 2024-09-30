@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+   <th:block th:fragment="commonHeaderFragment">
+      <title>MoCA</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <meta content="" name="description" />
+     <meta content="Coderthemes" name="author" />
+     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+   </th:block>
+	<th:block th:fragment="headerFragment">
+		<header data-src="header" data-act="header">
+			<h1>
+				<a href="javascript:;" data-src="header" data-act="clickLogo">
+			    	<img th:src="@{/assets/imgs/logo_moca.png}" alt="모카페">
+			    </a>
+			</h1>
+			<nav class="header_log">
+			    <ul>
+			    	<li data-src="header" data-act="info">
+						<!--라벨링: 광고주 / 매체사 / 대행사 / 관리자-->
+						<span class="labeling" id="label"></span>
+						<span id="loginId"></span> <span >님 <i>&nbsp;▼&nbsp;</i></span>
+					</li>
+					<li>
+						<span>
+							<img th:src="@{/assets/imgs/icon_clock.png}" alt=""> <span id="timer"></span>
+						</span>
+						<button type="button" class="btn btn-point" data-src="header" data-act="clickExtension">연장</button> 
+					</li>
+				</ul>
+			</nav>
+			<div id="popInfoBox">
+			    <a href="javascript:;" id="modifyUrl">정보수정 <i></i></a>
+			    <a href="javascript:;" data-src="header" data-act="clickLogout">로그아웃 <i></i></a>
+			</div>
+		</header>
+		<div class="modal timer30modal fade" id="timerModal" data-backdrop="static">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h4 class="modal-title">비밀번호 변경 안내</h4>    
+						<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+					</div>
+					<div class="container"></div>
+					<div class="modal-body">
+						<p>
+						    정보보호 및 도용 피해를 예방하기 위해<br />
+						    180일 이상 비밀번호를 변경하지 않으신 경우<br />
+						    비밀번호 변경을 권장하고 있습니다.
+						</p>
+						<ul>
+							<li>
+							    <label>현재 비밀번호</label><input type="password" name="passwd">
+							</li>
+							<li>
+							    <label>새 비밀번호</label><input type="password" name="new_passwd" placeholder="특수문자 1자리, 영문 2자리, 숫자 포함 총 10자리 이상">
+							</li>
+							<li>
+							    <label>새 비밀번호 확인</label><input type="password" name="confirm_passwd" placeholder="새 비밀번호 재입력">
+							</li>
+						</ul>
+					</div>
+					<div class="modal-footer">
+						<a data-toggle="modal" href="javascript:;" class="btn btn-sm btn-dark" data-src="header" data-act="clickModifyPw">비밀번호 변경하기</a>
+						<a href="javascript:;" data-dismiss="modal" class="btn btn-sm btn-clear" data-src="header" data-act="clickModifyPwLater">30일 후에 변경하기</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</th:block>
+	<th:block th:fragment="joinHeaderFragment">
+		<header>
+	        <h1>
+	            <a href="javascript:;" data-src="join" data-act="clickLogo">
+	                <img th:src="@{/assets/imgs/logo_moca.png}" alt="모카페어드민">
+	            </a>
+	        </h1>
+	    </header>
+	</th:block>
+	<!-- 관리자 별도 페이지 -->
+	<th:block th:fragment="externalHeaderFragment">
+		<header class="pad headerPad">
+			<h1>
+		    	<a href="javascript:;" data-src="externalHeader" data-act="clickLogo">
+		        	<img src="/assets/imgs/logo_moca.png" alt="모카페">
+		    	</a>
+	  		</h1>
+	  		<nav class="nav-meun">
+				<ul>
+			        <div class="hamburger-button">
+				        <label for="hamburger-button-state-01">
+				            <input type="checkbox" name="hamburger-button-state" class="hamburger-button-state" id="hamburger-button-state-01" data-src="externalHeader" data-act="clickMenu">
+				            <div class="hambuger-button-icon"></div>
+				            <div class="hambuger-button-icon"></div>
+				            <div class="hambuger-button-icon"></div>
+				        </label>
+		      		</div>
+				</ul>  
+			</nav>
+			<div id="menu" class="menu menu- -off menu-col" style="display: none;">
+				<!--모바일 문의 및 관리 버튼 위치-->
+				<div class="navbar-col1">
+				</div>
+				<!--모바일용 메뉴-->
+			    <nav class="nav-meun pad">
+				    <ul class="menu-list -mo" id="menuList">
+				        <li class="popInfoWrap">
+				          <span class="nav-in-meun-id" id="loginId"></span>
+				          <button class="btn btn-point" data-src="externalHeader" data-act="clickLogout">로그아웃</button>
+				        </li>
+				    </ul>
+				  <!--모바일용 메뉴 끝-->
+				</nav>
+			</div>
+		</header>
+	</th:block>
+</html>

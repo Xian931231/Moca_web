@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.batch.ScheduleBatchMapper">
+	
+
+	<!-- 지정날짜의 schedule_table id 조회 -->	
+	<select id="getScheduleTableIdList" resultType="HashMap">
+		SELECT 
+			id schedule_table_id
+		FROM 
+			public.schedule_table
+		WHERE 
+			date_ymd = #{schedule_date}
+	</select>
+	
+	<!-- 지정날짜의 schedule_table_slot id 조회 -->
+	<select id="getScheduleTableSlotIdList" resultType="HashMap">
+		SELECT 
+			id schedule_table_slot_id
+		FROM 
+			public.schedule_table_slot
+		WHERE 
+			schedule_table_id = #{schedule_table_id}::bigint
+	</select>
+	
+	<!-- schedule_table 제거 -->
+	<delete id="removeScheduleTable">
+		DELETE FROM 
+			public.schedule_table 
+		WHERE 
+			date_ymd = #{schedule_date}	
+	</delete>
+	
+	<!-- schedule_table_slot 제거 -->
+	<delete id="removeScheduleTableSlot">
+		DELETE FROM 
+			public.schedule_table_slot
+		WHERE 
+			schedule_table_id = #{schedule_table_id}::bigint
+	</delete>
+	
+	<!-- schedule_table_block 제거 -->
+	<delete id="removeScheduleTableBlock">
+		DELETE FROM 
+			public.schedule_table_block 
+		WHERE 
+			schedule_table_slot_id = #{schedule_table_slot_id}::bigint
+	</delete>
+	
+	<!-- schedule_table_sg 제거 -->
+	<delete id="removeScheduleTableSg">
+		DELETE FROM 
+			public.schedule_table_sg
+		WHERE 
+			date_ymd = #{schedule_date}
+	</delete>
+	
+	<!-- 오늘 날짜에 해당하는 상품 목록 조회 -->
+	<select id="getTodayProductList" resultType="HashMap">
+		SELECT 
+			sc.member_id as ssp_member_id
+			, sp2.schedule_id 
+			, sp2.product_id 
+		FROM
+			public.ssp_product sp
+		JOIN public.schedule_product sp2 
+		ON sp.id = sp2.product_id 
+		JOIN public.ssp_category sc 
+		ON sp.category_id = sc.id
+		<where>
+			<!-- TO_CHAR(NOW(), 'YYYY-MM-DD') BETWEEN sp.start_ymd AND sp.end_ymd  -->
+			 #{schedule_date} BETWEEN sp.start_ymd AND sp.end_ymd   
+		</where> 
+		ORDER BY sp2.schedule_id , sp2.product_id
+	</select>
+	
+	<!-- schedule_table_slot 목록 조회 -->
+	<select id="getScheduleTableSlotList" resultType="HashMap">
+		SELECT 
+			sts.id AS schedule_table_slot_id
+			, st.schedule_id 
+			, st.product_id 
+			, sts.slot_id 
+			, sts.slot_type
+			, ss.sort_info
+		FROM 
+			public.schedule_table_slot sts
+		JOIN public.schedule_table st 
+		ON sts.schedule_table_id = st.id
+		LEFT JOIN public.schedule_slot ss 
+		ON sts.slot_id = ss.id  
+		<where> 
+			<!-- TO_CHAR(NOW(), 'YYYY-MM-DD'), 'YYYY-MM-DD') = CONCAT(st."year", '-', st."month", '-', st."day") --> 
+			#{schedule_date} = CONCAT(st."year", '-', st."month", '-', st."day")
+		</where>
+		ORDER BY sts.schedule_table_id , sts.slot_order
+	</select>
+	
+	<select id="getCppBySlot" resultType="HashMap">
+		SELECT 
+			dsm.id AS sg_id 
+			, 0 AS max_count
+			, 0 AS remain_count
+			, sps.slot_id 
+		FROM
+			public.schedule_product sp 
+		JOIN public.schedule_product_slot sps 
+		ON sp.id = sps.schedule_product_id 
+		JOIN public.schedule_product_slot_sg spss 
+		ON sps.id = spss.schedule_product_slot_id
+		JOIN public.dsp_sg_manager dsm 
+		ON spss.sg_id = dsm.id
+		<where>
+			sp.schedule_id = #{schedule_id}
+		AND sp.product_id = #{product_id}
+		AND sps.slot_id = #{slot_id}
+		AND #{schedule_date} between dsm.start_ymd and dsm.end_ymd
+		AND dsm.status = 1
+		-- and TO_CHAR(NOW(), 'YYYY-MM-DD') between dsm.start_ymd and dsm.end_ymd		
+		</where> 
+	</select>
+	
+	<!-- 상품 정보 조회 -->
+	<select id="getProductDetail" resultType="HashMap">
+		SELECT
+			  id AS product_id
+			, product_name
+			, price_rate
+			, start_ymd
+			, end_ymd
+			, deny_category_code1
+			, deny_category_code2
+			, deny_category_code3
+			, notes
+			, product_image
+			, os
+			, support_format
+			, screen_rate
+			, screen_resolution
+			, screen_size 
+			, storage
+			, install_position
+			, install_direction
+			, support_audio
+			, status
+		FROM
+			public.ssp_product
+		<where>
+			id = #{product_id} :: bigint
+		AND status = 'S'
+		</where>
+		
+	</select>
+	
+	<!-- cpm 광고 리스트 조회위한 공통 조건 -->
+	<sql id="sql_where_cpm_sg">
+		AND dsm.status = 1
+		AND dsm.pay_status_code = 'PAY_COMPLETE'
+		AND remain_exposure_count > 0
+		AND dsm2.page_size_code = #{page_size_code}
+		<if test='deny_category_code1 != null and deny_category_code1 != ""'>
+			<![CDATA[
+			AND dsm.main_category_code <> #{deny_category_code1}
+			]]>
+		</if>
+		<if test='deny_category_code2 != null and deny_category_code2 != ""'>
+			<![CDATA[
+			AND dsm.middle_category_code <> #{deny_category_code2}
+			]]>
+		</if>
+		<if test='deny_category_code3 != null and deny_category_code3 != ""'>
+			<![CDATA[
+			AND dsm.sub_category_code <> #{deny_category_code3}
+			]]>
+		</if>
+		<![CDATA[
+		AND dsm.start_ymd <= #{schedule_date}
+		]]>
+	</sql>
+	
+	<!-- cpm 광고 리스트 조회위한 공통 조건 -->
+	<sql id="sql_select_cpm_sg">
+		dsm.id as sg_id
+		, (CASE WHEN dsm.exposure_limit != 0 THEN
+			(CASE WHEN dsm.exposure_limit >= dsm.remain_exposure_count THEN 
+				dsm.remain_exposure_count 
+			ELSE 
+				dsm.exposure_limit
+			END)
+		ELSE 
+			dsm.remain_exposure_count
+		END) AS max_count
+		, (CASE WHEN dsm.exposure_limit != 0 THEN
+			(CASE WHEN dsm.exposure_limit >= dsm.remain_exposure_count THEN 
+				dsm.remain_exposure_count 
+			ELSE 
+				dsm.exposure_limit 
+			END)
+		ELSE 
+			dsm.remain_exposure_count
+		END) AS remain_count
+		, #{sg_kind} as sg_kind
+		, #{schedule_table_slot_id} as schedule_table_slot_id
+		, #{slot_id} as slot_id
+		, #{send_order} as send_order
+	</sql>
+	
+	<!--  exposure_target 총 노출 수 
+		exposure_limit 일 제한 수
+	-->  
+	
+	<!-- 지역 광고 노출 옵션이 설정된 광고 -->
+	<select id="getAreaSgList" resultType="HashMap">
+		SELECT
+			<include refid="sql_select_cpm_sg"></include>
+		FROM
+			public.dsp_sg_manager dsm  
+		JOIN public.dsp_sg_area dsa 
+		ON dsm.id = dsa.sg_id
+		JOIN public.dsp_sg_material dsm2 
+		ON dsm.id = dsm2.sg_id 
+		<where>
+			dsm.target_area_yn = 'Y'
+			<include refid="sql_where_cpm_sg"></include>
+		</where> 
+	</select>
+	
+	<!-- 시간 광고 노출 옵션이 설정된 광고 -->
+	<select id="getTimeSgList" resultType="HashMap">
+		SELECT
+			<include refid="sql_select_cpm_sg"></include>
+		FROM
+			public.dsp_sg_manager dsm  
+		JOIN public.dsp_sg_material dsm2 
+		ON dsm.id = dsm2.sg_id
+		<where>
+			dsm.target_week_yn = 'Y'
+			<include refid="sql_where_cpm_sg"></include>
+		</where> 
+	</select>
+	
+	<!-- 지역 및 시간 광고 노출 옵션이 설정되지 않은 광고 -->
+	<select id="getCpmSgList" resultType="HashMap">
+		SELECT
+			<include refid="sql_select_cpm_sg"></include>
+		FROM
+			public.dsp_sg_manager dsm  
+		JOIN public.dsp_sg_material dsm2 
+		ON dsm.id = dsm2.sg_id
+		<where>
+			dsm.target_area_yn = 'N'
+		AND dsm.target_week_yn = 'N'
+			<include refid="sql_where_cpm_sg"></include>
+		</where> 
+	</select>
+	
+	<select id="getDspServiceAdList" resultType="HashMap">
+		SELECT
+			dsa.id AS sg_id
+			, CASE 
+				WHEN #{ad_type} = 'D' THEN 'D' 
+				ELSE 'C'
+			  END sg_kind
+			, 0 AS max_count
+			, 0 AS remain_count
+			, #{schedule_table_slot_id} as schedule_table_slot_id
+			, #{slot_id} as slot_id
+			, #{send_order} as send_order
+		FROM 
+			public.dsp_service_ad dsa 
+		<where>
+			dsa.ad_type = #{ad_type}
+		AND dsa.page_size_code = #{page_size_code}
+		</where>
+	</select>
+	
+	
+	<!--  schedule_table 등록 -->
+	<insert id="addScheduleTable">
+		INSERT INTO public.schedule_table (
+			product_id
+			, ssp_member_id 
+			, schedule_id 
+			, date_ymd
+			, year 
+			, month 
+			, day 
+			, update_date
+		) 
+		VALUES (
+			#{product_id}
+			, #{ssp_member_id} 
+			, #{schedule_id}
+			, #{schedule_date}
+			, TO_CHAR(TO_DATE(#{schedule_date}, 'YYYY-MM-DD'), 'YYYY')
+			, TO_CHAR(TO_DATE(#{schedule_date}, 'YYYY-MM-DD'), 'MM')
+			, TO_CHAR(TO_DATE(#{schedule_date}, 'YYYY-MM-DD'), 'DD')
+			, NOW() 
+		)
+	</insert>
+	
+	<!-- 스케쥴 슬롯 등록 -->
+	<insert id="addScheduleSlot">
+		INSERT INTO public.schedule_table_slot (
+			schedule_table_id
+			, slot_id 
+			, slot_type
+			, slot_order
+		)
+		SELECT
+			st.id AS schedule_table_slot_id
+			, ss.id AS slot_id
+			, ss.slot_type 
+			, ss.slot_order
+		FROM
+			public.schedule_table st 
+		JOIN public.schedule_slot ss 
+		ON st.schedule_id = ss.schedule_id
+		<where>
+			<!-- TO_CHAR(NOW(), 'YYYY-MM-DD'), 'YYYY-MM-DD') = CONCAT(st."year", '-', st."month", '-', st."day") --> 
+			#{schedule_date} = CONCAT(st."year", '-', st."month", '-', st."day") 
+		</where> 
+		ORDER BY st.id, ss.schedule_id, ss.slot_order
+	</insert>
+	
+	<!-- 스케쥴 블록 등록 -->
+	<select id="addScheduleBlock" resultType="Integer">
+		INSERT INTO public.schedule_table_block (
+			schedule_table_slot_id
+			, sg_id
+			, send_order
+			, sg_kind
+		) VALUES (
+			#{schedule_table_slot_id}
+			, #{sg_id}
+			, #{send_order}
+			, #{sg_kind}
+		)
+		RETURNING id
+	</select>
+	
+	<insert id="addScheduleSg">
+		INSERT INTO
+			public.schedule_table_sg (
+				sg_id
+				, date_ymd
+				, year
+				, month
+				, day
+				, max_count
+				, remain_count
+				, update_date
+				, excess_count
+			)
+			VALUES (
+				#{sg_id}
+				, #{schedule_date}
+				, TO_CHAR(#{schedule_date}::timestamptz, 'YYYY')
+				, TO_CHAR(#{schedule_date}::timestamptz, 'MM')
+				, TO_CHAR(#{schedule_date}::timestamptz, 'DD')
+				, #{max_count}
+				, #{remain_count}
+				, now()
+				, #{excess_count}
+			)
+	</insert>
+	
+	<!-- 편성표에 설정된 슬롯중 CPM 슬롯 조회 -->
+	<select id="getCpmSlotList" resultType="HashMap">
+		SELECT
+			id AS schedule_slot_id 
+			, schedule_id 
+			, slot_order 
+			, slot_type 
+			, sort_info :: jsonb
+			, sp.product_id
+		FROM 
+			public.schedule_slot ss
+		JOIN public.schedule_product sp
+		ON ss.schedule_id = sp.schedule_id
+		<where>
+			slot_type = 'B'
+		</where>
+		ORDER BY schedule_id, slot_order
+	</select>
+	
+	<!-- 광고에 해당하는 소재 목록 -->
+	<select id="getSgMaterialList" resultType="HashMap">
+		SELECT
+			*
+		FROM 
+			public.dsp_sg_material
+		<where>
+			sg_id = #{sg_id}
+		</where> 
+	</select>
+	
+	<!-- 소재의 해상도에 일치하는 상품 조회 -->
+	<select id="getProductListByScreen" resultType="HashMap">
+		SELECT
+			sp.schedule_id
+			, ssp.*
+		FROM 
+			public.ssp_product ssp 
+		JOIN public.schedule_product sp
+		ON ssp.id = sp.product_id
+		<where>
+		<![CDATA[
+			ssp.screen_resolution = #{screen_resolution}
+		AND ssp.status = 'S'
+		AND TO_CHAR(NOW(), 'YYYY-MM-DD') BETWEEN ssp.start_ymd AND ssp.end_ymd
+		AND ssp.deny_category_code <> #{deny_category_code}
+		]]>
+		</where> 
+	</select>
+	
+	<!-- 상품이 적용된 편성표 슬롯 정보 조회 -->
+	<select id="getSortInfoByProduct" resultType="HashMap">
+		SELECT
+			ss.id as slot_id
+			, ss.schedule_id
+			, ss.slot_order
+			, ss.slot_type
+			, ss.play_time
+			, ss.sort_info
+		FROM
+			public.schedule s 
+		JOIN public.schedule_slot ss 
+		ON s.id = ss.schedule_id
+		<where>
+			s.id IN
+		<foreach collection="schedule_id_list" item="schedule_id" separator="," open="(" close=")">
+			#{schedule_id}
+		</foreach>
+		AND s.use_yn = 'Y'
+		AND ss.slot_type = 'B'
+		</where> 
+	</select>
+	
+	<select id="getScehduleByProduct" resultType="HashMap">
+		SELECT
+			sp.id AS product_id
+			, sp2.schedule_id 
+			, (SELECT member_id FROM ssp_category WHERE id = sp.category_id) AS ssp_member_id
+		FROM	
+			public.dsp_sg_manager dsm 
+		JOIN public.dsp_sg_material dsm2 
+		ON dsm.id = dsm2.sg_id 
+		JOIN ssp_product sp 
+		<![CDATA[
+		ON dsm.sub_category_code <> sp.deny_category_code 
+		]]> 
+		AND dsm2.page_size_code = sp.screen_resolution 
+		JOIN public.schedule_product sp2 
+		ON sp.id = sp2.product_id 
+		<where>
+			dsm.id = #{sg_id}
+		</where> 
+		ORDER BY sp.id
+	</select>
+	
+</mapper>

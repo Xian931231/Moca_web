@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.ad.sg.ErrorSgMapper">
+
+
+	<!-- 	
+	 진행상황 (전송받은값)
+	D : 노출, 
+	C : 클릭, 
+	PS : 재생시작, 
+	PE : 재생종료 
+	PP : 재생 중지
+	PR : 중단후 다시 시작
+	PC : 중단(기타 이유로)
+	
+	event_date 정렬 순으로 정상/에러 로그 판단 
+	-->
+	
+	<sql id="sql_where_list_for_sg_manage">
+		<choose>
+			<when test='search_type == "0"'>
+				<!-- 대행사/광고주명 -->
+				AND (A.demand_company_name LIKE '%' || #{search_value} || '%'
+				OR A.agency_company_name LIKE '%' || #{search_value} || '%')
+			</when>
+			<when test='search_type == "1"'>
+				<!-- 대행사/광고주 ID -->
+				AND (A.demand_uid LIKE '%' || #{search_value} || '%'
+				OR A.agency_uid LIKE '%' || #{search_value} || '%')
+			</when>
+			<when test='search_type == "2"'>
+				<!-- 광고명 -->
+				AND A.sg_name LIKE '%' || #{search_value} || '%'
+			</when>
+		</choose>
+		<if test='log_status != null and log_status != ""'>
+			<!-- 로그 상태 -->
+			AND A.log_status = #{log_status}
+		</if>
+		<if test='search_start_date != null and search_end_date != null'>
+			AND TO_CHAR(A.event_date, 'YYYY-MM-DD') BETWEEN #{search_start_date} AND #{search_end_date}
+		</if>
+	</sql>
+	
+	
+	<!-- 광고 관리용 오류 목록 쿼리 -->
+	<select id="getListCntForSgManage" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER (ORDER BY event_date) seq
+				, event_date
+				, TO_CHAR(ael.event_date, 'YYYY-MM-DD') AS event_date_str
+				, ael.cip
+				, ael.sg_id
+				, ael.api_key
+				, ael.refer_url
+				, ael.device
+				, ael.status
+				, ael.cpoint
+				, ael.event_year
+				, ael.event_month
+				, ael.event_day
+				, ael.event_hour
+				, ael.event_min
+				, ael.product_id
+				, ael.slot_id
+				, ael.sg_kind
+				, ael.car_number
+				, ael.log_status
+				, ael.display_time
+				, TO_CHAR(ael.display_start_date, 'HH24:MI:SS') AS display_start_time_str
+				, ael.display_start_date
+				, TO_CHAR(ael.display_end_date, 'HH24:MI:SS') AS display_end_time_str
+				, ael.display_end_date
+				, TO_CHAR((ABS(ael.display_time - dsm.exposure_time) || ' second')::interval, 'HH24:MI:SS') as display_diff_time_str
+				, ael.si_code
+				, ael.gu_code
+				, ael.dong_code
+				, ael.error_kind
+				, ael.log_content
+				, ael.process_kind
+				, ael.process_content
+				, ael.process_member_id
+				, ael.process_date
+				, pm.uid AS process_uid
+				, pm.uname AS process_uname
+				, TO_CHAR(ael.process_date, 'YYYY-MM-DD') AS process_date_str
+				, ael.event_kind
+				, dc."name" AS campaign_name
+				, dsm."name" AS sg_name
+				, dc.pay_type
+				, demand.id AS demand_id  
+				, demand.uid AS demand_uid 
+				, demand.uname AS demand_uname
+				, demand.company_name AS demand_company_name
+				, agency.id AS agency_id
+				, agency.uid AS agency_uid 
+				, agency.uname AS agency_uname
+				, agency.company_name AS agency_company_name
+			FROM 
+				traffic.ad_event_log ael
+			JOIN public.dsp_sg_manager dsm 
+			ON ael.sg_id = dsm.id 
+			JOIN public.dsp_campaign dc 
+			ON dc.id = dsm.campaign_id
+			JOIN member.member demand
+			ON dc.member_id = demand.id 
+			LEFT JOIN member.member agency
+			ON demand.agency_id = agency.id
+			LEFT JOIN member.member pm
+			ON ael.process_member_id = pm.id  
+			<where>
+			<![CDATA[
+				ael.log_status <> 'S' 
+			]]>
+			</where>
+		) A 
+		<where>
+			<include refid="sql_where_list_for_sg_manage"></include>
+		</where>
+	</select>
+	
+	<!-- 광고 관리용 오류 목록 쿼리 -->
+	<select id="getListForSgManage" resultType="HashMap">
+		SELECT
+			A.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER (ORDER BY event_date) seq
+				, ael.id AS ad_event_log_id
+				, event_date
+				, TO_CHAR(ael.event_date, 'YYYY-MM-DD') AS event_date_str
+				, ael.cip
+				, ael.sg_id
+				, ael.api_key
+				, ael.refer_url
+				, ael.device
+				, ael.status
+				, ael.cpoint
+				, ael.event_year
+				, ael.event_month
+				, ael.event_day
+				, ael.event_hour
+				, ael.event_min
+				, ael.product_id
+				, ael.slot_id
+				, ael.sg_kind
+				, ael.car_number
+				, ael.log_status
+				, ael.display_time
+				, TO_CHAR(ael.display_start_date, 'HH24:MI:SS') AS display_start_time_str
+				, ael.display_start_date
+				, TO_CHAR(ael.display_end_date, 'HH24:MI:SS') AS display_end_time_str
+				, ael.display_end_date
+				, TO_CHAR((ABS(ael.display_time - dsm.exposure_time) || ' second')::interval, 'HH24:MI:SS') as display_diff_time_str
+				, ael.si_code
+				, ael.gu_code
+				, ael.dong_code
+				, ael.error_kind
+				, ael.log_content
+				, ael.process_kind
+				, ael.process_content
+				, ael.process_member_id
+				, ael.process_date
+				, pm.uid AS process_uid
+				, pm.uname AS process_uname
+				, TO_CHAR(ael.process_date, 'YYYY-MM-DD') AS process_date_str
+				, ael.event_kind
+				, dc."name" AS campaign_name
+				, dsm."name" AS sg_name
+				, dc.pay_type
+				, demand.id AS demand_id 
+				, demand.uid AS demand_uid 
+				, demand.uname AS demand_uname
+				, demand.company_name AS demand_company_name
+				, agency.id AS agency_id
+				, agency.uid AS agency_uid 
+				, agency.uname AS agency_uname
+				, agency.company_name AS agency_company_name
+			FROM 
+				traffic.ad_event_log ael
+			JOIN public.dsp_sg_manager dsm 
+			ON ael.sg_id = dsm.id 
+			JOIN public.dsp_campaign dc 
+			ON dc.id = dsm.campaign_id
+			JOIN member.member demand
+			ON dc.member_id = demand.id 
+			LEFT JOIN member.member agency
+			ON demand.agency_id = agency.id
+			LEFT JOIN member.member pm
+			ON ael.process_member_id = pm.id   
+			<where>
+			<![CDATA[
+			ael.log_status <> 'S' 
+			]]>
+			</where>
+		) A 
+		<where>
+			<include refid="sql_where_list_for_sg_manage"></include>
+		</where>
+		ORDER BY A.seq DESC
+		<if test='limit != null and offset != null'>
+		LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 매체 관리 > 광고 오류 조회 where -->
+	<sql id="sql_where_list_for_ssp_manage">
+		<choose>
+			<when test='search_type == "1"'>
+				<!-- 매체명 -->
+				AND A.company_name LIKE '%' || #{search_value} || '%' 
+			</when>
+			<when test='search_type == "2"'>
+				<!-- 분류명 -->
+				AND A.category_name LIKE '%' || #{search_value} || '%'
+			</when>
+			<when test='search_type == "3"'>
+				<!-- 상품명 -->
+				AND A.product_name LIKE '%' || #{search_value} || '%' 
+			</when>
+			<when test='search_type == "4"'>
+				<!-- 디바이스S/N -->
+				AND A.device_serial_number LIKE '%' || #{search_value} || '%'
+			</when>
+			<when test='search_type == "5"'>
+				<!-- 광고명 -->
+				AND A.sg_name LIKE '%' || #{search_value} || '%'
+			</when>
+		</choose>
+		<if test='search_start_date != null and search_end_date != null'>
+			AND TO_CHAR(A.event_date, 'YYYY-MM-DD') BETWEEN #{search_start_date} AND #{search_end_date}
+		</if>
+	</sql>
+	
+	<select id="getListCntForSspManage" resultType="Integer">
+		SELECT
+			COUNT(*) AS cnt
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER (ORDER BY ael.event_date) seq
+				, ael.event_date
+				, TO_CHAR(ael.event_date, 'YYYY-MM-DD') AS event_date_str
+				, ael.cip
+				, ael.sg_id
+				, ael.api_key
+				, ael.refer_url
+				, ael.device
+				, ael.status
+				, ael.cpoint
+				, ael.event_year
+				, ael.event_month
+				, ael.event_day
+				, ael.event_hour
+				, ael.event_min
+				, ael.product_id
+				, ael.slot_id
+				, ael.sg_kind
+				, ael.car_number
+				, ael.log_status
+				, ael.display_time
+				, TO_CHAR(ael.display_start_date, 'HH24:MI:SS') AS display_start_time_str
+				, ael.display_start_date
+				, TO_CHAR(ael.display_end_date, 'HH24:MI:SS') AS display_end_time_str
+				, ael.display_end_date
+				, TO_CHAR((ABS(ael.display_time - dsm.exposure_time) || ' second')::interval, 'HH24:MI:SS') as display_diff_time_str
+				, ael.si_code
+				, ael.gu_code
+				, ael.dong_code
+				, ael.error_kind
+				, ael.log_content
+				, ael.process_kind
+				, ael.process_content
+				, ael.process_member_id
+				, ael.process_date
+				, TO_CHAR(ael.process_date, 'YYYY-MM-DD') AS process_date_str
+				, ael.event_kind
+				, dc."name" AS campaign_name
+				, dsm."name" AS sg_name
+				, dsm.exposure_time
+				, dc.pay_type 
+				, demand.uid AS demand_uid 
+				, demand.company_name AS demand_company_name
+				, ssp.category_id 
+				, ssp.category_name
+				, ssp.product_name
+				, ssp.company_name
+				, ssp.device_serial_number
+			FROM 
+				traffic.ad_event_log ael
+			JOIN (
+				SELECT
+					sp.id AS product_id
+					, sp.api_key
+					, sp.category_id
+					, sc2.category_name
+					, sp.product_name
+					, ssp.id AS member_id
+					, ssp.uid AS member_uid
+					, ssp.uname AS member_uname
+					, ssp.company_name AS company_name
+					, sd.serial_number AS device_serial_number
+				FROM
+					public.ssp_product sp
+				JOIN public.ssp_category sc2 ON
+					sp.category_id = sc2.id
+				JOIN member.member ssp ON
+					sc2.member_id = ssp.id
+				JOIN public.ssp_device sd ON
+					sp.id = sd.product_id 
+			) ssp ON 
+				ael.product_id = ssp.product_id AND ael.api_key = ssp.api_key AND ssp.device_serial_number = ael.device 
+			JOIN public.dsp_sg_manager dsm ON
+				ael.sg_id = dsm.id
+			JOIN public.dsp_campaign dc ON
+				dc.id = dsm.campaign_id
+			JOIN member.member demand ON
+				dc.member_id = demand.id
+			<where>
+				<![CDATA[
+				ael.log_status <> 'S'
+				]]>
+			</where>
+		) A
+		<where>
+			<include refid="sql_where_list_for_ssp_manage"></include>
+		</where>
+	</select>
+	
+	<!-- 매체 관리용 오류 목록 쿼리 -->
+	<select id="getListForSspManage" resultType="HashMap">
+		SELECT
+			A.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER (ORDER BY ael.event_date) seq
+				, ael.event_date
+				, TO_CHAR(ael.event_date, 'YYYY-MM-DD') AS event_date_str
+				, ael.cip
+				, ael.sg_id
+				, ael.api_key
+				, ael.refer_url
+				, ael.device
+				, ael.status
+				, ael.cpoint
+				, ael.event_year
+				, ael.event_month
+				, ael.event_day
+				, ael.event_hour
+				, ael.event_min
+				, ael.product_id
+				, ael.slot_id
+				, ael.sg_kind
+				, ael.car_number
+				, ael.log_status
+				, ael.display_time
+				, TO_CHAR(ael.display_start_date, 'HH24:MI:SS') AS display_start_time_str
+				, ael.display_start_date
+				, TO_CHAR(ael.display_end_date, 'HH24:MI:SS') AS display_end_time_str
+				, ael.display_end_date
+				, TO_CHAR((ABS(ael.display_time - dsm.exposure_time) || ' second')::interval, 'HH24:MI:SS') as display_diff_time_str
+				, ael.si_code
+				, ael.gu_code
+				, ael.dong_code
+				, ael.error_kind
+				, ael.log_content
+				, ael.process_kind
+				, ael.process_content
+				, ael.process_member_id
+				, ael.process_date
+				, TO_CHAR(ael.process_date, 'YYYY-MM-DD') AS process_date_str
+				, ael.event_kind
+				, dc."name" AS campaign_name
+				, dsm."name" AS sg_name
+				, dsm.exposure_time
+				, dc.pay_type 
+				, demand.uid AS demand_uid 
+				, demand.company_name AS demand_company_name
+				, ssp.*
+			FROM 
+				traffic.ad_event_log ael
+			JOIN (
+				SELECT
+					sp.id AS product_id
+					, sp.api_key
+					, sp.category_id
+					, sc2.category_name
+					, sp.product_name
+					, ssp.id AS member_id
+					, ssp.uid AS member_uid
+					, ssp.uname AS member_uname
+					, ssp.company_name AS company_name
+					, sd.serial_number AS device_serial_number
+				FROM
+					public.ssp_product sp
+				JOIN public.ssp_category sc2 ON
+					sp.category_id = sc2.id
+				JOIN member.member ssp ON
+					sc2.member_id = ssp.id
+				JOIN public.ssp_device sd ON
+					sp.id = sd.product_id 
+			) ssp ON 
+				ael.product_id = ssp.product_id AND ael.api_key = ssp.api_key AND ssp.device_serial_number = ael.device 
+			JOIN public.dsp_sg_manager dsm ON 
+				ael.sg_id = dsm.id 
+			JOIN public.dsp_campaign dc ON 
+				dc.id = dsm.campaign_id
+			JOIN member.member demand ON 
+				dc.member_id = demand.id 
+			<where>
+				<![CDATA[
+				ael.log_status <> 'S'
+				]]>
+			</where>
+		) A
+		<where>
+			<include refid="sql_where_list_for_ssp_manage"></include>
+		</where>
+		ORDER BY A.seq DESC
+		<if test='limit != null and offset != null'>
+		LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 오류 광고 상태 변경 -->
+	<update id="modifyLogStatus" parameterType="HashMap">
+		UPDATE
+			traffic.ad_event_log 
+		SET
+			  log_status = #{log_status}
+			, log_content = #{log_content}
+			, process_kind = #{process_kind}
+			, process_content = #{process_content}
+			, process_member_id = #{login_id}::bigint
+			, process_date = NOW()
+		WHERE
+			id = #{ad_event_log_id}::bigint
+	</update>
+	
+	<!-- taffic.ad_event_log event_date 조회 -->
+	<select id="getAdEventLogEventDate" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			event_date
+		FROM
+			traffic.ad_event_log
+		WHERE
+			id = #{ad_event_log_id}
+	</select>
+	
+	<!-- 배치 모니터링 last_index 업데이트 -->
+	<update id="modifyBatchMonitorLastIndex" parameterType="HashMap">
+		UPDATE
+			public.batch_monitor
+		SET
+			last_index = 
+			CASE
+				WHEN last_index >= TO_CHAR(#{event_date}::timestamptz, 'YYYY-MM-DD')
+				THEN TO_CHAR(#{event_date}::timestamptz, 'YYYY-MM-DD')
+				ELSE last_index
+			END
+			, update_date = 
+			CASE
+				WHEN last_index >= TO_CHAR(#{event_date}::timestamptz, 'YYYY-MM-DD')
+				THEN NOW()
+				ELSE update_date
+			END
+		WHERE
+			batch_code IN ('BC0002', 'BC0003', 'BC0010' ,'BC0011' ,'BC0020' ,'BC0021')
+	</update>
+</mapper>

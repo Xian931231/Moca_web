@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.role.RoleMapper">
+	
+	<!-- 목록 -->
+	<select id="getRoleList" resultType="HashMap">
+		SELECT
+			id
+			, "name"
+			, utype
+			, use_yn
+		FROM 
+			member.role_manager
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+	
+	<!-- 상세 -->
+	<select id="getRoleDetail" resultType="HashMap">
+		SELECT
+			id
+			, "name"
+			, utype
+			, use_yn
+		FROM 
+			member.role_manager
+		WHERE 
+			id = #{role_id} :: bigint
+	</select>
+	
+	<!-- 등록 -->
+	<insert id="addRole">
+		INSERT INTO member.role_manager (
+			name
+			, utype
+			, use_yn
+		)
+		VALUES (
+			#{name},
+			#{utype},
+			#{use_yn}
+		)
+	</insert>
+	
+	<!-- 수정 -->
+	<update id="modifyRole">
+		UPDATE 
+			member.role_manager 
+		SET 
+			name = #{name}
+		WHERE 
+			id = #{role_id} :: bigint
+	</update>
+	
+	<!-- 삭제 -->
+	<delete id="removeRole">
+		UPDATE 
+			member.role_manager 
+		SET 
+			use_yn = 'N'
+		WHERE 
+			id = #{role_id} :: bigint
+	</delete>
+	
+	<!-- 편집용 권한별 메뉴 조회 -->
+	<select id="getRoleMenuList" resultType="HashMap">
+		SELECT
+		     m.id AS menu_id
+		    , m.step 
+		    , m.parent_id 
+		    , m.name as menu_name
+		    , COALESCE(m.url, '/') AS url
+		    , m.use_yn 
+		    , m.sort 
+		    , m.default_yn 
+		    , m.default_utype 
+		    , CASE 
+		        WHEN rm.access_yn = 'Y' THEN 'Y'
+		        WHEN rm.access_yn = 'N' THEN 'N'
+		        WHEN rm.access_yn IS NULL THEN m.default_yn
+			END AS access_yn
+			, m.limit_ip_yn 
+		FROM
+		    member.menu m
+		LEFT JOIN (
+		    SELECT
+		        r.id
+		        , r.use_yn
+		        , r.utype
+		        , rm.access_yn
+		        , rm.menu_id
+		    FROM
+		        member.role_manager r
+		    LEFT JOIN
+		        member.role_menu rm
+		    ON r.id = rm.role_id 
+		    WHERE
+		    	r.id = #{role_id} :: bigint
+		    	AND r.owner_id = #{login_agency_id} :: bigint
+		    	AND r.utype = #{utype}
+		    	AND r.use_yn = 'Y'
+		) AS rm
+		ON
+		    rm.menu_id = m.id  
+		WHERE 
+			m.use_yn = 'Y'
+			AND m.default_utype = #{utype}
+			AND EXISTS (
+				SELECT 
+					id
+				FROM member.role_manager 
+				WHERE
+					id = #{role_id} :: bigint
+					AND owner_id = #{login_agency_id} :: bigint 
+					AND utype = #{utype}
+			)
+		ORDER by m.step, m.sort, m.parent_id
+	</select>
+	<!-- 권한 구분 명 중복체크 -->
+	<select id="hasDuplicateName" resultType="integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.role_manager
+		WHERE
+			utype = 'A'
+			AND use_yn = 'Y'
+			AND name = #{name}
+	</select>
+	<!-- 권한별 메뉴 등록 -->
+	<insert id="addRoleManagerMenu">
+		INSERT INTO member.role_menu (
+			menu_id
+			, role_id
+			, access_yn
+		)
+		VALUES (
+			#{menu_id} :: bigint,
+			#{role_id} :: bigint, 
+			#{access_yn}
+		)
+	</insert>
+	
+	<!-- 권한별 메뉴 수정 -->
+	<update id="modifyRoleManagerMenu">
+		UPDATE 
+			member.role_menu 
+		SET 
+			access_yn = #{access_yn}
+		WHERE
+			menu_id = #{menu_id} :: bigint 
+			AND role_id = #{role_id} :: bigint
+	</update>
+	
+	<!-- 권한별 메뉴 삭제 -->
+	<delete id="removeRoleManagerMenu">
+		DELETE FROM member.role_menu
+		WHERE 
+			id = #{role_menu_id} :: bigint
+	</delete>
+	
+	<!-- 권한이 갖고있는 메뉴인지 체크 -->
+	<select id="hasManagerMenu" resultType="Integer">
+		SELECT 
+			COUNT(1)
+		FROM 
+			member.role_menu
+		WHERE
+			menu_id = #{menu_id} :: bigint 
+			AND role_id = #{role_id} :: bigint
+	</select>
+	
+	<!-- 메뉴 존재 체크 -->
+	<select id="hasMenu" resultType="Integer">
+		SELECT  
+			COUNT(1)
+		FROM 
+			member.menu
+		WHERE 
+			id = #{menu_id} :: bigint
+	</select>
+	
+	<!-- 관리자가 등록한 권한구분 리스트 조회 -->
+	<select id="getStaffRoleList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			name
+			, id
+			, modify_yn
+		FROM
+			member.role_manager
+		WHERE
+			owner_id = 0
+			AND utype = 'A'
+		<![CDATA[
+		AND id <> '1'
+		]]>	
+		AND use_yn = 'Y'
+		ORDER BY sort
+	</select>
+
+	<!-- 권한구분 등록 -->
+	<insert id="addStaffRole" parameterType="HashMap" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO member.role_manager (
+		 	  name
+			, utype
+			, owner_id
+			, sort
+			, default_menu_id
+		)
+		VALUES (
+			  #{name}
+			, 'A'
+			, 0
+			, (SELECT
+					MAX(sort)
+				FROM
+					member.role_manager
+				WHERE
+					utype = 'A') + 1
+			, #{default_menu_id}
+		)
+	</insert>
+	
+	<!-- utype별 디폴트 메뉴 조회 -->
+	<select id="getDefaultMenu" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id
+			, use_yn
+			, default_yn
+		FROM
+			member.menu
+		WHERE
+			use_yn = 'Y'
+		AND	default_utype = 'A'
+	</select>
+	
+	<!-- 권한구분 메뉴접근 정보 등록 -->
+	<insert id="addStaffRoleMenu" parameterType="HashMap">
+		INSERT INTO	member.role_menu (
+			  menu_id
+			, role_id
+			, access_yn
+		)
+		VALUES (
+			  #{menu_id}
+			, #{role_id}
+			, #{access_yn}
+		)
+	</insert>
+	
+	<!-- 권한구분 명 수정 -->
+	<update id="modifyStaffRoleName" parameterType="HashMap">
+		UPDATE member.role_manager
+		SET
+			name = #{name}
+		WHERE 
+			id = #{role_id}
+	</update>
+	
+	<!-- 권한구분 순서 수정 -->
+	<update id="modifyStaffRoleSort" parameterType="HashMap">
+		UPDATE member.role_manager
+		SET
+			sort = #{sort}::bigint
+		WHERE
+			id = #{role_id}::bigint
+	</update>
+	
+	<!-- 메뉴 조회 -->
+	<select id="getMenu" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id
+			, default_yn
+			, url
+		FROM
+			member.menu
+		WHERE 
+			id = #{menu_id}
+	</select>
+	
+	<!-- 권한구분 삭제 -->
+	<delete id="removeStaffRole" parameterType="HashMap">
+		DELETE FROM member.role_manager
+		WHERE
+			id = #{role_id}::bigint
+	</delete>
+	
+	<!-- 권한구분 메뉴접근 정보 삭제 -->
+	<delete id="removeStaffRoleMenu" parameterType="HashMap">
+		DELETE FROM member.role_menu
+		WHERE
+			role_id = #{role_id}::bigint
+	</delete>
+	
+	<!-- 직원 권한구분 조회 -->
+	<select id="hasMemberRole" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			id as member_id
+		FROM
+			member.member
+		WHERE
+			role_id = #{role_id}::bigint
+	</select>
+	<!-- 직원의 권한구분 수정 --> 
+	<update id="modifyMemberRoleId" parameterType="HashMap">
+		UPDATE member.member
+		SET
+			role_id = 186
+		WHERE
+			role_id = #{role_id}::bigint
+	</update>
+	
+	<!-- 회원 utype A 체크 -->
+	<select id="hasMemberStaffRoleUtype" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		WHERE
+			id = #{member_id}::bigint
+		AND utype = 'A'
+	</select>
+	
+	<!-- 권한구분 체크 -->
+	<select id="hasStaffRoleManager" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.role_manager
+		WHERE
+			id = #{role_id}::bigint
+		AND utype = 'A'
+		AND modify_yn = 'Y'
+	</select>
+	
+	<!-- 회원 role_id 조회 -->
+	<select id="hasMemberRoleId" parameterType="HashMap" resultType="Integer">
+		SELECT
+			role_id
+		FROM
+			member.member
+		WHERE
+			id = #{member_id}::bigint
+	</select>
+	
+	<!-- role_menu 조회 -->
+	<select id="hasRoleMenu" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.role_menu
+		WHERE 
+			role_id = #{role_id}::bigint
+	</select>
+	
+	<!-- 관리자 권한구분 상세 -->
+	<select id="getStaffRoleDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			id
+			, name
+		FROM
+			member.role_manager rm
+		WHERE
+			id = #{role_id}
+		AND utype = 'A'
+		AND use_yn = 'Y'
+	</select>
+	
+	<!-- 관리자 default_menu_id -->
+	<select id="getStaffDefaultMenuId" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			id
+		FROM
+			member.menu
+		WHERE
+			default_utype = 'A'
+		AND default_yn = 'Y'
+		AND step = 2
+		AND sort = 1
+	</select>
+	
+	<!-- 권한구분 수정 시 default_menu_id 수정 -->
+	<update id="modifyStaffDefaultMenuId" parameterType="HashMap">
+		UPDATE
+			member.role_manager
+		SET
+			default_menu_id = #{default_menu_id}::bigint
+		WHERE
+			id = #{role_id}::bigint
+	</update>
+	
+</mapper>

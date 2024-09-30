@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<th:block layout:fragment="content">
+    <main class="main-panel">
+      <div class="pagePath">
+        상품 관리<span>&gt;</span>디바이스 관리
+      </div>
+      <div class="content">
+        <div class="titleCont">
+          <h2>디바이스 관리 <span id="standardTime"></span><i class="popTip" data-toggle="tooltip" data-placement="top" title="매일 자정 초기화 됩니다."></i></h2>
+        </div>
+        <!--테이블 컨텐츠 시작-->
+        <div class="tab-content medTables mediaCont">
+          <div>
+            <form action="" onsubmit="return false">
+              <fieldset>
+                <legend class="blind">검색</legend>
+                <div class="approvalWrap">
+                  <span class="btnCtrlWrap">
+                    <span class="device-text">상태 &nbsp;:&nbsp;</span>
+                    <button type="button" class="btn btn-sm active" data-src="list" data-act="clickStatusSearch" data-status="">전체</button>
+                    <button type="button" class="btn btn-sm" data-src="list" data-act="clickStatusSearch" data-status="Y">정상</button>
+                    <button type="button" class="btn btn-sm" data-src="list" data-act="clickStatusSearch" data-status="R">수리중</button>
+                    <button type="button" class="btn btn-sm" data-src="list" data-act="clickStatusSearch" data-status="D">폐기</button>
+                  </span>
+                </div>
+                <span class="grSearch">
+                  <select name="search_status" id="searchStatus" class="selectpicker">
+                    <option value="P" selected>상품명</option>
+                    <option value="S">S/N</option>
+                    <option value="C">게재 위치</option>
+                  </select>
+                  <input type="search" id="searchValue" data-src="list" data-act="inputSearch"><button type="button" class="btn-sm" data-src="list" data-act="clickSearch">검색
+                  </button>
+                </span>
+              </fieldset>
+            </form>
+          </div>
+          <!--테이블 : 디바이스 관리 / 시작-->
+          <div class="tableWrap">
+            <div class="tableInner medDevice">
+              <table class="table">
+                <colgroup>
+                  <col width="150px">
+                  <col width="440px">
+                  <col width="120px">
+                  <col width="130px">
+                  <col width="90px">
+                  <col width="150px">
+                  <col width="*">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>게재 위치</th>
+                    <th>상품명</th>
+                    <th>S/N</th>
+                    <th>화면 규격</th>
+                    <th>슬롯 수</th>
+                    <th>등록일시</th>
+                    <th>상태</th>
+                  </tr>
+                </thead>
+                <tbody id="tableList">
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!--테이블 : 디바이스 관리 / 끝-->
+          <!-- 페이지네이션 / 시작 -->
+          <nav aria-label="Page navigation">
+            <ul id="listPage" class="pagination justify-content-center">
+            </ul>
+          </nav>
+          <!-- 페이지네이션 / 끝 -->
+        </div>
+        <!-- 편성표 삭제 모달 : 시작 -->
+        <div class="modal fade depoModal" id="statusChangeModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+          <div class="modal-dialog modalInputFile">
+            <div class="modal-content">
+              <div class="modal-header">
+                <!--<h5 class="modal-title">상태 변경 사유</h5>-->
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <form action="">
+                  <fieldset>
+                    <legend class="blind">상태 변경 사유</legend>
+                    <div class="vdSetWrap depo st">
+                      <p>
+                        상태 변경 사유
+                        &nbsp;
+                        <span>
+                          <select name="status" id="deviceStatus" class="selectpicker">
+                            <option value="Y">정상</option>
+                            <option value="R">수리중</option>
+                            <option value="D">폐기</option>
+                          </select>
+                        </span>
+                      </p>
+                      <textarea class="commonTextarea" cols="100" rows="5" id="statusNotes">
+                      </textarea>
+                    </div>
+                  </fieldset>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-clear" data-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-sm btn-dark btn-overflow" data-src="list" data-act="clickStatusSave">저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 편성표 삭제 모달 : 끝 -->
+      </div>
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/supply/product/deviceList.js}"></script>
+	<script>
+		layout.setCallback(supplyProductDeviceList.init);
+	</script>
+</th:block>
+</html>

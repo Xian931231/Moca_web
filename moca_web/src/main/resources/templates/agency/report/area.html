@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+   <th:block layout:fragment="content">
+      <main class="main-panel">
+         <div class="pagePath">
+           <a href="javascript:;">리포트</a><span>&gt;</span><a href="javascript:;">지역별 리포트</a>
+         </div>
+         <div class="content repoContent">
+           <div class="titleCont">
+             <h2>지역별 리포트</h2>
+           </div>
+           
+           <form action="" onsubmit="return false">
+             <fieldset>
+               <legend class="blind">지역별 선택</legend>
+               <div class="repoStack1Wrap long">
+                 <select name="selList1" id="selectDemandList" class="" multiple data-done-button="false" title="전체 광고주">
+                 </select>
+               </div>
+               <div class="repoStack2Wrap">
+                 <span class="btnCtrlWrap">
+                   <select id="selectSiList" class="selectpicker" title="전체 지역">
+                   </select>
+                   <select id="selectGuList" class="selectpicker" title="전체 지역">
+                   </select>
+                   <span class="input-daterange" id="datepicker1">
+                     <label for="sDate">
+                       <input type="text" class="sDate form-control" id="sDate" name="start" placeholder=""><i></i>
+                     </label>
+                     <span>&nbsp;~&nbsp;</span>
+                     <label for="eDate">
+                       <input type="text" class="eDate form-control" id="eDate" name="end" placeholder=""><i></i>
+                     </label>
+                   </span>
+                 </span>
+                 <span>
+                   <!--조회 버튼 > 보여주기용 임시 링크 적용 onclick="location.href='03_cus-03_report1-2.html'"-->
+                   <button type="button" class="btn-sm btn-clear" data-src="areaList" data-act="clickSearchBtn">조회</button>
+                 </span>
+               </div>
+             </fieldset>
+           </form>
+               
+           <div class="tab-content repoTables repoMed reportRegionalTab">
+             <!-- 그래프1 - 매체별 그래프 / 시작 -->
+             <div class="chartWrap horizonBar">
+               <!-- 지도 api 삽입란 -->
+               <div class="chartMed chM5">
+                 
+                 <!--지역별 노출량말풍선 마커 영역 각각 a 태그로 삽입-->
+                 <div id="mapMarkerDiv">
+                 </div >
+                 
+                 <!--지도 확대/축소 컨트롤 영역-->
+                <!-- <div>
+                   <div class="map_controls wrap">
+                     <div class="map_controls zoom">
+                       <button class="btn-mapControl" aria-label="지도확대" aria-disabled="false"><img src="/assets/imgs/btn_plus.png" alt=""></button>
+                       <button class="btn-mapControl" aria-label="지도축소" aria-disabled="false"><img src="/assets/imgs/btn_minus.png" alt=""></button>
+                     </div>
+                   </div>
+                 </div>-->
+                 <div class="mapWrap" id="mapWrap">
+                   
+                 </div>
+                 <!--임시이미지 대체-->
+               </div>
+             </div>
+             <!-- 그래프 - 지역별 그래프 / 끝 -->
+             <!--테이블 : 지역별 / 시작-->
+             <div class="tableWrap repoWrap">
+               <div class="tableInner repoTableInner">
+                 <table class="table">
+                   <colgroup>
+                     <col width="297.5px">
+                     <col width="297.5px">
+                     <col width="297.5px">
+                     <col width="*">
+                   </colgroup>
+                   <thead>
+                     <tr>
+                       <th scope="col">광고주</th>
+                       <th scope="col">지역</th>
+                       <th scope="col">지역 구분</th>
+                       <th scope="col">노출량</th>
+                     </tr>
+                   </thead>
+                   <tbody id="listBody">
+                     
+                   </tbody>
+                 </table>
+               </div>
+               <!--테이블 푸터 픽스
+               별도 div.tableFooterFix 로 헤더 생성-->
+               <!--div.tableFooterFix 시작-->
+               <div class="tableFooterFix repo regi">
+                 <ul>
+                   <li>합계</li>
+                   <li id="listBodyTotal">0</li>
+                 </ul>
+               </div>
+               <!--div.tableFooterFix 끝-->
+             </div>
+             <!--테이블 : 지역별 / 끝-->
+             <div class="repoBtnBtmWrap">
+               <button type="button" class="btn-lg btn-dark" id="excelBtn" data-src="areaList" data-act="clickExcelDownloadBtn" style="display: none;">EXCEL로 다운 받기</button>
+             </div>
+           </div>
+         </div>
+       </main>
+   </th:block>
+   <th:block layout:fragment="script">
+      <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=7ns6lqd6n8"></script>
+      <script th:src="@{/js/page/agency/report/areaList.js}"></script>
+      <script>
+         layout.setCallback(areaList.init)
+      </script>
+   </th:block>
+</html>

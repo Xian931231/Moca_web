@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.ad.campaign.DemandCampaignMapper">
+	<sql id="dsp_campaign_where">
+		<if test='search_name != null and search_name != ""'>
+			AND A.name LIKE CONCAT('%', #{search_name}, '%')
+		</if>
+		<if test="start_ymd != null and end_ymd != null">
+			AND TO_CHAR(A.sort_date, 'YYYY-MM-DD') BETWEEN #{start_ymd} AND #{end_ymd}
+		</if>
+	</sql>
+	
+	<sql id="dsp_campaign_order">
+		<choose>
+			<when test='sort_type == "NA"'>
+				ORDER BY A.name 
+			</when>
+			<when test='sort_type == "ND"'>
+				ORDER BY A.name DESC
+			</when>
+			<when test='sort_type == "PA"'>
+				ORDER BY A.price 
+			</when>
+			<when test='sort_type == "PD"'>
+				ORDER BY A.price DESC
+			</when>
+			<otherwise>
+				ORDER BY A.sort_date
+			</otherwise>
+		</choose>
+	</sql>	
+
+	<!-- 캠페인 조회 -->
+	<select id="getCampaignList" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+			AA.*
+		FROM
+		(
+			SELECT
+				ROW_NUMBER() OVER(<include refid="dsp_campaign_order"></include>) as seq
+				, A.*
+			FROM
+			(
+				SELECT
+					dc.id AS campaign_id
+					, dc.pay_type
+					, dc.name
+					, COALESCE(total.price, 0) as price
+					, COALESCE(total.count, 0) as total_count
+					, COALESCE(proceed.count, 0) as proceed_count
+					, TO_CHAR(dc.update_date, 'YYYY-MM-DD HH24:MI') AS update_date
+					, TO_CHAR(dc.insert_date, 'YYYY-MM-DD HH24:MI') AS insert_date
+					, COALESCE(dc.update_date, dc.insert_date) AS sort_date
+				FROM
+					public.dsp_campaign dc
+				LEFT JOIN 
+				(
+					SELECT
+						campaign_id, COUNT(*), SUM(price) as price
+					FROM
+						public.dsp_sg_manager dsm
+					GROUP BY campaign_id
+				) total
+				ON dc.id = total.campaign_id
+				LEFT JOIN
+				(
+					SELECT
+						campaign_id, COUNT(*)
+					FROM
+						public.dsp_sg_manager dsm2
+					WHERE status = 1
+					GROUP BY campaign_id
+				) proceed
+				ON dc.id = proceed.campaign_id
+				WHERE
+					dc.member_id = #{login_id}::int
+			) A
+			<where>
+				<include refid="dsp_campaign_where"></include>
+			</where>
+		) AA
+		ORDER BY AA.seq DESC
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 캠페인 갯수 -->
+	<select id="getCampaignListCount" parameterType="HashMap" resultType="int">
+		SELECT 
+			COUNT(*)
+		FROM
+		(
+			SELECT
+				A.*
+			FROM
+			(
+				SELECT
+					dc.id
+					, dc.pay_type
+					, dc.name
+					, dc.update_date
+					, dc.insert_date
+					, COALESCE(dc.update_date, dc.insert_date) AS sort_date
+				FROM
+					public.dsp_campaign dc
+				WHERE
+					dc.member_id = #{login_id}::int
+			) A
+			<where>
+				<include refid="dsp_campaign_where"></include>
+			</where>
+		) AA
+	</select>
+	
+	<!-- 캠페인 상세조회 -->
+	<select id="getCampaignDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			dc.id AS campaign_id
+			, name
+			, pay_type
+			, COALESCE(T.total_exposure, 0) as exposure_target_total
+			, COALESCE(T.total_price, 0) as total_price
+			, COALESCE(T.total, 0) as total
+			, COALESCE(E.exposure_total, 0) as exposure_total_count
+			, COALESCE(T.proceed, 0) as proceed
+			, COALESCE(T.pause, 0) as pause
+			, COALESCE(T.request, 0) as request
+			, COALESCE(T.reject, 0) as reject
+			, COALESCE(T.end, 0) as end
+		FROM public.dsp_campaign dc
+		LEFT JOIN (
+			SELECT
+				campaign_id
+				, SUM(total_count) as exposure_total
+			FROM
+				dsp_report.count_sg cs
+			WHERE
+				TO_CHAR(now(), 'YYYY-MM-DD') > data_ymd
+			GROUP BY 
+				campaign_id
+		) E
+		ON
+			dc.id = E.campaign_id 
+		LEFT JOIN (
+			SELECT
+				campaign_id
+				, count(*) as total
+				, SUM(exposure_target) as total_exposure
+				, SUM(price) as total_price
+				, COUNT(CASE WHEN status = 0 THEN 1 ELSE NULL END) AS request
+				, COUNT(CASE WHEN status = 1 THEN 1 ELSE NULL END) AS proceed 
+				, COUNT(CASE WHEN status IN (2, 3, 4) THEN 1 ELSE NULL END) AS pause
+				, COUNT(CASE WHEN status IN (7, 8) THEN 1 ELSE NULL END) AS end
+				, COUNT(CASE WHEN status = 9 THEN 1 ELSE NULL END) AS reject
+			FROM
+				public.dsp_sg_manager
+			GROUP BY campaign_id 
+		) T
+		ON dc.id = T.campaign_id
+		WHERE
+			member_id = #{login_id}::int
+		AND dc.id = #{campaign_id}::int
+	</select>
+	
+	<!-- 광고 리스트 -->
+	<select id="getSgList" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+			ROW_NUMBER() OVER(order by A.sg_id) AS seq
+			, sg.id AS sg_id
+			, sg.status
+			, sg.name
+			, sp.product_name
+			, sm.file_path
+			, sm.file_name
+			, sm.file_type
+			, sm.ratio_type 
+			, A.count as material_count
+			, sg.exposure_target
+			, sg.exposure_limit
+			, sg.start_ymd
+			, sg.end_ymd
+			, sg.insert_date
+			, TO_CHAR(sg.request_date, 'YYYY-MM-DD HH24:MI') as request_date
+			, TO_CHAR(sg.stop_date, 'YYYY-MM-DD HH24:MI') as stop_date
+			, TO_CHAR(sg.stop_date, 'YYYY-MM-DD') as stop_ymd
+			, stop_reason
+			, m.uid as stop_member_uid
+			, TO_CHAR(sg.approve_date, 'YYYY-MM-DD HH24:MI') as approve_date
+			, reject_reason
+			, TO_CHAR(P.insert_date, 'YYYY-MM-DD HH24:MI') as pay_date
+			, sg.price
+			, remain_exposure_count
+			, COALESCE(sg.exposure_target - remain_exposure_count, 0) as total_exposure_count
+			, COALESCE(R.today_exposure_count, 0) as today_exposure_count
+			, TO_CHAR(sg.display_end_date, 'YYYY-MM-DD HH24:MI') as display_end_date
+		FROM
+			public.dsp_sg_manager sg
+		JOIN
+			(
+				SELECT
+					MIN(id) as material_id
+					, sg_id
+					, COUNT(*)
+				FROM public.dsp_sg_material
+				GROUP BY sg_id
+			) A
+		ON sg.id = A.sg_id
+		JOIN
+			public.dsp_sg_material sm 
+		ON A.material_id = sm.id
+		LEFT JOIN (
+			SELECT
+				MAX(insert_date) as insert_date
+				, sg_id
+			FROM
+				public.dsp_sg_pay_log dspl
+			WHERE
+				dspl.kind = 'D'
+			GROUP BY 
+				sg_id
+		) as P
+		ON P.sg_id = sg.id
+		LEFT JOIN 
+			ssp_product sp
+		ON sp.id = sg.ssp_product_id
+		LEFT JOIN (
+			SELECT
+				sg_id
+				, sts.max_count - sts.remain_count as today_exposure_count
+			FROM
+				public.schedule_table_sg sts 
+			WHERE
+				date_ymd = TO_CHAR(now(), 'YYYY-MM-DD')
+		) R -- 금일 노출 수
+		ON R.sg_id = sg.id
+		LEFT JOIN
+			member.member m
+		ON
+			m.id = sg.stop_member_id
+		WHERE
+			campaign_id = #{campaign_id}::int
+		<if test="status != null">
+		  <choose>
+		  	<when test='status == 8'>
+		  		AND sg.status IN (7, 8)
+		  	</when>
+		  	<otherwise>
+				AND sg.status = #{status}::int
+		  	</otherwise>
+		  </choose>
+		</if>
+		ORDER BY seq DESC
+	</select>
+	
+	<!-- 캠페인 등록 -->
+	<select id="addCampaign" parameterType="HashMap" resultType="HashMap">
+		INSERT INTO public.dsp_campaign (
+			name
+			, member_id
+			, insert_date
+			, pay_type
+		) VALUES (
+			#{campaign_name}
+			, #{login_id}::int
+			, now()
+			, #{pay_type}
+		)
+		RETURNING pay_type, id
+	</select>
+	
+	<!-- 캠페인 수정 -->
+	<update id="modifyCampaign" parameterType="HashMap">
+		UPDATE public.dsp_campaign
+		SET
+			name = #{campaign_name}
+			, update_date = now()
+		WHERE
+			id = #{campaign_id}::int
+		AND member_id = #{login_id}::int
+	</update>
+	
+	<!-- 진행중인 광고 -->
+	<select id="getProceedSgInCampaign" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			public.dsp_sg_manager
+		WHERE
+			campaign_id = #{campaign_id}::int
+		AND status = 1
+	</select>
+
+	<!-- 캠페인 삭제 하위 리스트 -->
+	<select id="getSgListInCampaign" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			id as sg_id
+		FROM
+			public.dsp_sg_manager
+		WHERE
+			campaign_id = #{campaign_id}::int
+	</select>
+	
+	<select id="removeCampaign" parameterType="HashMap" resultType="HashMap">
+		DELETE FROM public.dsp_campaign
+		WHERE
+			id = #{campaign_id}::int
+		AND member_id = #{login_id}::int
+		RETURNING name
+	</select>
+	
+	<!-- 내 소유의 존재하는 캠페인인지 체크 -->
+	<select id="hasMyCampaign" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			public.dsp_campaign
+		WHERE
+			id = #{campaign_id}::int
+		AND member_id = #{login_id}::int
+	</select>
+	
+	<!-- 내 소유의 캠페인 정보 -->
+	<select id="getCampaignDetailMin" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			id AS campaign_id
+			, name
+			, pay_type
+		FROM
+			public.dsp_campaign
+		WHERE
+			id = #{campaign_id}::int
+		AND member_id = #{login_id}::int
+	</select>
+	
+	<!-- 광고주, 대행사 로그인 시 구분 -->
+	<sql id="dsp_where_sql">
+	  <choose>
+		<when test='demandList != null and demandList != ""'>
+		  	AND dsp_id IN
+			<foreach collection="demandList" item="demand" open="(" close=")" separator=",">
+				#{demand.dsp_id}::int
+			</foreach>			
+		</when>
+		<otherwise>
+			AND dsp_id = #{login_id}::int
+		</otherwise>
+	  </choose>
+	</sql>
+	
+	<!-- 광고주, 대행사 로그인 시 구분 -->
+	<sql id="member_where_sql">
+	  <choose>
+		<when test='demandList != null and demandList != ""'>
+		  	AND member_id IN
+			<foreach collection="demandList" item="demand" open="(" close=")" separator=",">
+				#{demand.dsp_id}::int
+			</foreach>			
+		</when>
+		<otherwise>
+			AND member_id = #{login_id}::int
+		</otherwise>
+	  </choose>
+	</sql>
+	
+	<!-- 광고주/대행사 광고 진행 상황 count -->
+	<select id="getCountCampaign" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			COALESCE(SUM(A.request_count), 0) as request
+			, COALESCE(SUM(A.price), 0) as price_total
+			, COALESCE(SUM(A.proceed_count), 0) as proceed
+			, COALESCE(SUM(D.total_count), 0) as exposure_total
+			, COALESCE(SUM(E.soon_end), 0) as soon_end_count
+		FROM
+			dsp_campaign dc
+		LEFT JOIN
+		 (
+			SELECT
+				COUNT(CASE WHEN status = 0 THEN 1 ELSE NULL END) as request_count
+				, SUM(CASE WHEN status = 1 THEN price ELSE NULL END) as price
+				, COUNT(CASE WHEN status = 1 THEN 1 ELSE NULL END) proceed_count
+				, dsm.campaign_id 
+			FROM
+				dsp_sg_manager dsm
+			GROUP BY dsm.campaign_id
+		) A
+		ON A.campaign_id = dc.id
+		LEFT JOIN (
+			SELECT
+				SUM(total_count) as total_count
+				, campaign_id
+			FROM
+				dsp_report.count_sg cs
+			GROUP BY cs.campaign_id
+		) D
+		ON D.campaign_id = dc.id
+		LEFT JOIN (
+			SELECT
+				COUNT(*) as soon_end
+				, dc.id as campaign_id
+			FROM
+				dsp_sg_manager dsm
+			JOIN
+				dsp_campaign dc 
+			ON
+				dc.id = dsm.campaign_id 
+			LEFT JOIN
+			(
+				select
+					SUM(cs.total_count) as total_count
+					, sg_id
+				FROM
+					dsp_report.count_sg cs
+				<where>
+				  <include refid="dsp_where_sql"></include>
+				AND now() - interval '1 days' > TO_DATE(data_ymd, 'YYYY-MM-DD')
+				</where>
+				group by cs.sg_id
+			) A
+			ON
+				dsm.id = A.sg_id
+			<where>
+			dsm.status = 1
+		  	  <include refid="member_where_sql"></include>
+			AND ((
+				dc.pay_type = 'CPP' 
+				AND now() >= TO_DATE(dsm.end_ymd, 'YYYY-MM-DD') - interval '7 days' 
+				AND now() <![CDATA[ < ]]> TO_DATE(dsm.end_ymd, 'YYYY-MM-DD') + interval '1 days')
+				OR (dc.pay_type = 'CPM' AND 100 > (exposure_target - A.total_count))
+			)
+			</where>
+			group by dc.id
+		) E
+		ON E.campaign_id = dc.id
+		<where>
+		  <include refid="member_where_sql"></include>
+		</where>
+	</select>
+
+	<!-- 광고주의 캠페인 리스트 -->
+	<select id="getCampaignListOfDemand" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			A.*
+		FROM
+			(
+			SELECT
+				id as campaign_id
+				, pay_type
+				, name
+				, member_id
+				, COALESCE(B.total_count, 0) as exposure_count
+				, C.proceed_sg
+			FROM
+				public.dsp_campaign dc
+			LEFT JOIN 
+				(
+				SELECT
+					SUM(total_count) as total_count
+					, campaign_id
+				FROM
+					dsp_report.count_sg
+				<where>
+				  <if test='demandList != null and demandList !=""'>
+					AND dsp_id IN 
+					<foreach item="demand" collection="demandList" separator="," open="(" close=")">
+						#{demand.dsp_id}::int
+					</foreach>
+				  </if>
+				</where>
+				GROUP BY
+					campaign_id
+				) B
+			ON
+				B.campaign_id = dc.id
+			JOIN
+				(
+				SELECT
+					COUNT(*) as proceed_sg
+					, campaign_id
+				FROM
+					dsp_sg_manager dsm
+				WHERE
+					dsm.status = 1
+				GROUP BY 
+					dsm.campaign_id
+				) C
+			ON
+				C.campaign_id = dc.id
+			<where>
+			  <if test='demandList != null and demandList !=""'>
+				AND member_id IN 
+				<foreach item="demand" collection="demandList" separator="," open="(" close=")">
+					#{demand.dsp_id}::int
+				</foreach>
+			  </if>
+			</where>
+		) A
+		<choose>
+			<when test='sort_type == "AED" or sort_type == "AEA"'>
+				ORDER BY A.exposure_count DESC
+			</when>
+			<otherwise>
+				ORDER BY A.proceed_sg DESC
+			</otherwise>
+		</choose>
+	</select>
+
+</mapper>

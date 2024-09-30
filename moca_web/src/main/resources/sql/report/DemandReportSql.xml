@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.report.DemandReportMapper">
+
+	<!-- 광고 조회 -->
+	<select id="getSgInfo" resultType="HashMap">
+		SELECT
+			id as sg_id
+		    ,campaign_id
+		    ,name as sg_name
+		FROM
+    		public.dsp_sg_manager
+    	<where>
+		    AND campaign_id = #{campaign_id}
+		    AND id = #{sg_id}::bigint
+    	</where>
+    	ORDER BY name
+	</select>
+
+	<!-- 상품에 노출된광고 리스트 조회  -->
+	<select id="getCountSgList" resultType = "HashMap">
+		SELECT 
+	        dsm.id as sg_id
+	        , dsm.name as sg_name
+	    FROM
+	        public.dsp_sg_manager dsm
+	    JOIN
+	        (
+		        SELECT 
+		            cs.campaign_id
+		            , dc."name"
+		        FROM
+		            dsp_report.count_sg cs
+		        JOIN
+		            public.dsp_campaign dc
+		        ON
+		            cs.campaign_id = dc.id
+		        <where>
+		        	cs.dsp_id = #{login_id}::bigint
+		        </where>
+		        GROUP BY campaign_id, dc."name"
+	        ) c
+	    ON
+	        dsm.campaign_id = c.campaign_id
+		<where>
+			<if test='campaign_id != null and campaign_id != "" '>
+				AND dsm.campaign_id = #{campaign_id}::bigint
+			</if>
+			<if test='sg_id != null and sg_id != "" '>
+				AND dsm.id = #{sg_id}::bigint
+			</if>
+			<if test='sg_list != null and sg_list.size != 0 '>
+				AND dsm.id 
+				<foreach collection="sg_list" item="sg_id" open="IN (" close=")" separator=",">
+					#{sg_id} :: bigint
+				</foreach>
+			</if>
+		</where>
+		ORDER BY dsm.name
+	</select>	
+	<!-- 상품에 노출된광고가 속해있는 캠페인 리스트 조회 -->
+	<select id="getCampaignList" resultType="HashMap">
+		SELECT 
+	        cs.campaign_id
+	        , dc.name as campaign_name
+	        , dc.pay_type
+	    FROM
+	        dsp_report.count_sg cs
+	    JOIN
+	        public.dsp_campaign dc
+	    ON
+	        cs.campaign_id = dc.id
+	    <where>
+	    	cs.dsp_id = #{login_id}::bigint
+	    </where>
+	    GROUP BY campaign_id, dc.name, dc.pay_type
+	    ORDER BY dc.name
+	</select>
+	
+	<!--캠페인에 속한 광고 조회 -->
+	<select id="getSgList" resultType="HashMap">
+		SELECT
+			cs.sg_id
+    		, dsm.name AS sg_name
+		FROM
+		 	dsp_report.count_sg cs
+		JOIN
+    		public.dsp_sg_manager dsm
+    	ON
+    		cs.sg_id = dsm.id
+    	<where>
+		    AND cs.campaign_id = #{campaign_id}
+		    AND cs.dsp_id = #{login_id}::bigint
+			<if test='sg_list != null and sg_list.size != 0 '>
+				AND cs.sg_id
+				<foreach collection="sg_list" item="sg_id" open="IN (" close=")" separator=",">
+					#{sg_id} :: bigint
+				</foreach>
+			</if>
+		</where>
+		GROUP BY cs.sg_id, dsm.name
+		ORDER BY dsm.name
+	</select>
+	
+	<!-- 기간별 리포트 start -->
+	<!-- 캠페인 이름 조회 -->
+	<select id="getCampaignName" resultType = "String">
+		SELECT
+			name as campaign_name
+		FROM
+    		public.dsp_campaign
+    	<where>
+		    AND id = #{campaign_id}
+		</where>
+	</select>
+	<!-- 시간별 노출수 조회 -->
+	<select id="getListByTime" resultType="java.util.LinkedHashMap">
+		SELECT
+			<foreach collection="hour_list" item="hour" separator=','>
+				COALESCE(
+					SUM(
+						cs.hour_${hour}
+					)
+				, 0)
+				AS hour_${hour}
+			</foreach>
+		FROM
+		    dsp_report.count_sg cs
+		JOIN
+			public.dsp_sg_manager dsm
+		ON
+			dsm.id = cs.sg_id
+		<where>
+			AND cs.campaign_id = #{campaign_id}
+		    AND cs.sg_id = #{sg_id}::bigint
+		    AND TO_DATE(cs.data_ymd, 'YYYY-MM-DD') = TO_DATE(#{search_dt}, 'YYYY-MM-DD')
+		</where>
+	</select>
+	
+	<!-- 일별 노출수 조회 -->
+	<select id="getListByDate" resultType="java.util.LinkedHashMap">
+		SELECT
+			<foreach collection="date_list" item="date" separator=','>
+			(
+				SELECT 
+					COALESCE(SUM(total_count), 0) 
+				FROM
+					dsp_report.count_sg cs
+				<where>
+					cs.sg_id = dsm.id
+					AND TO_DATE(cs.data_ymd, 'YYYY-MM-DD') = TO_DATE(#{date}, 'YYYY-MM-DD')
+				</where>
+					
+			)AS "${date}"
+			</foreach>
+		FROM
+		    public.dsp_sg_manager dsm
+		<where>
+		    AND dsm.campaign_id = #{campaign_id}
+		    AND dsm.id = #{sg_id}::bigint
+		</where>
+	</select>
+	
+	<!-- 월별 노출수 조회 -->
+	<select id="getListByMonth" resultType="java.util.LinkedHashMap">
+		SELECT
+			<foreach collection="date_list" item="date" separator=','>
+			(
+				SELECT 
+					COALESCE(SUM(total_count), 0) 
+				FROM
+					dsp_report.count_sg cs
+				<where>
+					cs.sg_id = dsm.id
+					AND cs.year = split_part(#{date}, '-', 1)
+					AND cs.month = split_part(#{date}, '-', 2)
+				</where>
+			)AS "${date}"
+			</foreach>
+		FROM
+		    public.dsp_sg_manager dsm
+		<where>
+		    AND dsm.campaign_id = #{campaign_id}
+		    AND dsm.id = #{sg_id}::bigint
+		</where>
+	</select>
+	<!-- 기간별 리포트 end -->
+	
+	<!-- 매체사 리포트 start -->
+	<!-- 매체사 리스트 조회 -->
+	<select id="getSupplyMemberListOfDemand" resultType="HashMap">
+		SELECT
+		    sc.member_id
+		    , m.company_name
+		FROM
+		    traffic.ad_sg_product_count aspc
+		JOIN
+		    public.ssp_product sp
+		ON
+		    sp.id = aspc.product_id
+		JOIN
+		    public.ssp_category sc
+		ON
+		    sc.id = sp.category_id
+		JOIN
+		    MEMBER.MEMBER m
+		ON
+		    m.id = sc.member_id
+		<where>
+			aspc.dsp_id = #{login_id}::bigint
+		    <if test='member_list != null and member_list.size != 0 '>
+				AND sc.member_id IN
+				<foreach item='member_id' collection='member_list' separator=',' open='(' close=')'>
+					#{member_id}::bigint
+				</foreach>
+			</if>
+		</where>
+		GROUP BY sc.member_id, m.company_name
+		ORDER BY m.company_name
+	</select>
+	
+	<!-- 매체사 구분 조회 -->
+	<select id="getCategoryListOfDemand" resultType ="HashMap">
+		SELECT
+		    sc.id as category_id
+		    ,sc.category_name
+		FROM
+		    traffic.ad_sg_product_count aspc
+		JOIN
+		    public.ssp_product sp
+		ON
+		    sp.id = aspc.product_id
+		JOIN
+		    public.ssp_category sc
+		ON
+		    sc.id = sp.category_id
+		<where>
+			aspc.dsp_id = #{login_id}::bigint
+		    AND sc.member_id = #{member_id}::bigint
+		</where> 
+		GROUP BY sc.id,sc.category_name
+		ORDER BY sc.category_name
+	</select>
+	<!-- 매체사 상품 조회 -->
+	<select id="getProductListOfDemand" resultType="HashMap">
+		SELECT
+		    sp.id as product_id
+		    , sp.product_name
+		FROM
+		    traffic.ad_sg_product_count aspc
+		JOIN
+		    public.ssp_product sp
+		ON
+		    sp.id = aspc.product_id
+		JOIN
+		    public.ssp_category sc
+		ON
+		    sc.id = sp.category_id
+		JOIN
+		    MEMBER.MEMBER m
+		ON
+		    m.id = sc.member_id
+		<where>
+			aspc.dsp_id = #{login_id}::bigint
+		    AND sc.id = #{category_id}::bigint
+		</where>
+		GROUP BY sp.id, sp.product_name
+		ORDER BY sp.product_name
+	</select>
+	
+	<!-- 상품의 노출수 조회 -->
+	<select id="getProductExposureCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COALESCE(SUM(aspc.total_count), 0)AS cnt
+		FROM
+		    traffic.ad_sg_product_count aspc
+		JOIN
+		    public.ssp_product sp
+		ON
+		    sp.id = aspc.product_id
+		JOIN
+		    public.ssp_category sc
+		ON
+		    sc.id = sp.category_id
+		JOIN
+		    MEMBER.MEMBER m
+		ON
+		    m.id = sc.member_id
+		<where>
+			aspc.dsp_id = #{login_id}::bigint
+		    AND aspc.product_id = #{product_id}::bigint
+		    AND aspc.data_ymd BETWEEN #{str_dt} AND #{end_dt}
+		</where>
+	</select>
+	<!-- 매체사 리포트 end -->
+	
+	<!-- 지역별 리포트 start -->
+	<!-- 지역별 리포트 테이블용 -->
+	<select id="getAreaExposureList" resultType="HashMap">
+		SELECT 
+            dsm.id AS sg_id
+            , csa.si_code
+            , csa.gu_code 
+            , csa.dsp_id
+            , COALESCE(SUM(csa.total_count), 0) AS cnt
+        FROM 
+            dsp_report.count_sg_area csa 
+        JOIN 
+        	public.dsp_sg_manager dsm 
+        ON 
+        	csa.sg_id = dsm.id 
+        <where>
+        	<if test ='sg_id != null and sg_id != "" '>
+        		AND csa.sg_id = #{sg_id}
+        	</if>
+        	AND csa.dsp_id = #{login_id}::bigint
+            AND TO_DATE(csa.data_ymd, 'YYYY-MM-DD') BETWEEN TO_DATE(#{str_dt}, 'YYYY-MM-DD') AND TO_DATE(#{end_dt}, 'YYYY-MM-DD')
+        </where>
+        GROUP BY
+            csa.dsp_id, csa.si_code, csa.gu_code, dsm.id
+	</select>
+	
+	<!-- 지역별 리포트 맵용 -->
+	<select id="getReportListByAreaMap" resultType="HashMap">
+		<if test='map_level == null or map_level lte 8'>
+			SELECT 
+				si_code
+				, si_name AS display_name
+				, st_x(st_centroid(ac.si_cpoint)) AS longitude
+				, st_y(st_centroid(ac.si_cpoint)) AS latitude
+				, (
+					SELECT 
+						COALESCE(SUM(csa.total_count), 0) 
+					FROM 
+						dsp_report.count_sg_area csa
+					JOIN 
+						member.member m 
+					ON 
+						csa.dsp_id = m.id  
+					<where>
+						AND csa.si_code = ac.si_code
+						<if test='gu_code != null and gu_code != ""'>
+							AND csa.gu_code = #{gu_code}
+						</if>
+						<if test='sg_list != null and sg_list.size != 0 '>
+							AND csa.sg_id
+							<foreach collection="sg_list" item="sg_id" open="IN (" close=")" separator=",">
+								#{sg_id}::bigint
+							</foreach>
+						</if> 
+						
+						AND csa.dsp_id = #{login_id}::bigint
+						AND m.status = 'A'
+						AND m.utype = 'D'
+						AND TO_DATE(csa.data_ymd, 'YYYY-MM-DD') BETWEEN TO_DATE(#{str_dt}, 'YYYY-MM-DD') AND TO_DATE(#{end_dt}, 'YYYY-MM-DD')
+					</where>
+				) AS cnt
+			FROM 
+				public.area_code ac
+			<where>
+				<if test='si_code != null and si_code != ""'>
+					AND ac.si_code = #{si_code}
+				</if>
+				<if test='gu_code != null and gu_code != ""'>
+					AND ac.gu_code = #{gu_code}
+				</if>
+			</where> 
+			GROUP BY ac.si_code, ac.si_name, ac.si_cpoint 
+			ORDER BY ac.si_code		
+		</if>
+		<if test='map_level gt 8'>
+			SELECT 
+				si_code
+				, gu_name AS display_name
+				, st_x(st_centroid(ac.gu_cpoint)) AS longitude
+				, st_y(st_centroid(ac.gu_cpoint)) AS latitude
+				, (
+					SELECT 
+						COALESCE(SUM(csa.total_count), 0) 
+					FROM 
+						dsp_report.count_sg_area csa
+					JOIN 
+						member.member m 
+					ON 
+						csa.dsp_id = m.id  
+					<where>
+						AND csa.si_code = ac.si_code 
+						AND csa.gu_code = ac.gu_code
+						<if test='sg_list != null and sg_list.size != 0 '>
+							AND csa.sg_id
+							<foreach collection="sg_list" item="sg_id" open="IN (" close=")" separator=",">
+								#{sg_id}::bigint
+							</foreach>
+						</if> 
+						AND csa.dsp_id = #{login_id}::bigint
+						AND m.status = 'A'
+						AND m.utype = 'D'
+						AND TO_DATE(csa.data_ymd, 'YYYY-MM-DD') BETWEEN TO_DATE(#{str_dt}, 'YYYY-MM-DD') AND TO_DATE(#{end_dt}, 'YYYY-MM-DD')
+					</where>
+				) AS cnt
+			FROM 
+				public.area_code ac
+			<where>
+				<if test='si_code != null and si_code != ""'>
+					AND ac.si_code = #{si_code}
+				</if>
+				<if test='gu_code != null and gu_code != ""'>
+					AND ac.gu_code = #{gu_code}
+				</if>
+			</where> 
+			GROUP BY ac.si_code, ac.gu_code, ac.gu_name, ac.gu_cpoint 
+			ORDER BY ac.si_code, ac.gu_code		
+		</if>
+	</select>
+	
+	
+	<!-- 지역별 리포트 end -->
+</mapper>

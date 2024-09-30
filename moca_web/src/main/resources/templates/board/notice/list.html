@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+   <th:block layout:fragment="content">
+      <main class="main-panel">
+         <div class="pagePath">
+            고객 지원<span>&gt;</span>공지사항
+         </div>
+         <div class="content">
+            <div class="titleCont">
+               <h2>공지사항</h2>
+            </div>
+            <div class="tab-content advTablesCpm">
+               <div class="management approval notice">
+                  <div class="moCafeFormWrap">
+                     <div class="approvalWrap">
+                        <ul id="viewKindList" class="">
+                           <li class="btnCtrlWrap">
+                              <button type="button" class="btn btn-sm"  data-src="list" data-act="clickViewKind" data-kind="A">전체</button>
+                              </a>                  
+                           </li>
+                           <li class="btnCtrlWrap">
+                              <button type="button" class="btn btn-sm" data-src="list" data-act="clickViewKind" data-kind="S">서비스</button>
+                              </a>                  
+                           </li>
+                           <li class="btnCtrlWrap">
+                              <button type="button" class="btn btn-sm" data-src="list" data-act="clickViewKind" data-kind="W">작업</button>
+                              </a>                  
+                           </li>
+                        </ul>
+                     </div>
+                     <fieldset>      
+                        <span class="selectFinWrap2">
+                           <select id="searchType" class="selectpicker">
+                             <option value="A" selected>전체</option>
+                             <option value="1">제목</option>
+                             <option value="2">내용</option>
+                           </select>
+                        </span>     
+                        <span class="grSearch">
+                           <input id="searchValue" type="search" data-src="list" data-act="inputSearch">
+                           <button type="button" class="btn-sm" data-src="list" data-act="clickSearch">검색</button>
+                        </span>
+                     </fieldset>
+                  </div>
+                  <!-- 테이블 / 시작 -->
+                  <div class="advTables">
+                     <ul class="changeHistory notice">
+                        <li>
+                           <div class="tableWrap">
+                              <div class="tableInner">
+                                 <table class="table advTable2">
+                                    <colgroup>
+                                       <col width="80px">
+                                       <col width="920px">
+                                       <col width="*">
+                                    </colgroup>
+                                    <thead>
+                                       <tr>
+                                          <th>No</th>
+                                          <th>제목</th>
+                                          <th>일자</th>
+                                       </tr>
+                                    </thead>
+                                    <tbody id="listBody">
+                                    </tbody>
+                                 </table>
+                              </div>
+                           </div>
+                        </li>
+                     </ul>
+                  </div>
+                  <!-- 전체 / 끝 -->
+                  <!-- 페이지네이션 / 시작 -->
+                  <nav aria-label="Page navigation">
+                     <ul id="listPage" class="pagination justify-content-center">
+                     </ul>
+                  </nav>
+                  <!-- 페이지네이션 / 끝 -->
+               </div>
+            </div>
+         </div>
+      </main>
+   </th:block>
+   <th:block layout:fragment="script">
+      <script th:src="@{/js/page/board/notice/list.js}"></script>
+      <script>
+         layout.setCallback(noticeList.init);
+      </script>
+   </th:block>
+</html>

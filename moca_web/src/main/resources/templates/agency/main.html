@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<th:block layout:fragment="content">
+    <main class="main-panel">
+      <div class="pagePath">
+        광고 현황<span>&gt;</span>광고 진행 상황
+      </div>
+      <div class="content">
+        <div class="titleCont">
+          <h2>광고 진행 상황 <span id="standardDate"></span><i class="popTip" data-toggle="tooltip" data-placement="top" title="매일 자정 업데이트 됩니다."></i></h2>
+        </div>
+        <ul id="sgTab" class="nav nav-tabs advTabs">
+          <li class="nav-item">
+            <a class="nav-link active" data-src="agencyMain" data-act="clickTab" data-toggle="tab" href="#agTabs1">
+              <div class="advTabsBtn">
+                <p>총 노출 수</p>
+                <p><span id="exposure"></span> 회</p>
+              </div>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-src="agencyMain" data-act="clickTab" data-toggle="tab" href="#agTabs2">
+              <div class="advTabsBtn">
+                <p>총 집행금액</p>
+                <p><span id="price"></span> 원</p>
+              </div>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-src="agencyMain" data-act="clickTab" data-toggle="tab" href="#agTabs3">
+              <div class="advTabsBtn">
+                <p>종료예정 / 진행중 광고</p>
+                <p><span id="proceed"></span> 건</p>
+              </div>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-src="agencyMain" data-act="clickTab" data-toggle="tab" href="#agTabs4">
+              <div class="advTabsBtn">
+                <p>승인 대기중인 광고</p>
+                <p><span id="request"></span> 건</p>
+              </div>
+            </a>
+          </li>
+        </ul>
+        <div class="boderLine"></div>
+        <!--테이블 컨텐츠 시작-->
+        <!--각 테이블은 내용이 없더라도 11행은 유지해 주세요
+        스크롤 유무에 따라 고정된 테이블 헤더 값이 유동적입니다.-->
+        <div class="tab-content agTables">
+          <div class="tab-pane fade show active" id="agTabs1">
+            <p>총 노출 수</p>
+            <!--테이블 : 총 노출 수 / 시작-->
+            <div class="tableWrap">
+              <div class="tableInner agTable1">
+                <table class="table">
+                  <colgroup>
+                    <col width="68px">
+                    <col width="130px">
+                    <col width="100px">
+                    <col width="80px">
+                    <col width="350px">
+                    <col width="350px">
+                    <col width="*">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th scope="col">NO</th>
+                      <th scope="col">광고주</th>
+                      <th scope="col">담당자</th>
+                      <th scope="col">과금방식</th>
+                      <th scope="col">캠페인명</th>
+                      <th scope="col">광고명</th>
+                      <th scope="col">노출량
+                        <span class="sortingArrow">
+                          <i></i>
+                          <i data-src="agencyMain" data-act="clickSort" data-type="exposure"></i>
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="exposureBody">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <!--테이블 : 총 노출 수 / 끝-->
+          </div>
+          <div class="tab-pane fade" id="agTabs2">
+            <p>총 집행금액</p>
+            <!--테이블 : 총 집행금액 / 시작-->
+            <div class="tableWrap">
+              <div class="tableInner agTable2">
+                <table class="table">
+                  <colgroup>
+                    <col width="98px">
+                    <col width="180px">
+                    <col width="130px">
+                    <col width="80px">
+                    <col width="520px">
+                    <col width="*">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th scope="col">NO</th>
+                      <th scope="col">광고주</th>
+                      <th scope="col">담당자</th>
+                      <th scope="col">과금방식</th>
+                      <th scope="col">광고명</th>
+                      <th scope="col">집행금액
+                        <span class="sortingArrow">
+                          <i></i>
+                          <i data-src="agencyMain" data-act="clickSort" data-type="price"></i>
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="priceBody">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <!--테이블 : 총 집행금액 / 끝-->
+          </div>
+          <div class="tab-pane fade" id="agTabs3">
+            <p>진행중인 광고</p>
+            <!--테이블 : 진행중인 광고 / 시작-->
+            <div class="tableWrap">
+              <div class="tableInner agTable3">
+                <table class="table">
+                  <colgroup>
+                    <col width="68px">
+                    <col width="100px">
+                    <col width="100px">
+                    <col width="80px">
+                    <col width="330px">
+                    <col width="330px">
+                    <col width="120px">
+                    <col width="*">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th scope="col">NO</th>
+                      <th scope="col">광고주</th>
+                      <th scope="col">담당자</th>
+                      <th scope="col">과금방식</th>
+                      <th scope="col">캠페인명</th>
+                      <th scope="col">광고명</th>
+                      <th scope="col">진행 상황</th>
+                      <th scope="col">종료</th>
+                    </tr>
+                  </thead>
+                  <tbody id="proceedBody">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <!--테이블 : 진행중인 광고 / 끝-->
+          </div>
+          <div class="tab-pane fade" id="agTabs4">
+            <p>승인 대기중인 광고</p>
+            <!--테이블 : 승인 대기중인 광고 / 시작-->
+            <div class="tableWrap">
+              <div class="tableInner agTable4">
+                <table class="table">
+                  <colgroup>
+                    <col width="68px">
+                    <col width="130px">
+                    <col width="90px">
+                    <col width="80px">
+                    <col width="270px">
+                    <col width="290px">
+                    <col width="130px">
+                    <col width="*">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th scope="col">NO</th>
+                      <th scope="col">광고주</th>
+                      <th scope="col">담당자</th>
+                      <th scope="col">과금방식</th>
+                      <th scope="col">캠페인명</th>
+                      <th scope="col">광고명</th>
+                      <th scope="col">집행요청 금액</th>
+                      <th scope="col">승인요청 시점
+                        <span class="sortingArrow">
+                          <i></i>
+                          <i data-src="agencyMain" data-act="clickSort" data-type="request"></i>
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="requestBody">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <!--테이블 : 승인 대기중인 광고 / 끝-->
+          </div>
+        </div>
+        <!--테이블 컨텐츠 끝-->
+      </div>
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/agency/main.js}"></script>
+	<script>
+		layout.setCallback(agencyMain.init);
+	</script>
+</th:block>
+</html>

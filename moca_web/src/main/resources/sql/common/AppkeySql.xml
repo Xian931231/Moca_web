@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.common.CommonMapper">
+
+	<!-- 서비스 등록 -->
+	<insert id="setService" parameterType="HashMap" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO
+			public.ssp_service_info (
+				name
+			)
+		VALUES
+			(
+				#{name}
+			)
+	</insert>
+	
+	<!-- App Info 저장 -->
+	<insert id="setAppInfo" parameterType="HashMap">
+		INSERT INTO
+			public.ssp_service_app_info (
+				  service_id
+				, app_name
+				, app_kind
+				, package_name 
+				, app_key
+				, insert_date
+				
+			)
+		VALUES 
+			(
+				  #{id}
+				, #{app_name}
+				, #{app_kind}
+				, #{package_name}
+				, #{app_key}
+				, now()	
+			)
+	</insert>
+	
+	<!-- App Info 가져오기 -->
+	<select id="getAppInfo" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(app_key)
+		FROM
+			public.ssp_service_app_info ssai
+		JOIN
+			ssp_service_info ssi
+		ON
+			ssai.service_id = ssi.id
+		WHERE
+			ssai.app_name = #{app_name}
+		OR
+			ssai.package_name = #{package_name}
+		OR
+			ssi.name = #{name}
+	</select>
+	
+	<!-- 상품 정보 조회 -->
+	<select id="getProductDetail" resultType="HashMap">
+		SELECT
+			id 
+			, product_name 
+			, os 
+			, package_id 
+			, api_key 
+		FROM 
+			public.ssp_product
+		WHERE
+			id = #{product_id}
+	</select>
+	
+	<!-- api 키 등록 -->
+	<update id="addApiKey">
+		UPDATE 
+			public.ssp_product
+		SET
+			api_key = #{api_key} 
+		where 
+			id = #{product_id};
+	</update>
+	
+	<!-- api 키 등록 -->
+	<update id="addPackageId">
+		UPDATE 
+			public.ssp_product
+		SET
+			package_id = #{package_id} 
+		where 
+			id = #{product_id};
+	</update>
+</mapper>

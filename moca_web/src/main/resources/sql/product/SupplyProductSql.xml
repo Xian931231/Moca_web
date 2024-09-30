@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.product.SupplyProductMapper">
+
+	<!-- 매체현황 > 총 노출 수 리스트 -->
+	<select id="getProductImpressionsList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY 
+			<choose>
+				<when test='impression_sort == "IA" and product_sort == null'>
+					CASE
+						WHEN total_cnt = 0 THEN null
+						ELSE total_cnt 
+					END DESC nulls last,
+					sp.product_name ASC
+				</when>
+				<when test='product_sort == "PA" and impression_sort == null'>
+					sp.product_name DESC
+				</when>
+				<when test='product_sort == "PD" and impression_sort == null'>
+					sp.product_name ASC
+				</when>
+				<otherwise>
+					CASE
+						WHEN total_cnt = 0 THEN null 
+						ELSE total_cnt 
+					END ASC nulls first,
+					sp.product_name ASC
+				</otherwise>
+			</choose>
+			) AS seq
+			, sp.id AS product_id
+			, sc.category_name 
+			, sp.product_name 
+			, coalesce(report_t.total_cnt, 0) AS total_cnt
+		FROM
+			public.ssp_product sp
+		JOIN public.ssp_category sc 
+		ON sc.id = sp.category_id
+		JOIN (SELECT
+				  product_id
+				, SUM(total_count) AS total_cnt
+			FROM
+				ssp_report.ad_count_product
+			WHERE data_ymd = to_char(#{standard_date}::date - interval '1 days', 'YYYY-MM-DD')
+			GROUP BY product_id) AS report_t
+		ON report_t.product_id = sp.id 
+		WHERE 
+			sc.member_id = #{login_id}::bigint
+		ORDER BY
+		<choose>
+			<when test='impression_sort == "IA" and product_sort == null'>
+				total_cnt ASC, sp.product_name DESC
+			</when>
+			<when test='product_sort == "PA" and impression_sort == null'>
+				sp.product_name ASC
+			</when>
+			<when test='product_sort == "PD" and impression_sort == null'>
+				sp.product_name DESC
+			</when>
+			<otherwise>
+				total_cnt DESC, sp.product_name DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<!-- 총 노출 수 -->
+	<select id="getProductImpressionsCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			coalesce(SUM(report_t.total_cnt), 0) AS total_impression
+		FROM public.ssp_product sp 
+		JOIN public.ssp_category sc 
+		ON sc.id = sp.category_id
+		LEFT JOIN (SELECT
+						  product_id
+						, SUM(total_count) AS total_cnt
+					FROM
+						ssp_report.ad_count_product
+					WHERE data_ymd = to_char(#{standard_date}::date - interval '1 days', 'YYYY-MM-DD')
+					GROUP BY product_id) AS report_t
+		ON report_t.product_id = sp.id 
+		WHERE 
+			sc.member_id = #{login_id}::bigint
+	</select>
+	
+	<!-- 매체현황 > 운영 중 상품 리스트 -->
+	<select id="getProductProgressList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			sc.id AS ssp_category_id 
+			, sc.category_name 
+			, sp.id AS ssp_produdct_id
+			, sp.product_name 
+			, sp.screen_resolution 
+			, to_char(sp.insert_date, 'YYYY-MM-DD') AS insert_date 
+		FROM
+			public.ssp_product sp
+		JOIN public.ssp_category sc 
+		ON sc.id = sp.category_id
+		WHERE 
+			sc.member_id = #{login_id}::bigint
+		AND sp.status = 'S'
+		AND #{standard_date} BETWEEN sp.start_ymd AND sp.end_ymd 
+		ORDER BY
+		<if test='sort == null'>
+		insert_date DESC
+		</if>
+		<if test='sort == "DA"'>
+		insert_date ASC
+		</if>
+	</select>
+	
+	<!-- 매체현황 > 운영 중 상품 개수 -->
+	<select id="getProductCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_product sp
+		JOIN public.ssp_category sc 
+		ON sc.id = sp.category_id
+		WHERE 
+			sc.member_id = #{login_id}::bigint
+		AND sp.status = 'S'
+		AND #{standard_date} BETWEEN sp.start_ymd AND sp.end_ymd 
+	</select>
+	
+	<!-- 상품관리 > 상품관리 리스트 -->
+	<select id="getProductManageList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			product_t.*
+			, coalesce (schedule_t.cpp_slot_count, 0) as cpp_slot_count
+			, coalesce (schedule_t.cpm_slot_count, 0) as cpm_slot_count
+			, coalesce (schedule_t.cpp_slot_count + schedule_t.cpm_slot_count, 0) AS slot_sum
+			, (SELECT COUNT(*) FROM public.ssp_device WHERE product_id = product_t.ssp_product_id) AS device_cnt
+			, coalesce (report_t.impressions, 0) AS impressions
+		FROM
+			(SELECT 
+				  sc.category_name 
+				, sc.id AS ssp_category_id
+				, sp.product_name 
+				, sp.id AS ssp_product_id
+				, sp.screen_resolution
+				, sc.member_id
+			FROM
+				public.ssp_product sp 
+			JOIN public.ssp_category sc 
+			ON sc.id = sp.category_id
+			WHERE
+				#{start_ymd} BETWEEN sp.start_ymd AND sp.end_ymd 
+			OR 	#{end_ymd} BETWEEN sp.start_ymd AND sp.end_ymd
+			) AS product_t
+		LEFT JOIN 
+			(SELECT 
+				sp2.product_id
+				, s.cpp_slot_count 
+				, s.cpm_slot_count 
+			FROM
+				public.schedule_product sp2 
+			JOIN public.schedule s
+			ON s.id = sp2.schedule_id) AS schedule_t
+		ON schedule_t.product_id = product_t.ssp_product_id
+		LEFT JOIN (
+			SELECT 
+				  acp.product_id
+				, SUM(acp.total_count) AS impressions
+			FROM 
+				ssp_report.ad_count_product acp
+			WHERE
+				acp.data_ymd BETWEEN #{start_ymd} AND #{end_ymd}
+			GROUP BY acp.product_id 
+			) AS report_t
+		ON report_t.product_id = product_t.ssp_product_id
+		WHERE
+			product_t.member_id = #{login_id}::bigint
+		ORDER BY report_t.impressions DESC
+	</select>
+	
+	<!-- 로그인한 매체사의 분류 목록 -->
+	<select id="getCategoryList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  sc.id AS category_id
+			, m.company_name
+			, sc.category_name
+		FROM
+			public.ssp_category sc
+		JOIN member.member m
+		ON m.id = sc.member_id
+		JOIN (SELECT 
+				sc.id
+				, max(sp.insert_date) AS insert_date 
+			FROM
+				public.ssp_category sc
+			JOIN public.ssp_product sp 
+			ON sp.category_id = sc.id 
+			JOIN "member".member m 
+			ON m.id = sc.member_id 
+			WHERE
+				m.id = #{login_id}::bigint
+			GROUP BY sc.id) as t
+		ON t.id = sc.id 
+		WHERE
+			m.id = #{login_id}::bigint
+		ORDER BY
+		<if test='sort == null'>
+		t.insert_date DESC
+		</if>
+		<if test='sort == "DA"'>
+		t.insert_date ASC
+		</if>
+		<if test='limit != null and offset != null'>
+		LIMIT #{limit} OFFSET #{offset}
+		</if>		
+	</select>
+	
+	<!-- 로그인한 매체사의 분류 개수 -->
+	<select id="getCategoryCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_category sc
+		JOIN member.member m
+		ON m.id = sc.member_id
+		WHERE
+			m.id = #{login_id}::bigint
+	</select>
+</mapper>

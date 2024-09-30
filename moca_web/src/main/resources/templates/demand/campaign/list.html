@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+  <th:block layout:fragment="content">
+    <main class="main-panel camp">
+      <div class="pagePath"> 
+         광고 관리<span>&gt;</span>캠페인 / 광고 관리<span>&gt;</span>캠페인 리스트
+      </div>
+      <div class="content">
+        <div class="titleCont camp">
+          <h2>캠페인 / 광고 관리</h2>
+          <p id="guideText"></p>
+        </div>
+        <div class="adv-content advTables">
+          <button type="button" class="btn-lg btn-dark" data-src="campaignList" data-act="moveAddCampaign">
+            새로운 캠페인 만들기 &nbsp; <img src="imgs/icon_add.png" th:src="@{/assets/imgs/icon_add.png}">
+          </button>
+          <!-- 캠페인 삭제 버튼 -->
+          <button type="button" class="btn-lg btn-clear" data-src="campaignList" data-act="removeCampaign">
+            선택한 캠페인 삭제하기 
+          </button>
+          <div>
+            <form>
+              <fieldset>
+                <legend class="blind">검색</legend>
+                <div class="campSearchWrap">
+                  <span class="input-daterange camp" id="datepicker">
+                    <label for="startYmd">
+                      <input type="text" class="sDate form-control" id="startYmd" name="start">
+                      <i></i>
+                    </label>
+                    <span>&nbsp;&nbsp;~&nbsp;&nbsp;</span>
+                    <label for="endYmd">
+                      <input type="text" class="eDate form-control" id="endYmd" name="end">
+                      <i></i>
+                    </label>
+                  </span>
+                  <span class="grSearch">
+                    <input type="search" id="searchName" data-src="campaignList" data-act="searchName">
+                    <button type="button" class="btn-sm" data-src="campaignList" data-act="search">캠페인 검색</button>
+                  </span>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <!--테이블 : 캠페인/광고 관리 / 시작-->
+          <div class="tableWrap">
+            <div class="tableInner advCtrlTable">
+              <table id="listTable" class="table">
+                <colgroup>
+                  <col width="50px">
+                  <col width="100px">
+                  <col width="567px">
+                  <col width="168px">
+                  <col width="154px">
+                  <col width="*">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <span class="chk">
+                        <input type="checkbox" id="allCampaignCheck" data-src="campaignList" data-act="changeAllCheckbox">
+                        <label for="allCampaignCheck"></label>
+                      </span>
+                    </th>
+                    <th scope="col">과금 방식</th>
+                    <th scope="col">캠페인 이름 <span class="sortingArrow">
+                        <i></i>
+                        <i data-src="campaignList" data-act="listSort" data-val="name"></i>
+                      </span>
+                    </th>
+                    <th scope="col">집행 금액 <span class="sortingArrow">
+                        <i></i>
+                        <i data-src="campaignList" data-act="listSort" data-val="price"></i>
+                      </span>
+                    </th>
+                    <th scope="col">진행중 / 전체광고 수</th>
+                    <th scope="col">최종 생성 / 수정 일시</th>
+                  </tr>
+                </thead>
+                <tbody id="listBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <!--테이블 : 캠페인/광고 관리 / 끝-->
+          <!-- 페이지네이션 / 시작 -->
+          <nav aria-label="Page navigation">
+            <ul id="listPage" class="pagination justify-content-center"></ul>
+          </nav>
+          <!-- 페이지네이션 / 끝 -->
+          <!-- 캠페인 삭제 모달 : 시작 -->
+          <div class="modal fade" id="campDel" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  <!--'선택한 캠페인 삭제하기' 버튼 기능 2가지-->
+                  <!--기능 1 메시지-->
+                  <p>광고가 진행중인 캠페인은 삭제하실 수 없습니다.</p>
+                  <!--기능 2 메시지 주석처리 -->
+                  <!--<p>삭제된 캠페인의 잔액은 계정 잔액으로 회수됩니다</p>-->
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-sm btn-dark" data-dismiss="modal">확인</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 캠페인 삭제 모달 : 끝 -->
+        </div>
+      </div>
+    </main>
+  </th:block>
+  <th:block layout:fragment="script">
+    <script th:src="@{/js/page/demand/campaign/list.js}"></script>
+    <script>
+      layout.setCallback(campaignList.init);
+    </script>
+  </th:block>
+</html>

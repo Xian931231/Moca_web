@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.role.AgencyRoleMapper">
+	<!-- 권한구분 등록 -->
+	<select id="addRole" resultType="integer">
+		INSERT INTO member.role_manager (
+			name
+			, utype
+			, owner_id
+			, sort
+		) VALUES(
+			#{role_name}
+			, 'B'
+			, #{login_agency_id}::bigint
+			, (
+				SELECT
+					CASE
+		                WHEN MAX(sort) IS NULL THEN 0
+		                ELSE MAX(sort)
+		            END AS sort
+				FROM
+					member.role_manager
+				WHERE
+					owner_id = #{login_agency_id}::bigint
+					AND utype = 'B'
+					AND use_yn = 'Y'
+					
+			)+1
+		)
+		RETURNING id
+	</select>
+	<!-- 권한 상세 -->
+	<select id="getRoleDetail" resultType="HashMap">
+		SELECT
+			id
+			, "name"
+			, utype
+			, use_yn
+			, sort
+			, modify_yn
+		FROM 
+			member.role_manager
+		WHERE 
+			id = #{id} :: bigint
+	</select>
+	
+	<!-- 권한구분 기본 menu 조회 -->
+	<select id ="getUtypeList" resultType="HashMap">
+		SELECT 
+			id
+			, step
+			, parent_id
+			, name
+			, use_yn
+			, default_yn
+			, url
+		FROM
+			member.menu
+		WHERE
+			use_yn = 'Y'
+			AND default_utype = 'B'
+		ORDER BY step , sort
+	</select>
+	
+	<!-- 권한구분 리스트 조회 -->
+	<select id="getRoleList" resultType="HashMap">
+		SELECT
+			id
+			, name
+			, utype
+			, use_yn
+			, owner_id
+			, modify_yn
+			, sort
+		FROM 
+			member.role_manager
+		WHERE
+			use_yn = 'Y'
+			AND utype = 'B'
+		<if test='login_agency_id != null and login_agency_id != ""'>
+			AND owner_id = #{login_agency_id}::bigint
+		</if>
+		<if test='modify_yn != null and modify_yn != ""'>
+			AND modify_yn = #{modify_yn}
+		</if>
+		<if test='super_id != null and super_id != "" '>
+			AND id != #{super_id}
+		</if>
+		ORDER BY sort, name
+	</select>
+	
+	<!-- 대행사의 최고 관리자 조회  -->
+	<select id="getAgencySuperRole" resultType="HashMap">
+		SELECT
+			id AS role_id
+			, name
+			, utype
+			, use_yn
+			, owner_id
+			, modify_yn
+			, sort
+		FROM
+			member.role_manager
+		WHERE
+			owner_id =#{login_agency_id}::bigint
+			AND sort =0
+	</select>
+	
+	<!-- 기본 권한 등록 -->
+	<insert id="addRoleMenu">
+		INSERT INTO member.role_menu(
+			menu_id
+			, role_id
+			, access_yn
+		)VALUES(
+			#{menu_id}
+			, #{role_id}
+			, #{access_yn}
+		)
+	</insert>
+	
+	<!-- 담당 등록 -->
+	<insert id="addDsp">
+		INSERT INTO member.role_access_dsp(
+			role_id
+			, dsp_id
+		)VALUES(
+			#{role_id}
+			, #{dsp_id}
+		)
+	</insert>
+	
+	<!-- 권한구분 명 수정 -->
+	<update id="modifyRoleName">
+		UPDATE member.role_manager
+		SET
+			name = #{role_name}
+		WHERE 
+			id = #{role_id}
+			AND owner_id = #{login_agency_id}::bigint
+			AND modify_yn = 'Y'
+	</update>
+	
+	<!-- 권한구분 순서 수정 -->
+	<update id="modifyRoleSort">
+		UPDATE member.role_manager
+		SET
+			sort = #{sort}
+		WHERE
+			id = #{role_id}::bigint
+			AND owner_id = #{login_agency_id}::bigint
+	</update>
+		
+	<!-- 권한구분 삭제 -->
+	<delete id="removeRoleManager">
+		DELETE FROM member.role_manager
+		WHERE
+			id = #{role_id}::bigint
+			AND owner_id = #{login_agency_id}::bigint
+	</delete>
+	
+	<!-- 권한구분 삭제(role_manager > use_yn 변경) -->
+	<update id="disabledRoleId">
+		UPDATE member.role_manager
+		SET
+			use_yn = 'N'
+		WHERE
+			id = #{role_id}
+	</update>
+	
+	<!-- 권한 메뉴 삭제 -->
+	<delete id="removeRoleMenu">
+		DELETE FROM member.role_menu
+		WHERE
+			role_id = #{role_id}::bigint
+			
+	</delete>
+	<!-- 권한구분 수정용 권한구분의 페이지 접근권한 삭제  -->
+	<delete id="modifyRoleremoveMenu">
+		DELETE FROM member.role_menu
+		WHERE
+			role_id = #{role_id}::bigint
+			AND menu_id != (SELECT ID FROM member.menu WHERE step = 1 AND default_utype = 'B')
+	</delete>
+	
+	<!-- 직원의 role_id 수정 -->
+	<update id="modifyStaffRoleId">
+		UPDATE member.member
+		SET
+			role_id = #{role_id}
+		WHERE
+			id = #{member_id}	
+			AND utype = 'B'
+			AND status = 'A'
+			AND agency_id = #{login_agency_id}::bigint
+	</update>
+	
+	<!-- 회원의 role_id 삭제 -->
+	<update id="removeMemberRoleId">
+		UPDATE member.member
+		SET
+			role_id = #{unrated_role_id}::bigint
+		WHERE
+			role_id = #{role_id}::bigint
+			AND agency_id = #{login_agency_id}::bigint
+	</update>
+	
+	<!-- dsp 삭제 -->
+	<delete id="removeRoleAccessDsp">
+		DELETE FROM member.role_access_dsp
+		WHERE
+			role_id = #{role_id}
+	</delete>
+	
+	<!-- 광고주 조회 -->
+	<select id="hasDsp" resultType="Integer">
+		SELECT 
+			COUNT(*)
+		FROM
+			member.member
+		WHERE
+			id = #{demand_id}
+			AND utype = 'D'
+			AND status = 'A'
+			AND agency_id = #{login_agency_id}::bigint
+	</select>
+	
+	<!-- 직원별 담당광고주 조회 -->
+	<select id="hasStaffAccessDsp" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member_access_dsp
+		WHERE	
+			member_id = #{member_id}
+	</select>
+	
+	<!-- 권한구분 modify = 조회 -->
+	<select id="hasRoleManager" resultType="Integer">
+		SELECT 
+			COUNT(*)
+		FROM
+			member.role_manager
+		WHERE
+			id = #{role_id}
+			AND owner_id = #{login_agency_id}::bigint
+			AND utype = 'B'
+			AND use_yn = 'Y'
+			<if test='modify_yn != null and modify_yn = "" '>
+				<if test='modify_yn == "Y" '>
+					AND modify_yn = 'Y'
+				</if>
+			</if>
+			
+	</select>
+	
+	<!-- last sort 조회 -->
+	<select id="hasLastSort" resultType="Integer">
+		SELECT
+			CASE
+                WHEN MAX(sort) IS NULL THEN 0
+                ELSE MAX(sort)
+            END AS sort
+		FROM
+			member.role_manager
+		WHERE
+			owner_id = #{login_agency_id}::bigint
+			AND utype = 'B'
+			AND use_yn = 'Y'
+			
+	</select>
+	
+	<!-- 대행사 직원 상세 조회 -->
+	<select id="getStaffData" resultType="HashMap">
+		SELECT
+			id
+            , uid
+            , role_id
+            , uname
+            , utype
+            , status
+            , agency_id
+		FROM
+			member.member
+		WHERE
+			id = #{member_id}::int
+			AND utype = 'B'
+			AND status = 'A'
+			AND agency_id = #{login_agency_id}::bigint
+	</select>
+	
+	<!-- 권한 구분 명 중복체크 -->
+	<select id="hasDuplicateName" resultType="integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.role_manager
+		WHERE
+			owner_id = #{login_agency_id}::bigint
+			AND utype = 'B'
+			AND use_yn = 'Y'
+			AND name = CAST(#{role_name} AS VARCHAR)
+	</select>
+	
+	<!-- 직원별 담당 광고주 등록 -->
+	<insert id="addStaffAccessDsp">
+		INSERT INTO member.member_access_dsp(
+			member_id
+			,dsp_id
+		)VALUES(
+			<if test='member_id != null and member_id != "" '>
+				#{member_id}::bigint
+			</if>
+			<if test='staff_id != null and staff_id != "" '>
+				#{staff_id}::bigint
+			</if>
+			, #{demand_id}::bigint
+		)
+	</insert>
+	
+	<!-- 직원별 담당 광고주 삭제 -->
+	<delete id="removeStaffAccessDsp">
+		DELETE FROM member.member_access_dsp mad USING member.member m
+		WHERE
+			 mad.member_id = m.id
+			<if test='member_id != null and member_id != "" '>
+				AND mad.member_id = #{member_id}::bigint
+			</if>
+			<if test='demand_id != null and demand_id != "" '>
+				AND m.agency_id != 0 
+				AND mad.dsp_id = #{demand_id}::bigint
+			</if>
+	</delete>
+	
+	<!-- 담당 광고주 조회 -->
+	<select id="getAgencyDemendList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			m.id AS dsp_id
+			, m.uid 
+			, m.uname 
+			, m.company_name 
+		FROM
+			member.member_access_dsp mad 
+		JOIN member.member m 
+		ON mad.dsp_id = m.id AND mad.member_id = #{member_id} AND m.utype = 'D' AND m.agency_id = #{login_agency_id}::bigint
+	</select>
+	
+	<!-- 광고주 정보 조회 -->
+	<select id="getDemendList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			m.id AS dsp_id
+			, m.uid 
+			, m.uname 
+			, m.company_name 
+		FROM
+		 	member.member m 
+		WHERE
+			m.utype = 'D' 
+			AND m.agency_id = #{login_agency_id}::bigint
+			<choose>
+				<when test='demand_id_list != null and !demand_id_list.isEmpty()'>
+					AND m.id IN
+					<foreach item="id_list" collection="demand_id_list" separator="," open="(" close=")">
+						#{id_list.demand_id}::bigint
+					</foreach>
+				</when>
+				<otherwise>
+					AND m.id = #{demand_id}::bigint
+				</otherwise>			
+			</choose>
+	</select>
+	
+	<!-- 대행사 계정의 미지정 권한 role_id 조회 -->
+	<select id="hasUnratedRoleId" parameterType="HashMap" resultType="integer">
+		SELECT 
+			id
+		FROM
+			member.role_manager
+		WHERE
+			owner_id = #{login_agency_id}::bigint
+			AND name = '미지정'
+	</select>
+</mapper>

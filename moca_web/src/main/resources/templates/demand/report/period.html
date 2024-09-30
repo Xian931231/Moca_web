@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+   <th:block layout:fragment="content">
+      <main class="main-panel">
+         <div class="pagePath">
+           리포트<span>&gt;</span>기간별 리포트
+         </div>
+         <div class="content repoContent">
+            <div class="titleCont">
+               <h2>기간별 리포트</h2>
+            </div>
+            <form action="" autocomplete="off">
+               <fieldset>
+                  <legend class="blind">시간 선택</legend>
+                  <div class="repoStack1Wrap long">
+                     <select name="selList1" id="campaignSelect" class="selectpicker" title="캠페인 리스트" data-src="periodReportList" data-act="changeCampaignSelectBox">
+                     </select>
+                     <select id="sgSelect" class="selectpicker" multiple data-done-button="false" title="광고 리스트">
+                     </select>
+                  </div>
+                  <div class="repoStack2Wrap">
+                     <span class="btnCtrlWrap">
+                        <button type="button" name="reportType" class="btn btn-sm active" id="selectHour" data-src="periodReportList" data-act="changePeriodType" data-type="hour">시간</button>
+                        <button type="button" name="reportType" class="btn btn-sm " id="selectDate" data-src="periodReportList" data-act="changePeriodType" data-type="date">일별</button>
+                        <button type="button" name="reportType" class="btn btn-sm" id="selectMonth" data-src="periodReportList" data-act="changePeriodType" data-type="month">월별</button>
+                        <span class="input-group date" id="inputHour">
+                           <input type="text" class="form-control" id="searchDate"><span class="input-group-addon"></span>
+                        </span>
+                        <span class="input-daterange" id="inputDate" style="display:none" >
+                           <label for="sDate">
+                              <input type="text" class="sDate form-control" id="sDate" name="start" placeholder=""><i></i>
+                           </label>
+                           <span>&nbsp;~&nbsp;</span>
+                           <label for="eDate" >
+                              <input type="text" class="eDate form-control" id="eDate" name="end" placeholder=""><i></i>
+                           </label>
+                        </span>
+                        <span id="inputMonth" style="display:none">
+                           <select name="selList1" id="searchStartYear" class="yearMonth">
+                           </select>
+                           <select name="selList1" id="searchStartMonth" class="selectpicker yearMonth">
+                              <option value="01">1월</option>
+                              <option value="02">2월</option>
+                              <option value="03">3월</option>
+                              <option value="04">4월</option>
+                              <option value="05">5월</option>
+                              <option value="06">6월</option>
+                              <option value="07">7월</option>
+                              <option value="08">8월</option>
+                              <option value="09">9월</option>
+                              <option value="10">10월</option>
+                              <option value="11">11월</option>
+                              <option value="12">12월</option>
+                           </select>
+                           <span>&nbsp;~&nbsp;</span>
+                           <select name="selList1" id="searchEndYear" class="yearMonth">
+                           </select>
+                           <select name="selList1" id="searchEndMonth" class="selectpicker yearMonth">
+                              <option value="01">1월</option>
+                              <option value="02">2월</option>
+                              <option value="03">3월</option>
+                              <option value="04">4월</option>
+                              <option value="05">5월</option>
+                              <option value="06">6월</option>
+                              <option value="07">7월</option>
+                              <option value="08">8월</option>
+                              <option value="09">9월</option>
+                              <option value="10">10월</option>
+                              <option value="11">11월</option>
+                              <option value="12">12월</option>
+                           </select>
+                        </span>
+                     </span>
+                     <span>
+                        <button type="button" class="btn-sm btn-clear" data-src="periodReportList" data-act="getSearch">조회</button>
+                     </span>
+                  </div>
+               </fieldset>
+            </form>
+            <div class="tab-content repoTables">
+             <!-- 그래프1 - 시간별 그래프 / 시작 -->
+               <div class="chartWrap chartDateWrap">
+                  <canvas id="chartTime"></canvas>
+               </div>
+             <!-- 그래프1 - 시간별 그래프 / 끝 -->
+             <!--테이블 : 시간별 테이블 / 시작-->
+               <div class="tableWrap repoWrap">
+                  <div class="tableInner repoTableInner">
+                     <table class="table">
+                        <colgroup>
+                           <col width="597.5px">
+                           <col width="297.5px">
+                           <col width="*">
+                        </colgroup>
+                        <thead>
+                           <tr>
+                             <th scope="col">광고명</th>
+                             <th scope="col" id="reportType">시간</th>
+                             <th scope="col">노출량</th>
+                           </tr>
+                        </thead>
+                        <tbody id="listBody">
+                        </tbody>
+                     </table>
+                  </div>
+               <!--테이블 푸터 픽스
+               별도 div.tableFooterFix 로 헤더 생성-->
+               <!--div.tableFooterFix 시작-->
+               <div class="tableFooterFix repo">
+                 <ul>
+                   <li>합계</li>
+                   <li id="listBodyTotal">0</li>
+                 </ul>
+               </div>
+               <!--div.tableFooterFix 끝-->
+             </div>
+             <div class="repoBtnBtmWrap">
+               <button type="button" class="btn-lg btn-dark" id="excelBtn" data-src="periodReportList" data-act="excelDownload" style="display: none;">EXCEL로 다운 받기</button>
+             </div>
+             <!--테이블 : 시간별 테이블 / 끝-->
+           </div>
+         </div>
+      </main>
+   </th:block>
+   <th:block layout:fragment="script">
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.bundle.min.js"></script>
+      <script th:src="@{/js/page/demand/report/periodList.js}"></script>
+      <script>
+      	layout.setCallback(periodReportList.init);
+      </script>
+      <script type="text/javascript">
+	</script>
+   </th:block>
+</html>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.balance.SupplyBalanceMapper">
+	
+	<sql id="sql_list_where">
+		AND m.id = #{login_id} :: BIGINT
+		AND m.status = 'A'
+		<![CDATA[
+			AND CONCAT(sbi.balance_year, '-', LPAD(sbi.balance_month::TEXT, 2, '0')) <= TO_CHAR(NOW(), 'YYYY-MM')
+		]]>
+		<if test='search_start_date != null and search_end_date != null'>
+			<![CDATA[ 
+			AND TO_DATE(CONCAT(sbi.balance_year, '-', sbi.balance_month), 'YYYY-MM') >= TO_DATE(#{search_start_date}, 'YYYY-MM')
+			AND TO_DATE(CONCAT(sbi.balance_year, '-', sbi.balance_month), 'YYYY-MM') <= TO_DATE(#{search_end_date}, 'YYYY-MM')
+			]]>
+		</if>
+		<if test='search_status != null and search_status != "A"'>
+			AND sbi.status = #{search_status}
+		</if>
+	</sql>
+	
+	<!-- 목록 갯수 조회 -->
+	<select id="getListCnt" resultType="Integer">
+		SELECT 
+			COUNT(*)
+		FROM member.ssp_balance_info sbi 
+		JOIN member.member m
+		ON m.id = sbi.member_id 
+		<where>
+			<include refid="sql_list_where"></include>
+		</where>
+	</select>
+	
+	<!-- 목록 조회 -->
+	<select id="getList" resultType="HashMap">
+		SELECT 
+			sbi.id AS balance_info_id
+			, sbi.member_id
+			, sbi.balance_year
+			, sbi.balance_month
+			, (CASE WHEN TO_DATE(CONCAT(sbi.balance_year, '-', sbi.balance_month), 'YYYY-MM') >= TO_DATE(TO_CHAR(NOW(), 'YYYY-MM'), 'YYYY-MM') 
+				THEN '-'
+				ELSE sbi.price :: varchar 
+				END) AS price 
+			, sbi.status
+			, sbi.update_date
+			, TO_CHAR(sbi.update_date, 'YYYY-MM-DD') AS update_date_str
+			, sbi.update_member_id
+		FROM member.ssp_balance_info sbi 
+		JOIN member.member m
+		ON m.id = sbi.member_id 
+		<where>
+			<include refid="sql_list_where"></include>
+		</where>
+		ORDER BY sbi.balance_year DESC, sbi.balance_month DESC 
+	</select>
+	
+	<!-- 정산 정보 조회 -->
+	<select id="getInfo" resultType="HashMap">
+		SELECT 
+			m.id  
+			, m.bank_name
+			, (
+				CASE WHEN m.bank_account_number IS NULL THEN  
+					m.bank_account_number
+				ELSE 
+					convert_from(decrypt(decode(m.bank_account_number, 'hex'), #{secret_bank_account_number}::bytea, 'aes'), 'utf8')
+				END
+			) AS bank_account_number
+			, m.bank_account_holder
+			, m.balance_day
+			, m.balance_rate 
+		FROM member.member m 
+		JOIN member.ssp_balance_info sbi
+		ON m.id = sbi.member_id 
+		WHERE m.id = #{login_id} :: bigint
+		AND m.status = 'A'
+		GROUP BY m.id
+	</select>
+</mapper>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<th:block layout:fragment="content">
+    <main class="main-panel">
+      <div class="pagePath">
+        상품 관리<span>&gt;</span>상품 관리
+      </div>
+      <div class="content">
+        <div class="titleCont">
+          <h2>상품 관리 <span id="standardTime"></span><i class="popTip" data-toggle="tooltip" data-placement="top" title="매일 자정 초기화 됩니다."></i></h2>
+        </div>
+        <!--테이블 컨텐츠 시작-->
+        <div class="tab-content medTables mediaCont">
+          <div>
+            <form action="">
+              <fieldset>
+                <legend class="blind">검색</legend>
+                <div class="input-daterange medDatePicker " id="datepicker">
+                  <label for="startYmd">
+                    <input type="text" class="sDate form-control" id="startYmd" name="start" placeholder=""><i></i>
+                  </label>
+                  <span>&nbsp;&nbsp;~&nbsp;&nbsp;</span>
+                  <label for="endYmd">
+                    <input type="text" class="eDate form-control" id="endYmd" name="end" placeholder=""><i></i>
+                  </label>
+                  <button type="button" class="btn-sm btn-clear" data-src="list" data-act="clickSearch">조회
+                  </button>
+                </div>
+                <!--아래 '분류 / 상품 관리' 버튼은 현재 사용치 않으므로 숨김 처리-->
+                <button type="button" class="btn-sm btn-dark" style="display:none;">분류 / 상품 관리</button>
+              </fieldset>
+            </form>
+          </div>
+          <!--테이블 : 상품 관리 / 시작-->
+          <div class="tableWrap">
+            <div class="tableInner medPdct">
+              <table class="table">
+                <colgroup>
+                  <col width="180px">
+                  <col width="380px">
+                  <col width="100px">
+                  <col width="120px">
+                  <col width="280px">
+                  <col width="*">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>분류</th>
+                    <th>상품명</th>
+                    <th>화면 규격</th>
+                    <th>디바이스 수</th>
+                    <th>슬롯 수</th>
+                    <th>노출 수</th>
+                  </tr>
+                </thead>
+                <tbody id="tableList">
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!--테이블 : 상품 관리 / 끝-->
+          <!-- 페이지네이션 / 시작 -->
+          <nav aria-label="Page navigation">
+            <ul id="listPage" class="pagination justify-content-center">
+            </ul>
+          </nav>
+          <!-- 페이지네이션 / 끝 -->
+        </div>
+      </div>
+    </main>
+</th:block>
+<th:block layout:fragment="script">
+	<script th:src="@{/js/page/supply/product/productList.js}"></script>
+	<script>
+		layout.setCallback(supplyProductList.init);
+	</script>
+</th:block>
+</html>

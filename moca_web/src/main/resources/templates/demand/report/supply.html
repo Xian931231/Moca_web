@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+   <th:block layout:fragment="content">
+      <main class="main-panel">
+         <div class="pagePath">
+           리포트<span>&gt;</span>매체별 리포트
+         </div>
+         <div class="content repoContent">
+           <div class="titleCont">
+             <h2>매체별 리포트</h2>
+           </div>
+           <form action="" autocomplete="off">
+             <fieldset>
+               <legend class="blind">매체별 선택</legend>
+               <div class="repoStack2Wrap long">
+                 <span class="repoSelectWrap long">
+                   <select name="sel1" id="searchSupplySelect" class="" multiple data-done-button="false" title="전체 매체">
+                   </select>
+                 </span>
+                 <span>
+                   <span class="input-daterange" id="datepicker">
+                     <label for="sDate">
+                       <input type="text" class="sDate form-control" id="sDate" name="start" placeholder=""><i></i>
+                     </label>
+                     <span>&nbsp;~&nbsp;</span>
+                     <label for="eDate">
+                       <input type="text" class="eDate form-control" id="eDate" name="end" placeholder=""><i></i>
+                     </label>
+                   </span>
+                   <button type="button" class="btn-sm btn-clear" data-src="supplyReportList" data-act="getSearch">조회</button>
+                 </span>
+               </div>
+             </fieldset>
+           </form>        
+           <div class="tab-content repoTables repoMed reportMedTab repoHorizon">
+             <!-- 매체별 그래프 / 시작 -->
+             <div class="chartWrap horizonBar" id="chartTableList">
+             </div>
+             <!-- 매체별 그래프 / 끝 -->
+             <!--테이블 : 매체별 / 시작-->
+             <div class="tableWrap repoWrap">
+               <div class="tableInner repoTableInner">
+                 <table class="table">
+                   <colgroup>
+                     <col width="178.5px">
+                     <col width="214.19px">
+                     <col width="499.8px">
+                     <col width="*">
+                   </colgroup>
+                   <thead>
+                     <tr>
+                       <th scope="col">매체</th>
+                       <th scope="col">구분</th>
+                       <th scope="col">상품명</th>
+                       <th scope="col">노출량</th>
+                     </tr>
+                   </thead>
+                   <tbody id="listBody">
+                   </tbody>
+                 </table>
+               </div>
+               <!--테이블 푸터 픽스
+               별도 div.tableFooterFix 로 헤더 생성-->
+               <!--div.tableFooterFix 시작-->
+               <div class="tableFooterFix repo med">
+                 <ul>
+                   <li>합계</li>
+                   <li id="listBodyTotal">0</li>
+                 </ul>
+               </div>
+               <!--div.tableFooterFix 끝-->
+             </div>
+             <div class="repoBtnBtmWrap">
+               <button type="button" class="btn-lg btn-dark" id="excelBtn" data-src="supplyReportList" data-act="excelDownload" style="display: none;">EXCEL로 다운 받기</button>
+             </div>
+           </div>
+         </div>
+       </main>
+   </th:block>
+   <th:block layout:fragment="script">
+      <script th:src="@{/js/page/demand/report/supplyList.js}"></script>
+      <script>
+         layout.setCallback(supplyReportList.init);
+      </script>
+      <script type="text/javascript">
+	  </script>
+   </th:block>
+</html>

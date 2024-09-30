@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/findLayout}">
+   <th:block layout:fragment="content">
+      <section id="login" class="jogin-section">
+         <div class="login-all">
+            <form class="login-form id">
+               <ul class="form-box">
+                  <li class="customer_join id">
+                     <h2>비밀번호 찾기</h2>
+                  </li>
+                  <li class="find-id row justify-content-center">
+                     <div class="align-self-center">
+                        <label for="userid" class="form-label">
+                           <input type="text" class="pw-userid form-control" id="uid" placeholder="아이디">
+                        </label>
+                     </div>
+                  </li>
+                  <li class="find-email row justify-content-center">
+                     <div class="align-self-center">
+	                    <label for="exampleInputEmail1" class="form-label">
+                           <input type="email" class="pw-email form-control" id="email" placeholder="담당자 이메일">
+                        </label>
+                     </div>
+                  </li>
+                  <li class="pw-box text-center ">
+                     <button type="button" class="pw-btn form-btn" data-toggle="modal" data-src="join" data-act="clickCreatePw">임시비밀번호 생성</button>
+                  </li>
+               </ul>
+            </form>
+         </div>
+      </section>
+   </th:block>
+   <th:block layout:fragment="script">
+      <script th:src="@{/js/page/login/findPw.js}"></script>
+      <script>
+            $(document).ready(function(){
+               findPw.init();
+            });
+      </script>
+   </th:block>
+</html>

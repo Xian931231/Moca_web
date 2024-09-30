@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.device.DeviceMapper">
+
+	<!-- 디바이스 목록 -->
+	<select id="getList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS device_id
+			, motor_id
+			, member_id
+			, product_id
+			, model_name
+			, serial_number
+			, status
+			, notes
+			, TO_CHAR(insert_date, 'YYYY-MM-DD') AS insert_date
+		FROM
+			public.ssp_device
+		<where>
+			<if test='product_id != null and product_id !=""'>
+				AND product_id = #{product_id}			
+			</if>
+			<if test='status != null and status != ""'>
+				AND status = #{status}
+			</if>
+		</where>
+		ORDER BY serial_number
+	</select>
+	
+	<!-- 디바이스 목록 개수 -->
+	<select id="getListCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			public.ssp_device
+		<where>
+			product_id = #{product_id}
+			<if test='status != null and status != ""'>
+				AND status = #{status}
+			</if>
+		</where>
+	</select>
+	
+	<!-- 디바이스 별 현황 매체사 리스트 -->
+	<select id="getSupplyList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  m.id AS member_id 
+			, m.company_name 
+			, m.uid
+			, coalesce (sd.total_cnt, 0) AS total_cnt
+			, coalesce (sd.normal_cnt, 0) AS normal_cnt
+			, coalesce (sd.repair_cnt, 0) AS repair_cnt
+			, coalesce (sd.dispose_cnt, 0) AS dispose_cnt
+		FROM (SELECT
+				id
+				,company_name
+				,uid	
+			FROM
+				member.member
+			WHERE
+				utype = 'S' AND status = 'A'
+			<if test='search_type == "SN" and search_value != null and search_value != ""'>
+				AND company_name LIKE CONCAT('%', #{search_value}, '%')
+			</if>
+			<if test='search_type == "SI" and search_value != null and search_value != ""'>
+				AND uid LIKE CONCAT('%', #{search_value}, '%')
+			</if>
+		) m
+		<choose>
+			<when test='(search_type == "PN" || search_type == "DS" || search_type == "CN") and search_value != null and search_value != ""'>
+				JOIN
+			</when>
+			<otherwise>
+				LEFT JOIN
+			</otherwise>
+		</choose>
+			(SELECT
+				  sd.member_id
+				, (SELECT COUNT(*) FROM public.ssp_device WHERE member_id = sd.member_id) total_cnt
+				, COUNT(CASE WHEN sd.status = 'Y' THEN sd.status END) AS normal_cnt
+				, COUNT(CASE WHEN sd.status = 'R' THEN sd.status END) AS repair_cnt
+				, COUNT(CASE WHEN sd.status = 'D' THEN sd.status END) AS dispose_cnt
+			FROM 
+				public.ssp_device sd JOIN public.ssp_product sp
+				ON sd.product_id = sp.id
+				LEFT JOIN public.ssp_motor sm
+				ON sm.id = sd.motor_id
+			<where>
+				<if test='search_type == "PN" and search_value != null and search_value != ""'>
+					sp.product_name LIKE CONCAT('%', #{search_value}, '%')
+				</if>
+				<if test='search_type == "DS" and search_value != null and search_value != ""'>
+					sd.serial_number LIKE CONCAT('%', #{search_value}, '%')
+				</if>
+				<if test='search_type == "CN" and search_value != null and search_value != ""'>
+					sm.car_number LIKE CONCAT('%', #{search_value}, '%')
+				</if>
+			</where>
+			GROUP BY sd.member_id
+		) AS sd
+		ON sd.member_id = m.id
+		ORDER BY m.id 
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 디바이스 별 현황 매체사 개수 -->
+	<select id="getSupplyCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM (SELECT
+				id
+				,company_name
+				,uid	
+			FROM
+				member.member
+			WHERE
+				utype = 'S' AND status = 'A'
+			<if test='search_type == "SN" and search_value != null and search_value != ""'>
+				AND company_name LIKE CONCAT('%', #{search_value}, '%')
+			</if>
+			<if test='search_type == "SI" and search_value != null and search_value != ""'>
+				AND uid LIKE CONCAT('%', #{search_value}, '%')
+			</if>
+		) m
+		<choose>
+			<when test='(search_type == "PN" || search_type == "DS" || search_type == "CN") and search_value != null and search_value != ""'>
+				JOIN
+			</when>
+			<otherwise>
+				LEFT JOIN
+			</otherwise>
+		</choose>
+			(SELECT
+				  sd.member_id
+				, (SELECT COUNT(*) FROM public.ssp_device WHERE member_id = sd.member_id) total_cnt
+				, COUNT(CASE WHEN sd.status = 'Y' THEN sd.status END) AS normal_cnt
+				, COUNT(CASE WHEN sd.status = 'R' THEN sd.status END) AS repair_cnt
+				, COUNT(CASE WHEN sd.status = 'D' THEN sd.status END) AS dispose_cnt
+			FROM 
+				public.ssp_device sd JOIN public.ssp_product sp
+				ON sd.product_id = sp.id
+				LEFT JOIN public.ssp_motor sm
+				ON sm.id = sd.motor_id
+			<where>
+				<if test='search_type == "PN" and search_value != null and search_value != ""'>
+					sp.product_name LIKE CONCAT('%', #{search_value}, '%')
+				</if>
+				<if test='search_type == "DS" and search_value != null and search_value != ""'>
+					sd.serial_number LIKE CONCAT('%', #{search_value}, '%')
+				</if>
+				<if test='search_type == "CN" and search_value != null and search_value != ""'>
+					sm.car_number LIKE CONCAT('%', #{search_value}, '%')
+				</if>
+			</where>
+			GROUP BY sd.member_id) AS sd
+		ON sd.member_id = m.id
+	</select>
+
+	<!-- 디바이스 별 현황 목록 조회 -->
+	<select id="getDeviceWithMotorList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  m.uid
+			, m.company_name
+		    , device_t.*
+			, sp.product_name 
+			, sp.screen_resolution 
+			, coalesce (schedule_t.slot_cnt, 0) AS slot_cnt
+		FROM public.ssp_product sp
+		JOIN public.ssp_category sc 
+		ON sc.id = sp.category_id 
+		JOIN member.member m 
+		ON m.id = sc.member_id 
+		JOIN (SELECT 
+				  sd.id AS device_id
+				, sd.member_id
+				, sd.product_id
+				, sd.serial_number
+				, sd.status 
+				, sd.notes
+				, coalesce(sm.id, 0) AS motor_id
+				, coalesce(sm.car_number, 'zz') AS car_number
+				, TO_CHAR(sd.insert_date, 'YYYY-MM-DD') AS insert_date
+			FROM public.ssp_device sd
+			LEFT JOIN public.ssp_motor sm
+			ON sm.id = sd.motor_id) AS device_t
+		ON device_t.product_id = sp.id 
+		LEFT JOIN (SELECT 
+						  sp2.product_id
+						, s.cpp_slot_count + s.cpm_slot_count AS slot_cnt
+					FROM 
+						public.schedule_product sp2 
+					JOIN public.schedule s
+					ON s.id = sp2.schedule_id) AS schedule_t
+		ON schedule_t.product_id = sp.id 
+		WHERE 
+			m.utype = 'S'
+			AND m.status = 'A'
+		<if test='status != null and status != ""'>
+		AND device_t.status = #{status}
+		</if>
+		<if test='search_type == "SN" and search_value != null and search_value != ""'>
+		AND m.company_name LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		<if test='search_type == "SI" and search_value != null and search_value != ""'>
+		AND m.uid LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		<if test='search_type == "PN" and search_value != null and search_value != ""'>
+		AND sp.product_name LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		<if test='search_type == "DS" and search_value != null and search_value != ""'>
+		AND device_t.serial_number LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		<if test='search_type == "CN" and search_value != null and search_value != ""'>
+		AND device_t.car_number LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		ORDER BY device_t.car_number DESC, device_t.device_id DESC
+	</select>
+	
+	<!-- 디바이스 상태 변경 -->
+	<update id="modifyDeviceStatus" parameterType="HashMap">
+		UPDATE
+			public.ssp_device
+		SET 
+			  status = #{status}
+			, notes = #{notes} 
+			, update_member_id = #{login_id}::bigint
+			, update_date = now()
+		WHERE
+			id = #{ssp_device_id}
+	</update>
+	
+	<!-- 디바이스 상세 정보 -->
+	<select id="getDeviceDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			m.id AS member_id
+			, m.uname
+			, m.company_email
+			, m.email
+			, sd.id AS device_id
+			, sd.model_name
+			, sd.serial_number
+			, to_char(sd.update_date, 'YYYY-MM-DD HH24:MI') AS update_date
+		FROM
+			public.ssp_device sd
+		JOIN member.member m
+		ON m.id = sd.member_id
+		WHERE
+			sd.id = #{ssp_device_id}
+	</select>
+	
+	<!-- 상품 내 디바이스 삭제 -->
+	<delete id="removeDevice" parameterType="HashMap">
+		DELETE FROM	
+			public.ssp_device
+		WHERE 
+			product_id = #{ssp_product_id}
+	</delete>
+</mapper>

@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.common.CommonMapper">
+
+	<!-- 목록 조회용 where -->
+	<sql id="sql_where_list">
+		<where>
+			<if test='code != null and code != ""'>
+				AND code = #{code}
+			</if>
+			<if test='(parent_code != null and parent_code != "") or parent_code == 0'>
+				AND parent_code = #{parent_code} :: varchar
+			</if>
+		</where>
+	</sql>
+
+	<!-- 코드 목록 조회 -->
+	<select id="getCodeList" resultType="HashMap">
+		SELECT
+			code
+			, code_name
+			, step
+			, parent_code
+			, description 
+			, sort
+			<if test='(parent_code != null and parent_code != "") or parent_code == 0'>
+			, (CASE WHEN code_name = (SELECT code_name FROM public.code WHERE code = #{parent_code}) THEN 0
+			   		WHEN parent_code = 'SCREEN_RATE' OR parent_code = 'PAGE_SIZE' THEN sort
+			   ELSE 1 
+			   END) AS main_sort
+			</if>
+		FROM 
+			public.code 
+		<include refid="sql_where_list"></include>
+		ORDER BY 
+		<if test='(parent_code != null and parent_code != "") or parent_code == 0'>
+		main_sort, code_name collate "C",
+		</if>
+		sort
+	</select>
+
+	<!-- 코드 목록 카운트 조회 -->	
+	<select id="getCodeListCnt" resultType="Integer">
+		SELECT
+			count(*)
+		FROM 
+			public.code 
+		<include refid="sql_where_list"></include>
+	</select>
+	
+	<!-- 코드 상세 조회 -->
+	<select id="getCodeDetail" resultType="HashMap">
+		SELECT
+			code
+			, code_name
+			, step
+			, parent_code
+			, description 
+			, sort
+		FROM 
+			public.code 
+		WHERE 
+			code = #{code}
+		AND parent_code = #{parent_code}
+	</select>
+	
+	<!-- 현재 코드를 포함한 상위 코드 모두 조회 -->
+	<select id="getAllCodeList" resultType="HashMap">
+		WITH RECURSIVE my_code (code, code_name, step, parent_code) AS (
+			SELECT
+				code
+				, code_name
+				, step
+				, parent_code
+			FROM 
+				public.code
+			WHERE code = #{code}
+			UNION
+			SELECT
+				c.code
+				, c.code_name
+				, c.step
+				, c.parent_code
+			FROM 
+				public.code c 
+			JOIN my_code m
+			ON c.code = m.parent_code 
+			WHERE c.step != 0
+		)
+		SELECT * FROM my_code 
+	</select>
+	
+	<!-- 코드 중복 체크 -->
+	<select id="hasCode" resultType="Integer">
+		SELECT
+			count(*)
+		FROM 
+			public.code 
+		WHERE 
+			code = #{code}
+		<if test='parent_code != null and parent_code != ""'>
+		AND parent_code = #{parent_code}
+		</if>
+	</select>
+	
+	<!-- 코드 등록 -->
+	<insert id="addCode">
+		INSERT INTO public.code (
+			code
+			, code_name
+			, step
+			, parent_code
+			, description 
+			, sort
+		)
+		VALUES (
+			#{code}
+			, #{code_name}
+			, #{step}
+			, #{parent_code}
+			, #{description}
+			, #{sort}
+		)
+	</insert>
+	
+	<!-- 코드 수정 -->
+	<update id="modifyCode">
+		UPDATE
+			public.code
+		SET 
+			code_name = #{code_name}
+			, step = #{step} :: int
+			, parent_code = #{parent_code}
+			, description = #{description}
+			, sort = #{sort} :: int
+		WHERE 
+			code = #{code}
+	</update>
+	
+	<!-- 코드 삭제 -->
+	<delete id="removeCode">
+		DELETE FROM public.code 
+		WHERE 
+			code = #{code}
+		AND parent_code = #{parent_code}
+	</delete>
+	
+	<!-- 광고 카테고리 목록 -->
+	<select id="getSgCodeList" resultType="HashMap">
+		SELECT 
+			*
+		FROM (
+			SELECT 
+				cc.*
+				, c.code sub_category
+				, c.code_name sub_category_name
+				, c.sort sub_category_sort
+				, (CASE WHEN cc.main_category_name = c.code_name THEN 0
+				  ELSE 1 END) AS main_sort
+				, (CASE WHEN cc.middle_category_name = c.code_name THEN 0
+				  ELSE 1 END) AS middle_sort
+			FROM
+				public.code c
+			INNER JOIN (
+				SELECT 
+					cc.*
+					, c.code middle_category
+					, c.code_name middle_category_name
+					, c.sort middle_category_sort
+				FROM 
+					public.code c
+				INNER JOIN (
+					SELECT
+						code main_category
+						, code_name main_category_name
+						, sort main_category_sort
+					FROM 
+						public.code
+					WHERE 
+						parent_code = 'AD_CATE'
+				) cc
+				ON c.parent_code = cc.main_category 
+			) cc
+			ON c.parent_code = cc.middle_category
+		) c
+		<where>
+			<if test="code_name != null and code_name != ''">
+				c.main_category_name LIKE CONCAT('%', #{code_name}, '%')
+				OR c.middle_category_name LIKE CONCAT('%', #{code_name}, '%')
+				OR c.sub_category_name LIKE CONCAT('%', #{code_name}, '%')
+			</if>
+		</where>
+		ORDER BY 
+			c.main_category_name collate "C"
+			, c.main_sort
+			, c.middle_category_name collate "C"
+			, c.middle_sort
+			, c.sub_category_name
+	</select>
+	
+	<!-- 디바이스 OS 목록 -->
+	<select id="getDeviceCodeList" resultType="HashMap">
+		SELECT
+			os.*,
+			device.code,
+			device.code_name,
+			device.sort device_sort
+		FROM
+			public.code device
+		JOIN (select
+				code os_code,
+				code_name os_name,
+				sort os_sort
+			FROM
+				public.code
+			WHERE
+				parent_code = 'OS') AS os
+		ON device.parent_code = os.os_code
+		ORDER BY os_sort, device_sort
+	</select>
+</mapper>

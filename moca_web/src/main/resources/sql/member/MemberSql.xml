@@ -1,0 +1,1806 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.member.MemberMapper">
+
+	<!-- 로그인 이력 조회 검색 -->
+	<sql id="login_history_where">
+		<if test='uid != null and uid != ""'>
+			AND uid LIKE CONCAT('%', #{uid}, '%')
+		</if>
+		<if test='start_date != null and start_date != ""'>
+			AND insert_date	>= #{start_date}::timestamp
+		</if>
+		<if test='end_date != null and end_date != ""'>
+			AND #{end_date}::timestamp >= insert_date 
+		</if>
+	</sql>
+	
+	<!-- 회원 목록 검색 -->
+	<sql id="member_list_where">
+		<if test='utype != null and utype != ""'>
+			AND utype = #{utype} 
+		</if>
+		<if test='company_name != null and company_name != ""'>
+			AND company_name LIKE CONCAT('%', #{company_name}, '%')
+		</if>
+		<if test='uid != null and uid != ""'>
+			AND uid LIKE CONCAT('%', #{uid}, '%')
+		</if>
+		<if test='status != null and status != ""'>
+			AND status = #{status}
+		</if>
+	</sql>
+	
+	<!-- 전체 회원 목록 검색 -->
+	<sql id="all_member_list_where">
+		<if test='utype != null and utype != ""'>
+			AND m.utype = #{utype} 
+		</if>
+		<if test='search_text != null and search_text !="" '>
+			<choose>
+				<when test = 'search_type == "uid" '>
+					AND m.uid LIKE CONCAT('%', #{search_text}, '%')
+				</when>
+				<when test = 'search_type == "company_name" '>
+					AND m.company_name LIKE CONCAT('%', #{search_text}, '%')
+				</when>
+			</choose>
+		</if>
+		
+	</sql>
+
+	<!-- 회원가입 -->
+	<select id="addMember" parameterType="HashMap" resultType="HashMap">
+		INSERT INTO
+			member.member (
+				  uid
+				, utype
+				, status
+				, passwd
+				, uname
+				, mobile
+				, email
+				, zipcode
+				, address1
+				, address2
+				, url
+				, company_name
+				, company_regnum
+				, company_email
+				, ceo_name
+				, biz_kind
+				, biz_type
+				, accept_email
+				, accept_sms
+				, role_id
+				, insert_date
+				, passwd_update_date
+			)
+		VALUES (
+			  #{uid}
+			, #{utype}
+			, #{status}
+			, #{passwd}
+			, #{uname}
+			, #{mobile}
+			, #{email}
+			, #{zipcode}
+			, #{address1}
+			, #{address2}
+			, #{url}
+			, #{company_name}
+			, #{company_regnum}
+			, #{company_email}
+			, #{ceo_name}
+			, #{biz_kind}
+			, #{biz_type}
+			, #{accept_email}
+			, #{accept_sms}
+			, #{role_id}
+			, now()
+			, now() + interval '180 day'
+		)
+		RETURNING id, to_char(insert_date, 'YYYY-MM-DD') AS insert_date
+	</select>
+	
+	<!-- 사업자 등록증 경로 등록 -->
+	<update id="addMemberBiznumPath" parameterType="HashMap">
+		UPDATE member.member
+		SET
+			company_regnum_image = #{company_regnum_image}
+			, company_regnum_file_name = #{company_regnum_file_name}
+		WHERE
+			id = #{member_id}
+	</update>
+	
+	<!-- 아이디 중복 체크 -->
+	<select id="hasDuplicateId" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		WHERE
+			uid = #{uid}
+	</select>
+	
+	<!-- 이메일 중복 체크 -->
+	<select id="hasDuplicateEmail" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		WHERE
+			company_email = #{company_email}
+		<![CDATA[
+		AND status <> 'L'
+		]]>
+		
+	</select>
+	
+	<!--수정하려는 회원의 이메일과 동일한지 체크 -->
+	<select id="hasEqualsMemberEmail" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		WHERE
+			id = #{login_id}::bigint
+			and company_email = #{company_email}
+	</select>
+	
+	<!-- 이메일 인증 확인 -->
+	<select id="hasEmailAuth" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.auth_tmp
+		WHERE
+			auth_key = #{company_email}
+		AND auth_value = #{auth_value}
+		AND auth_type = 'S'
+		AND auth_yn = 'Y'
+	</select>
+	
+	<!-- 인증 테이블 확인 -->
+	<select id="hasAuthCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.auth_tmp
+		WHERE
+			auth_key = #{company_email}
+	</select>
+
+	<!-- 인증번호 저장 -->
+	<insert id="addAuth" parameterType="HashMap">
+		INSERT INTO
+			member.auth_tmp (
+				  auth_key
+				, auth_kind
+				, auth_value
+				, expire_date
+				, insert_date
+				, auth_type
+			)
+		VALUES (
+			  #{company_email}
+			, #{auth_kind}
+			, #{auth_value}
+		<choose>
+			<when test='auth_type == "P"'>
+				, now() + interval '9999 year'
+			</when>
+			<otherwise>
+				, now() + interval '5 min 10 second'
+			</otherwise>
+		</choose>
+			, now()
+			, #{auth_type}
+		)
+	</insert>
+	
+	<!-- 인증번호 업데이트 -->
+	<update id="modifyAuth" parameterType="HashMap">
+		UPDATE
+			member.auth_tmp
+		SET
+			auth_value = #{auth_value}
+		<choose>
+			<when test='auth_type == "P"'>
+				, expire_date = now() + interval '9999 year'
+			</when>
+			<otherwise>
+				, expire_date = now() + interval '5 min 10 second'
+			</otherwise>
+		</choose>
+			, insert_date = now()
+			, auth_type = #{auth_type}
+			, auth_yn = 'N'
+		WHERE 
+			auth_key = #{company_email}
+	</update>
+	
+	<!-- 인증번호 조회 -->
+	<select id="hasAuth" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  auth_key
+			, auth_value
+			<![CDATA[
+			, now() > expire_date AS is_expire
+			]]>
+			, auth_yn
+		FROM
+			member.auth_tmp
+		WHERE
+			auth_key = #{company_email}
+		AND auth_value = #{auth_value}
+		AND auth_type = #{auth_type}
+	</select>
+	
+	<!-- 인증 완료 -->
+	<update id="modifyAuthSuccess" parameterType="HashMap">
+		UPDATE
+			member.auth_tmp
+		SET
+			auth_yn = 'Y'
+		WHERE
+			auth_key = #{company_email}
+		AND auth_value = #{auth_value}
+		AND auth_type = #{auth_type}
+	</update>
+	
+	<!-- 아이디 찾기, 비밀번호 찾기 회원 정보 -->
+	<select id="getMemberInfo" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS member_id
+			, uid
+			, utype
+			, uname
+		FROM
+			member.member
+		WHERE
+			email = #{email}
+		<if test='uid != null and uid != ""'>
+		AND	uid = #{uid}
+		</if>
+	</select>
+	
+	<!-- 비밀번호 업데이트 -->
+	<update id="modifyNewPw" parameterType="HashMap">
+		UPDATE
+			member.member
+		SET
+			  passwd = #{new_passwd}
+			, update_date = now()
+			, passwd_update_date = now() + interval '180 day'
+			, login_fail_cnt = 0
+			<if test='temp_passwd_yn != null and temp_passwd_yn != ""'>
+			, temp_passwd_yn = #{temp_passwd_yn}
+			</if>
+		WHERE
+			id = #{login_id}::bigint
+	</update>
+	
+	<!-- 30일 후에 비밀번호 변경 -->
+	<update id="modifyPwLater" parameterType="HashMap">
+		UPDATE
+			member.member
+		SET
+			passwd_update_date = now() + interval '30 day'
+		WHERE
+			id = #{login_id}::bigint
+	</update>
+	
+	<!-- 로그인한 계정의 현재 비밀번호 확인 -->
+	<select id="getSavePassword" parameterType="HashMap" resultType="String">
+		SELECT
+			passwd
+		FROM
+			member.member
+		WHERE
+			id = #{login_id}::bigint
+		AND passwd = #{passwd}
+	</select>
+	
+	<!-- 로그인 후 본인 정보 조회 -->
+	<select id="getMyData" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  m.id AS member_id
+			, m.uid
+			, m.passwd
+			, m.utype
+			, m.ukind
+			, m.role_id
+			, m.status
+			, m.uname
+			, m.mobile
+			, m.email
+			, m.zipcode
+			, m.address1
+			, m.address2
+			, m.url
+			, m.company_name
+			, m.company_regnum
+			, m.company_regnum_image
+			, m.company_regnum_file_name
+			, m.company_email
+			, m.ceo_name
+			, m.biz_kind
+			, m.biz_type
+			, m.accept_email
+			, m.accept_sms
+			, m.agency_id
+			<![CDATA[
+			, CASE
+				WHEN extract('second' from (now() - m.passwd_update_date)) > 0 THEN 'Y'
+				WHEN extract('second' from (now() - m.passwd_update_date)) < 0 THEN 'N'
+				ELSE '-' 
+				END AS is_expire
+			]]>
+			<if test='login_utype != null and login_utype != "E"'>	
+				, to_char(ai.expire_date, 'YYYY-MM-DD HH24:MI:ss') AS expire_date
+			</if>
+		FROM
+			member.member m
+		<if test='login_utype != null and login_utype != "E"'>
+			JOIN member.access_info ai
+			ON ai.member_id = m.id
+		</if>
+		WHERE
+			m.id = #{login_id}::bigint
+	</select>
+	
+	<!-- 로그인 후 마스킹된 본인 정보 조회 (마스킹)-->
+	<select id="getMyMaskingData" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  m.id AS member_id
+			, m.uid
+			, m.passwd
+			, m.utype
+			, m.ukind
+			, m.role_id
+			, m.status
+			, f_set_masking(m.uname, 'name')as masked_uname
+			, f_set_masking(m.mobile, 'mobile')as masked_mobile
+			, m.email
+			, m.zipcode
+			, m.address1
+			, m.address2
+			, m.url
+			, m.company_name
+			, m.company_regnum
+			, m.company_regnum_image
+			, m.company_email
+			, m.ceo_name
+			, m.biz_kind
+			, m.biz_type
+			, m.accept_email
+			, m.accept_sms
+			, m.agency_id
+			<![CDATA[
+			, CASE
+				WHEN extract('second' from (now() - m.passwd_update_date)) > 0 THEN 'Y'
+				WHEN extract('second' from (now() - m.passwd_update_date)) < 0 THEN 'N'
+				ELSE '-' 
+				END AS is_expire
+			]]>
+			<if test='login_utype != null and login_utype != "E"'>	
+				, to_char(ai.expire_date, 'YYYY-MM-DD HH24:MI:ss') AS expire_date
+			</if>
+		FROM
+			member.member m
+		<if test='login_utype != null and login_utype != "E"'>
+			JOIN member.access_info ai
+			ON ai.member_id = m.id
+		</if>
+		WHERE
+			m.id = #{login_id}::bigint
+	</select>
+	
+	<!-- 회원 정보 수정 -->
+	<update id="modifyInfo" parameterType="HashMap">
+		UPDATE member.member
+		SET
+			  company_email = #{company_email}
+			, url = #{url}
+			, accept_email = #{accept_email}
+			, accept_sms = #{accept_sms}
+			<if test='uname != null and uname != "" '>
+			, uname = #{uname}
+			</if>
+			<if test='mobile != null and mobile != "" '>
+			, mobile = #{mobile}
+			</if>
+			, email = #{email}
+			<if test='new_passwd != null and new_passwd != ""'>
+			, passwd = #{new_passwd}
+			</if>
+			, update_date = NOW()
+		WHERE
+			id = #{login_id}::bigint
+	</update>
+	
+	<!-- 사업자 정보 수정 요청 -->
+	<select id="getModifyRequest" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			company_regnum_image
+		FROM
+			member.member_update_req
+		WHERE
+			member_id = #{login_id}::bigint
+	</select>	
+	
+	<!-- 사업자 정보 수정 요청 -->
+	<insert id="modifyRequest" parameterType="HashMap">
+		INSERT INTO member.member_update_req (
+			  member_id
+			, company_regnum_image
+			, company_regnum_file_name
+			, insert_date
+			, status
+		)
+		VALUES (
+			  #{member_id}::bigint
+			, #{company_regnum_image}
+			, #{company_regnum_file_name}
+			, now()
+			, '0'
+		)
+	</insert>	
+	
+	<!-- 사업자 정보 수정 요청 삭제-->
+	<delete id="removeModifyRequest" parameterType="HashMap">
+		DELETE FROM member.member_update_req
+		WHERE
+			member_id = #{login_id}::bigint
+	</delete>	
+	
+	<!-- 수정 요청 목록 -->
+	<select id="getModifyRequestList" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+			  mur.id AS request_id
+			, m.utype
+			, m.uid
+        	, m.id AS member_id
+			, m.company_name
+			, to_char(mur.insert_date, 'YYYY-MM-DD') AS insert_date
+			, mur.company_regnum_image AS req_company_regnum_image 
+			, mur.company_regnum_file_name AS req_company_regnum_file_name
+			, m.company_regnum_image
+			, m.company_regnum_file_name
+			, mur.status 
+		FROM 
+			member.member_update_req mur 
+		JOIN member.member m 
+		ON mur.member_id = m.id
+		<where>	
+			m.utype != 'A'
+			<if test='utype != null and utype != "" '>
+				<choose>
+					<when test='utype == "D" '>
+						AND (m.utype = 'D' OR m.utype = 'B')  
+					</when>
+					<when test='utype == "S" '>
+						AND m.utype = 'S'
+					</when>					
+				</choose>
+			</if>
+			AND m.status = 'A'
+		</where>
+		ORDER BY mur.insert_date DESC
+	</select>
+	
+	<!-- 수정 요청 목록 개수 -->
+	<select id="getModifyRequestCnt" parameterType="HashMap" resultType="Integer">
+		SELECT 
+			COUNT(*)
+		FROM 
+			member.member_update_req mur 
+		JOIN member.member m 
+		ON mur.member_id = m.id 
+		<where>
+			<choose>
+				<when test='utype != null and utype != ""'>
+					m.utype = #{utype}
+				</when>
+				<otherwise>
+					<![CDATA[
+					m.utype <> 'S'
+					]]>
+				</otherwise>
+			</choose>
+		</where> 
+	</select>
+	
+	<!-- 수정할 회원 정보 -->
+	<select id="getModifyMemberInfo" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			mur.member_id
+			, m.company_regnum_image
+			, m.company_regnum_file_name
+			, m.company_regnum
+			, m.uname
+			, m.uid
+			, m.company_email
+			, m.email
+			, to_char(mur.insert_date, 'YYYY-MM-DD') AS request_date
+		FROM
+			member.member_update_req mur
+		JOIN member.member m
+		ON mur.member_id = m.id
+		WHERE
+			mur.id = #{member_update_req_id}::bigint
+	</select>
+	
+	
+	<!-- 정보 수정 (member) -->
+	<update id="modifyCompanyInfo" parameterType="HashMap">
+		UPDATE
+			member.member
+		SET 
+			 ceo_name = #{ceo_name}
+			, biz_kind = #{biz_kind}
+			, biz_type = #{biz_type}
+			, zipcode = #{zipcode}
+			, address1 = #{address1}
+			, address2 = #{address2}
+			, company_regnum_image = #{company_regnum_image}
+			, company_regnum_file_name = #{company_regnum_file_name}
+			, update_date = now()
+		WHERE
+			id = #{member_id}::bigint
+	</update>
+	
+	<!-- 수정 요청 상태 변경 -->
+	<update id="modifyRequestStatus" parameterType="HashMap">
+		UPDATE
+			member.member_update_req
+		SET 
+			status = '1'
+			, update_date = now()
+			, update_member_id = #{login_id}::bigint
+		WHERE
+			id = #{member_update_req_id}::bigint
+	</update>
+	
+	<!-- 승인요청, 진행중인 광고가 있는지 확인 -->
+	<select id="getProcessingSgCnt" resultType="Integer">
+		SELECT 
+			count(dsm.*)
+		FROM
+			public.dsp_campaign dc 
+		JOIN public.dsp_sg_manager dsm 
+		ON dc.id = dsm.campaign_id 
+		<where>
+			dc.member_id = #{login_id} :: bigint
+		AND dsm.status in (0, 1, 2)		
+		</where> 
+	</select>
+	
+	<!-- 진행중인 상품이 있는지 확인 -->
+	<select id="getProcessingProductCnt" resultType="Integer">
+		SELECT
+		    COUNT(*)
+		FROM
+		    ssp_product sp
+		JOIN
+		    ssp_category sc
+		ON
+		    sc.id = sp.category_id
+		JOIN
+		    MEMBER.MEMBER m
+		ON
+		    m.id = sc.member_id
+		WHERE 
+		m.id = #{login_id}::bigint
+		AND sp.end_ymd > TO_CHAR(now(), 'YYYY-MM-DD')
+	</select>
+
+	<!-- 회원 탈퇴 요청 -->
+	<update id="leaveRequestMember">
+		UPDATE 
+			member.member
+		SET 
+			status = 'R'
+			, leave_request_date = NOW() 
+		<where>
+			id = #{login_id} :: bigint
+		</where>
+	</update>
+	
+	<!-- 회원 탈퇴 승인 -->
+	<update id="leaveRequestAccept">
+		UPDATE
+			member.member
+		SET 
+			status = 'L'
+			, leave_process_member_id = #{login_id} :: bigint
+			, leave_process_date = NOW()
+			, leave_reason = #{leave_reason}
+		<where>
+			id = #{member_id} :: bigint
+		</where>
+	</update>
+	
+	<!-- 탈퇴 요청 목록 개수 조회 -->
+	<select id="leaveRequestMemberListCnt" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM 
+			member.member 
+		<where>
+			status IN ('L', 'R')
+		</where>
+	</select>
+	
+	<!-- 탈퇴 요청 목록 조회 -->
+	<select id="leaveRequestMemberList" resultType="HashMap">
+		SELECT
+			m.id
+			, m.role_id
+			, m.company_name
+			, m.uid
+			, m.utype
+			, to_char(m.leave_request_date, 'YYYY-MM-DD') AS leave_request_date
+			, m.status
+			, m2.uid AS leave_process_member_uid
+			, to_char(m.leave_process_date, 'YYYY-MM-DD') AS leave_process_date
+			, m.leave_reason
+		FROM 
+			member.member m
+		LEFT JOIN
+			member.member m2
+		ON
+			m.leave_process_member_id = m2.id
+		<where>
+			m.status IN ('L', 'R')
+		</where>
+		ORDER BY m.leave_request_date DESC
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+	
+	<!-- 회원 목록 조회 -->
+	<select id="getMemberList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			id AS member_id
+			, uid
+			, utype
+			, ukind
+			, role_id
+			, status
+			, company_name
+			, to_char(insert_date, 'YYYY-MM-DD') AS insert_date
+		FROM
+			member.member
+		<where>
+			<include refid="member_list_where"></include>
+		</where>
+		ORDER BY company_name, insert_date DESC
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 회원 목록 개수 -->
+	<select id="getMemberListCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		<where>
+			<include refid="member_list_where"></include>
+		</where>
+	</select>
+	
+	
+	<!-- 권한별 회원 수 조회 -->
+	<select id="getRoleMemberCnt" parameterType="HashMap" resultType="HashMap">
+		SELECT
+		    (
+		    	SELECT
+		            COUNT(m.*)
+		        FROM
+		        (
+		            SELECT
+		                 id AS member_id
+		                , uid
+		                , uname
+		                , utype
+		                , ukind
+		                , role_id
+		                , status
+		                , company_name
+		                , to_char(insert_date, 'YYYY-MM-DD') AS insert_date
+		            FROM
+		                member.member
+		            WHERE
+		                 utype != 'A' AND utype != 'E' AND utype != 'B'
+		            UNION ALL
+		            SELECT
+		                id AS member_id
+		                , uid
+		                , uname
+		                , utype
+		                , ukind
+		                , role_id
+		                , status
+		                , company_name
+		                , to_char(insert_date, 'YYYY-MM-DD') AS insert_date
+		            FROM
+		                member.member
+		            WHERE
+		                utype = 'B'
+		                AND agency_id = 0
+		        )m
+		    )AS all_cnt
+		    , (SELECT COUNT(*) FROM member."member" WHERE utype = 'B' and agency_id = 0)AS agency_cnt
+		    , (SELECT COUNT(*) FROM member."member" WHERE utype = 'D' )AS demand_cnt
+		    , (SELECT count(*) FROM member."member" WHERE utype = 'S' )AS supply_cnt
+	</select>
+	
+	<!-- 회원 전체 목록 조회 -->
+	<select id="getMemberUserList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			m.*
+		FROM
+		(
+			SELECT
+				 id AS member_id
+				, uid
+				, uname
+				, utype
+				, ukind
+				, role_id
+				, status
+				, company_name
+				, company_email
+				, accept_email
+				, to_char(insert_date, 'YYYY-MM-DD') AS insert_date
+			FROM
+				member.member
+			WHERE
+				 utype != 'A' AND utype != 'E' AND utype != 'B'
+			UNION ALL
+			SELECT
+				id AS member_id
+				, uid
+		        , uname
+		        , utype
+		        , ukind
+		        , role_id
+		        , status
+		        , company_name
+		        , company_email
+		        , accept_email
+		        , to_char(insert_date, 'YYYY-MM-DD') AS insert_date
+			FROM
+	        	member.member
+	        WHERE
+	            utype = 'B'
+	            AND agency_id = 0
+        )m
+		<where>
+			<include refid="all_member_list_where"></include>
+		</where>
+		ORDER BY insert_date DESC
+		<if test='limit != null and offset != null'>
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 회원 목록 개수 -->
+	<select id="getMemberUserListCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(m.*)
+		FROM
+		(
+			SELECT
+				 id AS member_id
+				, uid
+				, uname
+				, utype
+				, ukind
+				, role_id
+				, status
+				, company_name
+				, to_char(insert_date, 'YYYY-MM-DD') AS insert_date
+			FROM
+				member.member
+			WHERE
+				 utype != 'A' AND utype != 'E' AND utype != 'B'
+			UNION ALL
+			SELECT
+				id AS member_id
+				, uid
+		        , uname
+		        , utype
+		        , ukind
+		        , role_id
+		        , status
+		        , company_name
+		        , to_char(insert_date, 'YYYY-MM-DD') AS insert_date
+			FROM
+	        	member.member
+	        WHERE
+	            utype = 'B'
+	            AND agency_id = 0
+        )m
+		<where>
+			<include refid="all_member_list_where"></include>
+		</where>
+	</select>
+	
+	<!-- 회원 상세 정보 -->
+	<select id="getMemberData" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS member_id
+			, uid
+			, utype
+			, ukind
+			, role_id
+			, status
+			, uname
+			, mobile
+			, email
+			, zipcode
+			, address1
+			, address2
+			, url
+			, company_name
+			, company_regnum
+			, company_regnum_image
+			, company_regnum_file_name
+			, company_email
+			, ceo_name
+			, biz_kind
+			, biz_type
+			, accept_email
+			, accept_sms
+			, agency_id
+			, notes
+			, balance_day
+			, balance_rate
+			, login_fail_cnt
+			, to_char(approve_process_date, 'YYYY-MM-DD HH24:MI') approve_date
+		FROM
+			member.member
+		WHERE
+			id = #{member_id}::bigint
+	</select>
+	
+	<!-- 회원 사업자 정보 조회  -->
+	<select id="getMemberCompanyInfo" parameterType="HashMap" resultType="HashMap">
+		SELECT
+	        m.company_name
+	        , m.utype
+	        , m.company_regnum
+	        , m.ceo_name
+	        , m.biz_kind
+	        , m.biz_type
+	        , m.zipcode
+	        , m.address1
+	        , m.address2
+	        , mur.company_regnum_image AS req_company_regnum_image
+  	        , mur.company_regnum_file_name AS req_company_regnum_file_name
+	    FROM
+	        member.member m
+	    JOIN
+	        member.member_update_req mur
+	    ON
+	        mur.member_id = m.id
+	    WHERE
+	        mur.id = #{request_id}::bigint
+	</select>
+	
+	<!-- 회원 로그인 이력 조회 -->
+	<select id="getMemberLoginHistory" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  ROW_NUMBER() OVER(ORDER BY insert_date DESC) AS seq
+			, to_char(insert_date, 'YYYY-MM-DD HH24:MI:SS') AS insert_date
+			, uid
+			, access_ip
+			, access_yn
+		FROM
+			member.member_access_log
+		<where>
+			<include refid="login_history_where"></include>
+		</where>
+		<if test='limit != null and offset != null'>
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 회원 로그인 이력 개수 -->
+	<select id="getMemberLoginHistoryCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member_access_log
+		<where>
+			<include refid="login_history_where"></include>
+		</where>
+	</select>
+
+	<!-- 권한구분 조회 -->
+	<select id="getRole" parameterType="HashMap" resultType="Integer">
+		SELECT
+			id
+		FROM
+			member.role_manager
+		WHERE
+			utype = #{utype}
+		AND modify_yn = 'N'
+	</select>
+
+<!-- ################################# 관리자 기능 ##################################### -->
+	<sql id="staff_where">
+		<if test="role_id != null and role_id != ''">
+			AND A.role_id = #{role_id}
+		</if>
+		<if test="search_value != null and search_value != ''">
+			AND (
+				A.UNAME LIKE CONCAT('%', #{search_value}, '%')
+				OR A.UID LIKE CONCAT('%', #{search_value}, '%')
+			)
+		</if>
+	</sql>
+	
+	<!-- 관리자 조회  -->
+	<select id="getStaffList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			*
+		FROM
+			(
+				SELECT
+					m.id AS member_id
+					, rm.name AS role_name
+					, m.role_id
+					, m.uname
+					, m.uid
+					, m.status
+					, m.insert_date
+					, to_char(m.insert_date, 'YYYY-MM-DD') AS insert_ymd
+					, to_char(H.update_date, 'YYYY-MM-DD') AS update_ymd
+					, H.message
+					, (SELECT uid FROM member.member m2 WHERE H.update_member_id = m2.id) AS update_member_id
+					 , (SELECT COUNT(*) FROM member.member_modify_history mmh WHERE mmh.member_id = m.id ) AS modify_history_count
+				FROM
+					member.member m
+				LEFT JOIN
+					member.role_manager rm
+				ON m.role_id = rm.id
+				LEFT JOIN	
+				(
+					SELECT
+						member_id
+						, update_date
+						, message
+						, update_member_id
+					FROM
+						member.member_modify_history mmh
+					WHERE mmh.id IN (
+						SELECT
+							MAX(id) AS id
+						FROM
+							member.member_modify_history mmh2
+						GROUP BY member_id
+					)
+				) H
+				ON H.member_id = m.id
+				WHERE
+					m.utype = 'A'
+			)A
+		<where>
+			<include refid="staff_where"></include>
+		</where>
+		ORDER BY A.insert_date DESC
+		<if test="limit != null and offset != null">
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 관리자 count -->
+	<select id="getStaffListCount" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			(
+			SELECT
+				m.id
+				, role_id
+				, uname
+				, uid
+				, insert_date
+			FROM
+				member.member m
+			WHERE
+				m.utype = 'A'
+			) A
+		<where>
+			<include refid="staff_where"></include>
+		</where>
+	</select>
+	
+	<!-- 관리자 회원 상세 조회 -->
+	<select id="getStaffDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			m.id AS member_id
+			, m.uid
+			, m.role_id
+			, rm.name
+			, m.uname
+			, m.mobile
+			, m.email
+			, to_char(m.insert_date, 'YYYY-MM-DD HH24:MI:SS') AS insert_date
+		FROM
+			member.member m
+		LEFT JOIN
+			member.role_manager rm
+		ON
+			m.role_id = rm.id
+		WHERE
+			m.id = #{member_id}::int
+		AND m.utype = 'A'
+	<![CDATA[
+		AND status <> 'L'
+	]]>
+	</select>
+	
+	<!-- 관리자 수정 이력 조회 -->
+	<select id="getStaffHistoryList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			mh.id
+			, to_char(mh.update_date, 'YYYY-MM-DD') as update_date
+			, m.uid AS update_member_uid
+			, mh.message
+		FROM
+			member.member_modify_history mh
+		LEFT JOIN
+			member.member m
+		ON mh.update_member_id = m.id
+		WHERE
+			member_id = #{member_id}::int
+		ORDER BY mh.update_date DESC
+	</select>
+	
+	<!-- 관리자 추가 -->
+	<insert id="addStaff" parameterType="HashMap">
+		INSERT INTO member.member (
+			uid
+			, utype
+			, role_id
+			, status
+			, passwd
+			, uname
+			, email
+			, company_email
+			, insert_date
+			, passwd_update_date
+			, agency_id
+		) VALUES (
+			#{uid}
+			, 'A'
+			, #{role_id}::int
+			, 'A'
+			, #{passwd}
+			, #{uname}
+			, #{company_email}
+			, #{company_email}
+			, now()
+			, now() + interval '180 day'
+			, #{login_id}::int
+		)
+	</insert>
+	
+	<!-- 권한구분이 admin용인지 체크 -->
+	<select id="isRoleStaff" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			member.role_manager
+		WHERE
+			owner_id = 0
+			AND utype = 'A'
+			AND use_yn = 'Y'
+			AND id = #{role_id}::int
+	</select>
+	
+	<!-- 관리자 회원 정보 수정 -->
+	<update id="modifyStaffRole" parameterType="HashMap">
+		UPDATE member.member
+		SET
+			update_date = now()
+			, role_id = #{role_id}::int
+		WHERE
+			id = #{member_id}::int
+		AND utype = 'A'
+	<![CDATA[
+		AND status <> 'L'
+	]]>	
+	</update>
+	
+	<!-- 현재 비밀번호 맞는지 체크 -->
+	<select id="isPasswd" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		WHERE
+			id = #{login_id}::int
+		AND passwd = #{passwd}
+	</select>
+	
+	<!-- 같은 인증정보로 같은 인증을 진행한 적이 있는지 체크 -->
+	<select id="isAuth" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			member.auth_tmp
+		WHERE
+			auth_key = #{company_email}
+		AND auth_type = #{auth_type}
+	</select>
+	
+	<!-- 인증번호 가져오기 (인증전) -->
+	<select id="getAuthDetail" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			auth_value
+			, expire_date > NOW() as is_expire
+			, auth_yn
+		FROM
+			member.auth_tmp
+		WHERE
+			auth_key = #{company_email}
+		AND auth_type = #{auth_type}
+		AND auth_yn = 'N'
+	</select>
+	
+	<!-- 인증완료가 되었는지 체크 -->
+	<select id="isSuccessAuth" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			member.auth_tmp
+		WHERE
+			auth_key = #{auth_key}
+		AND auth_type = #{auth_type}
+		AND auth_yn = 'Y'
+	</select>
+	
+	<!-- 본인 정보 수정 (관리자) -->
+	<update id="modifyMyInfo" parameterType="HashMap">
+		UPDATE member.member
+		SET
+			email = #{company_email}
+			, company_email = #{company_email}
+			, url = #{url}
+			, accept_email = #{accept_email}
+			, accept_sms = #{accept_sms}
+			<if test="new_passwd != null and new_passwd != ''">
+			, passwd = #{new_passwd}
+			</if>
+			, update_date = NOW()
+		WHERE
+			id = #{login_id}::bigint
+	</update>
+	
+	<!-- 관리자의 이메일 존재하는지 체크 -->
+	<select id="hasStaffEmail" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		WHERE
+			email = #{email}
+		AND utype = 'A'
+	</select>
+	
+	<!-- 최고 관리자 권한을 가진 회원인지 검사 -->
+	<select id="isSuperStaff" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member m
+		LEFT JOIN
+			member.role_manager rm
+		ON m.role_id = rm.id
+		WHERE
+			m.id = #{member_id}::int
+		AND rm.utype = 'A'
+		AND rm.sort = 0
+	</select>
+	<!-- 관리자 회원 삭제 -->
+	<update id="removeStaff" parameterType="HashMap">
+		UPDATE member.member
+		SET
+			status = 'L'
+			, leave_reason = #{leave_reason}
+			, leave_process_member_Id = #{login_id}::int
+			, leave_process_date = NOW()
+			, leave_request_date = NOW()
+		WHERE
+			id = #{member_id}::int
+		AND	utype = 'A'
+	<![CDATA[
+		AND status <> 'L'
+		AND role_id <> 1
+	]]>
+	</update>
+	
+	<!-- 관리자 직원 존재 여부 -->
+	<select id="hasStaff" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		WHERE
+			id = #{member_id}::int
+		AND utype = 'A'
+	<![CDATA[
+		AND status <> 'L'
+	]]>	
+	</select>
+	
+	<!-- 관리자 이력 추가 -->
+	<insert id="addStaffHistory" parameterType="HashMap">
+		INSERT INTO member.member_modify_history (
+			member_id
+			, message
+			, update_member_id
+			, screen_id
+			, ip_addr
+			, update_date
+		) VALUES (
+			#{member_id}::int
+			, #{message}
+			, #{login_id}::int
+			, #{screen_id}::int
+			, #{remote_ip}::inet
+			, NOW()
+		)
+	</insert>
+	
+	<!-- 로그인한 사용자의 권한이 있는 메뉴 조회 -->
+	<select id="getMenuList" resultType="HashMap">
+		SELECT
+		     m.id AS menu_id
+		    , m.step 
+		    , m.parent_id 
+		    , m.name as menu_name
+		    , COALESCE(m.url, '/') AS url
+		    , m.link_yn
+		    , m.use_yn 
+		    , m.sort 
+		    , m.default_yn 
+		    , m.default_utype 
+		    , CASE 
+		        WHEN rm.access_yn = 'Y' THEN 'Y'
+		        WHEN rm.access_yn = 'N' THEN 'N'
+		        WHEN rm.access_yn IS NULL THEN m.default_yn
+			END AS access_yn
+			, m.limit_ip_yn 
+			, m.leave_member_access_yn
+			, m.menu_class
+			, m.sub_yn
+		FROM
+		    member.menu m
+		LEFT JOIN (
+		    SELECT
+		        r.id
+		        , r.use_yn
+		        , r.utype
+		        , rm.access_yn
+		        , rm.menu_id
+		        , mm.status
+		    FROM
+		    	member.member mm 
+		    JOIN 
+		        member.role_manager r
+			ON mm.role_id = r.id 
+		    LEFT JOIN
+		        member.role_menu rm
+		    ON r.id = rm.role_id 
+		    WHERE
+		    		mm.id = #{login_id} :: bigint
+		    	AND r.id = #{role_id} :: bigint
+		    	AND r.use_yn = 'Y'
+		    	AND r.utype = #{utype}
+		) AS rm
+		ON
+		    rm.menu_id = m.id  
+		<where>
+			m.use_yn = 'Y'
+		AND m.default_utype = #{utype}
+		AND EXISTS (
+			SELECT 
+				id
+			FROM member.role_manager 
+			WHERE 
+				utype = #{utype}
+			AND id = #{role_id} :: bigint
+		)		
+		AND (CASE WHEN rm.status = 'R' OR rm.status = 'L' THEN
+				m.leave_member_access_yn 
+			ELSE 
+				'Y'
+		END) = 'Y'
+		</where>
+		ORDER by m.step, m.sort, m.parent_id
+	</select>
+	
+	<!-- 디폴트 메뉴 조회 -->
+	<select id="getDefaultMenu" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			m.url			
+		FROM
+			member.menu m
+		JOIN member.role_manager rm
+		ON rm.default_menu_id = m.id
+		WHERE rm.id = #{role_id}::bigint
+	</select>
+	
+	<!-- 대행사 계정 기본 권한 등록 -->
+	<select id="addDefaultRole" parameterType="HashMap" resultType="HashMap">
+		INSERT INTO member.role_manager
+		(
+			name
+		    , utype
+		    , use_yn
+		    , owner_id
+		    , modify_yn
+		    , sort
+		    , default_menu_id
+		    
+		)
+		VALUES
+		(
+			'최고 관리자'
+			, #{utype}
+			, 'Y'
+			, #{member_id}
+			, 'N'
+			, 0	
+			, (SELECT id FROM member.menu WHERE default_utype = #{utype} AND step = 2 and sort = 1)
+		)
+		,(
+			'관리자'
+			, #{utype}
+			, 'Y'
+			, #{member_id}
+			, 'N'
+			, 1
+			, (SELECT id FROM member.menu WHERE default_utype = #{utype} AND step = 2 and sort = 1)
+		)
+		,(
+			'담당자'
+			, #{utype}
+			, 'Y'
+			, #{member_id}
+			, 'N'
+			, 2
+			, (SELECT id FROM member.menu WHERE default_utype = #{utype} AND step = 2 and sort = 1)
+		)
+		,(
+			'미지정'
+			, #{utype}
+			, 'Y'
+			, #{member_id}
+			, 'N'
+			, 3
+			, (SELECT id FROM member.menu WHERE default_utype = #{utype} AND step = 2 and sort = 1)
+		)
+		RETURNING id, sort
+	</select>
+	
+	<!-- 대행사 권한별 메뉴 조회
+		role_sort 
+		0: 최고관리자
+		1: 관리자 
+		2: 담당자 
+		3: 미지정
+	-->
+	<select id="getAgencyDefaultMenuList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS menu_id
+			, "name" 
+			, CASE WHEN #{role_sort} = 2 THEN (CASE WHEN url LIKE '/agency/member/demand/%' THEN 'Y' ELSE default_yn END)  
+				   WHEN #{role_sort} = 3 THEN default_yn 
+			  ELSE 'Y' END AS default_yn 
+		FROM
+			member.menu
+		WHERE
+			default_utype = 'B'
+		AND use_yn = 'Y'
+	</select>
+	
+	<!-- 대행사 기본 권한별 메뉴 등록 -->
+	<insert id="addAgencyRoleMenu" parameterType="HashMap">
+		INSERT INTO member.role_menu(
+			  role_id
+			, menu_id
+			, access_yn
+		)
+		VALUES (
+			  #{role_id}
+			, #{menu_id}
+			, #{access_yn}
+		)
+	</insert>
+	
+	<!-- 대행사 계정의 role_id 수정 -->
+	<update id="modifyRoleId">
+		UPDATE member.member
+		SET
+			role_id = #{role_id}
+		WHERE
+			id = #{member_id}
+	</update>
+	
+	<!-- 매체사 승인요청 목록 -->
+	<select id="getSupplyApproveList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  ROW_NUMBER() OVER(ORDER BY insert_date) AS seq
+			, id AS member_id
+			, company_name
+			, uid
+			, to_char(insert_date, 'YYYY-MM-DD HH24:MI:ss') AS insert_date
+			, to_char(approve_process_date, 'YYYY-MM-DD HH24:MI:ss') AS approve_process_date
+			, status
+			, company_regnum_image
+			, company_regnum_file_name
+			, balance_day
+			, balance_rate
+			, uname
+			, notes
+		FROM
+			member.member
+		<where>
+			<![CDATA[
+			AND status <> 'L'
+			AND status <> 'R'
+			]]> 
+			<include refid="member_list_where"></include>
+		</where>
+		ORDER BY insert_date DESC
+		<if test='limit != null and offset != null'>
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 매체사 승인요청 목록 개수 -->
+	<select id="getSupplyApproveCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		<where>
+			<include refid="member_list_where"></include>
+		</where>
+	</select>
+	
+	<!-- 매체 승인 / 거부 -->
+	<update id="modifySupplyStatus" parameterType="HashMap">
+		UPDATE member.member
+		SET
+			  status = #{status}
+			, update_date = now()
+			, approve_process_member_id = #{login_id}::bigint
+			, approve_process_date = now()
+			<if test='notes != null and notes != ""'>
+			, notes = #{notes}
+			</if>
+		WHERE
+			id = #{member_id}
+	</update>
+	
+	<!-- 관리자 > 캠페인/광고 관리 광고주 수 -->
+	<select id="getDemandAgencyListCount" parameterType="HashMap" resultType="int">
+		SELECT 
+			COUNT(*)
+		FROM 
+			member.member m
+		<include refid="sql_demand_list_where"></include>
+	</select>
+	
+	<!-- 관리자 > 캠페인/광고 관리 광고주 목록 조회 -->
+	<select id="getDemandAgencyList" parameterType="HashMap" resultType="HashMap">
+		SELECT 
+			m.id AS member_id
+			, m.uid AS demand_uid
+			, m.company_name AS demand_company_name
+			, m.agency_id AS agency_member_id
+			, (SELECT uid FROM member.member WHERE id = m.agency_id) AS agency_uid
+			, (SELECT company_name FROM member.member WHERE id = m.agency_id) AS agency_company_name
+			, COALESCE(sgt.progress_sg, 0) AS proceed
+			, COALESCE(sgt.total_sg, 0) AS total
+		FROM 
+			member.member m
+		<include refid="sql_demand_list_where"></include>
+		ORDER BY total DESC
+		<if test='limit != null and offset != null'>
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 관리자 > 캠페인/광고 관리 조건 -->
+	<sql id="sql_demand_list_where">
+		<if test='search_yn == "N" or search_type == "D" or search_type == "N" or search_type == "I"'>
+		LEFT
+		</if> 
+		JOIN 
+			(SELECT
+				dc.member_id
+				<if test='search_status != null and !search_status.equals("") and search_status != 8'>
+				, COUNT(CASE WHEN dsm.status = #{search_status} THEN dsm.status END) AS progress_sg
+				</if>
+				<if test='search_status == 8'>
+				, COUNT(CASE WHEN dsm.status = 7 OR dsm.status = 8 THEN dsm.status END) AS progress_sg
+				</if>
+				<if test='search_status == null or search_status.equals("")'>
+				, COUNT(CASE WHEN dsm.status = 1 THEN dsm.status END) AS progress_sg
+				</if>
+				, COUNT(dsm.id) AS total_sg
+			FROM 
+				public.dsp_campaign dc
+			JOIN public.dsp_sg_manager dsm 
+			ON dsm.campaign_id = dc.id
+			<where>
+				<if test='search_yn == "Y"'>
+					<if test='search_type == "C" and search_value != null and search_value != ""'>
+					AND dc.name LIKE CONCAT('%', #{search_value} , '%')
+					</if>
+					<if test='search_type == "S" and search_value != null and search_value != ""'>
+					AND dsm.name LIKE CONCAT('%', #{search_value} , '%')
+					</if>
+				</if>
+			</where> 
+			GROUP BY dc.member_id) AS sgt
+		ON sgt.member_id = m.id
+		WHERE	
+			m.utype = 'D'
+		AND m.status = 'A'
+		<if test='search_yn == "Y"'>
+			<if test='search_type == "D" and search_value != null and search_value != ""'>
+				AND m.company_name LIKE CONCAT('%', #{search_value} , '%')
+			</if>
+			<if test='search_type == "N" and search_value != null and search_value != ""'>
+				AND (m.company_name LIKE CONCAT('%', #{search_value} , '%')
+				OR (SELECT company_name FROM member.member WHERE id = m.agency_id) LIKE CONCAT('%', #{search_value} , '%'))
+			</if>
+			<if test='search_type == "I" and search_value != null and search_value != ""'>
+				AND (m.uid LIKE CONCAT('%', #{search_value} , '%')
+				OR (SELECT uid FROM member.member WHERE id = m.agency_id) LIKE CONCAT('%', #{search_value} , '%'))
+			</if>
+		</if>
+	</sql>
+	
+	<!-- 관리자 > 매체/상품 관리 매체사 개수 -->
+	<select id="getProductSupplyCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM 
+			member.member m
+		<include refid="sql_product_supply_list_where"></include>
+	</select>
+	
+	<!-- 관리자 > 매체/상품 관리 매체사 목록 조회 -->
+	<select id="getProductSupplyList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			m.id AS member_id
+			, m.uid
+			, m.company_name
+			, m.uname
+			, m.balance_day
+		FROM 
+			member.member m
+		<include refid="sql_product_supply_list_where"></include>
+		ORDER BY m.insert_date		
+		<if test='limit != null and offset != null'>
+			LIMIT #{limit} OFFSET #{offset}
+		</if>
+	</select>
+	
+	<!-- 관리자 > 매체/상품 관리 조건 -->
+	<sql id="sql_product_supply_list_where">
+		<if test='search_yn == "N"'>
+		LEFT
+		</if> 
+		JOIN 
+			(SELECT
+				sc.member_id
+			FROM 
+				public.ssp_category sc
+			JOIN public.ssp_product sp 
+			ON sp.category_id = sc.id
+			<where>
+				<if test='search_yn == "Y"'>
+					<if test='search_type == "C" and search_value != null and search_value != ""'>
+					AND sc.category_name LIKE CONCAT('%', #{search_value} , '%')
+					</if>
+					<if test='search_type == "P" and search_value != null and search_value != ""'>
+					AND sp.product_name LIKE CONCAT('%', #{search_value} , '%')
+					</if>
+				</if>
+				<if test='date_type == "I" and start_date != null and end_date != null'>
+					AND to_char(sp.insert_date, 'YYYY-MM-DD') BETWEEN #{start_date} and #{end_date} 
+				</if>
+				<if test='date_type == "S" and start_date != null and end_date != null'>
+					AND sp.start_ymd BETWEEN #{start_date} and #{end_date} 
+				</if>
+				<if test='date_type == "E" and start_date != null and end_date != null'>
+					AND sp.end_ymd BETWEEN #{start_date} and #{end_date} 
+				</if>
+			</where> 
+			GROUP BY sc.member_id) AS pt
+		ON pt.member_id = m.id
+		WHERE	
+			m.utype = 'S'
+		AND m.status = 'A'
+		<if test='search_yn == "Y"'>
+			<if test='search_type == "D" and search_value != null and search_value != ""'>
+				AND m.company_name LIKE CONCAT('%', #{search_value} , '%')
+			</if>
+			<if test='search_type == "S" and search_value != null and search_value != ""'>
+				AND m.company_name LIKE CONCAT('%', #{search_value} , '%')
+			</if>
+			<if test='search_type == "N" and search_value != null and search_value != ""'>
+				AND m.uname LIKE CONCAT('%', #{search_value} , '%')
+			</if>
+		</if>
+	</sql>
+	
+	<!-- (상품관리, 매체/상품 관리) 매체사 리스트 -->
+	<select id="getSupplyList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS member_id
+			, uid
+			, company_name
+			, uname
+			, balance_day
+		FROM
+			member.member
+		WHERE 
+			utype = 'S'
+		AND status = 'A'
+		<include refid="supply_list_where"></include>
+	</select>
+	
+	<!-- (상품관리) 매체사 수 -->
+	<select id="getSupplyCnt" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM
+			member.member
+		WHERE 
+			utype = 'S'
+		AND status = 'A'
+		<include refid="supply_list_where"></include>
+	</select>
+	
+	<!-- 상품관리 매체사 검색조건 -->
+	<sql id="supply_list_where">
+		<if test='member_id != null and member_id != ""'>
+			AND id = #{member_id}
+		</if>
+		<if test='search_type == "S" and search_value != null and search_value != ""'>
+			AND company_name LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		<if test='search_type == "N" and search_value != null and search_value != ""'>
+			AND uname LIKE CONCAT('%', #{search_value}, '%')
+		</if>
+		<if test='uid != null and uid != ""'>
+			AND uid LIKE CONCAT('%', #{uid}, '%')
+		</if>
+	</sql>
+	
+	
+	<!-- 광고주 목록 조회 검색 -->
+	<sql id="demand_list_where">
+		<if test = 'search_name != null and search_name !=""'>
+			AND (A.company_name LIKE CONCAT('%', #{search_name}, '%') 
+				OR A.agency_company_name LIKE CONCAT('%', #{search_name}, '%'))
+		</if>
+		<if test = 'status != null and status != ""'>
+			AND A.status = #{status}
+		</if>
+	</sql>
+	
+	<!-- 광고주 목록 조회 -->
+	<select id="getDemandList" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			AA.*
+		FROM
+		(
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.agency_company_name nulls last, A.company_name) as seq
+				, A.*
+			FROM
+			(
+				SELECT
+					m.id as member_id
+					, m.uid
+					, m.utype
+					, m.ukind
+					, m.role_id
+					, m.status
+					, m.uname
+					, m.mobile
+					, m.email
+					, m.zipcode
+					, m.address1
+					, m.address2
+					, m.url
+					, m.company_name 
+					, m.company_regnum 
+					, m.company_regnum_image
+					, m.company_regnum_file_name
+					, m.ceo_name 
+					, m.biz_kind 
+					, m.biz_type 
+					, m.company_email 
+					, m.agency_id
+					, B.company_name as agency_company_name
+				FROM
+					member.member m
+				LEFT JOIN
+					(
+						SELECT
+							id as agency_id
+							, company_name
+						FROM
+							member.member
+						WHERE
+							utype = 'B'
+						AND
+							status = 'A'
+					) B
+				ON
+					m.agency_id = B.agency_id
+				WHERE
+					m.utype = 'D'
+					AND (B.agency_id IS NOT NULL OR m.agency_id = 0)
+			) A
+			<where>
+				<include refid="demand_list_where"></include>
+			</where>
+		) AA
+		ORDER BY AA.seq
+	</select>
+	
+	<!-- 광고주 목록 count -->
+	<select id="getDemandListCount" parameterType="HashMap" resultType="int">
+		SELECT
+			COUNT(A.*)
+		FROM 
+		(
+			SELECT
+				m.utype
+				, m.status
+				, m.company_name
+				, B.company_name as agency_company_name
+			FROM
+				member.member m
+			LEFT JOIN
+				(
+					SELECT
+						id as agency_id
+						, company_name
+					FROM
+						member.member
+					WHERE
+						utype = 'B'
+					AND
+						status = 'A'
+				) B
+			ON
+				m.agency_id = B.agency_id				
+			WHERE
+				m.utype = 'D'
+				AND (B.agency_id IS NOT NULL OR m.agency_id = 0)
+		) A
+		<where>
+			<include refid="demand_list_where"></include>
+		</where>
+	</select>
+	
+</mapper>

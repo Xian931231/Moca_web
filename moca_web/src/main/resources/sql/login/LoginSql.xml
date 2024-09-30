@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mocafelab.web.login.LoginMapper">
+
+	<!-- 로그인 정보 -->
+	<select id="getLoginData" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  id AS member_id
+			, uid
+			, utype
+			, passwd
+			, role_id
+			, status
+			, login_fail_cnt
+			, agency_id
+			, temp_passwd_yn
+			<![CDATA[
+			, ( 
+				CASE
+					WHEN extract('second' from (now() - passwd_update_date)) > 0 THEN 'Y'
+					WHEN extract('second' from (now() - passwd_update_date)) < 0 THEN 'N'
+				ELSE '-' END 
+			  ) AS is_expire
+			]]>				  
+		FROM
+			member.member
+		WHERE
+			uid = #{uid}
+		<if test='passwd != null and passwd != ""'>
+		AND passwd = #{passwd}
+		</if>
+	</select>
+
+	<!-- 로그인 날짜 갱신, 로그인 실패 카운트 초기화 -->
+	<update id="modifyLoginSuccess" parameterType="HashMap">
+		UPDATE
+			member.member
+		SET
+			  last_login_date = now()
+			, login_fail_cnt = 0
+		WHERE
+			id = #{member_id}
+	</update>
+
+	<!-- 로그인 로그 추가 -->	
+	<insert id="addAccessLog" parameterType="HashMap">
+		INSERT INTO
+			member.member_access_log (
+				  insert_date
+				, uid
+				, access_ip
+				, access_yn
+			)
+		VALUES (
+			  now()
+			, #{uid}
+			, #{remote_ip}
+			, #{access_yn}		
+		)
+	</insert>
+	
+	<!-- 로그인 성공 로그 추가 -->
+	<insert id="addLoginSuccessLog">
+		INSERT INTO member.member_access_log (
+			insert_date
+			, uid
+			, access_ip
+			, access_yn
+		) VALUES (
+			NOW()
+			, #{uid}
+			, #{remote_ip}
+			, 'Y'
+		)
+	</insert>
+	
+	<!-- 로그인 성공 로그 추가 -->
+	<insert id="addLoginFailLog">
+		INSERT INTO member.member_access_log (
+			insert_date
+			, uid
+			, access_ip
+			, access_yn
+		) VALUES (
+			NOW()
+			, #{uid}
+			, #{remote_ip}
+			, 'N'
+		)
+	</insert>
+	
+	<!-- 로그인 실패 카운트 추가 -->
+	<!-- 사용자 정보가 없을때 로그인 실패 카운트를 늘리기위해선 uid를 통해 member를 특정해야함 -->
+	<update id="addLoginFailCnt" parameterType="HashMap">
+		UPDATE
+			member.member
+		SET
+			login_fail_cnt = login_fail_cnt + 1
+		WHERE
+			uid = #{uid}
+	</update>
+	
+	<!-- 로그인 여부 체크 -->
+	<select id="hasLogin" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(id)
+		FROM
+			member.member
+		WHERE
+			id = #{login_id}::bigint
+	</select>
+	
+	<!-- 중복 로그인 체크 -->
+	<select id="hasDuplicateLogin" parameterType="HashMap" resultType="Integer">
+		SELECT
+			COUNT(member_id)
+		FROM
+			member.access_info
+		WHERE
+			member_id = #{member_id}::bigint
+	</select>
+
+	<!-- 로그인 세션 가져오기 -->
+	<select id="getAccessData" parameterType="HashMap" resultType="HashMap">
+		SELECT
+			  member_id
+			, access_token
+			<![CDATA[
+			, ( 
+				CASE
+				WHEN extract('second' from (now() - expire_date)) > 0 THEN 'Y'
+				WHEN extract('second' from (now() - expire_date)) < 0 THEN 'N'
+				ELSE '-' END 
+			  ) AS is_expire
+			]]>
+		FROM
+			member.access_info
+		WHERE
+			member_id = #{member_id}::bigint
+		<if test='access_token != null and access_token != ""'>
+			AND access_token = #{access_token}
+		</if>
+	</select>
+	
+	<!-- 로그인 토큰 저장 -->
+	<insert id="addAccessToken" parameterType="HashMap">
+		INSERT INTO
+			member.access_info (
+				  member_id
+				, access_token
+				, expire_date
+			)
+		VALUES (
+			  #{member_id}::bigint
+			, #{access_token}
+			, now() + INTERVAL '${login_expire_seconds} SECOND'
+		)
+	</insert>
+	
+	<!-- 로그인 토큰 업데이트 -->
+	<update id="modifyAccessToken" parameterType="HashMap">
+		UPDATE
+			member.access_info
+		SET
+			  access_token = #{access_token}
+			, access_date = now()
+			, expire_date = now() + INTERVAL '${login_expire_seconds} SECOND'
+		WHERE
+			member_id = #{member_id}::bigint
+	</update>
+	
+	<!-- 로그아웃시 토큰 삭제 -->
+	<delete id="removeAccessToken" parameterType="HashMap">
+		DELETE FROM
+			member.access_info
+		WHERE
+			member_id = #{member_id}::bigint
+		<if test="user_token != null and user_token != ''">
+			AND access_token = #{user_token}
+		</if>
+	</delete>
+	
+	<!-- tempAuthValue를 가진 member_id가 있는지 확인 -->
+	<select id="hasTempAuthValue" resultType="Integer">
+		SELECT 
+			COUNT(*)
+		FROM 
+			member.access_info
+		<where>
+			temp_auth_value = #{temp_auth_value}
+		AND temp_auth_member_id = #{member_id} :: bigint
+		<![CDATA[
+		AND NOW() < temp_auth_expire_date
+		]]>
+		</where>
+	</select>
+	
+	<!-- tempAuthValue 삭제 -->
+	<update id="removeTempAuthValue">
+		UPDATE 
+			member.access_info
+		SET 
+			temp_auth_value = NULL
+			, temp_auth_expire_date = NULL 
+			, temp_auth_member_id = NULL
+		WHERE 
+			temp_auth_value = #{temp_auth_value}
+	</update>
+</mapper>

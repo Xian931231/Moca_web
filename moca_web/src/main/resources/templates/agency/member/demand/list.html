@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+	<th:block layout:fragment="content">
+		<main class="main-panel moCafePanel">
+			<div class="pagePath">
+	        	회원관리<span>&gt;</span>광고주 계정 관리
+	      	</div>
+	      	<div class="content">
+	        	<div class="titleCont">
+	          		<h2>광고주 계정 관리</h2>
+	        	</div>
+	        	<div class="tab-content advTablesCpm">
+	          		<div class="management cutomerAcc">
+	          			<div class="moCafeFormWrap ctrl">
+	            			<form action="" onsubmit="return false">
+	              				<fieldset>
+	                				<legend class="blind">검색</legend>
+                					<span class="selectFinWrap">
+	                  					<select name="" id="searchRoleSelect" class="selectpicker" data-src="demandList" data-act="selectRole">
+	                    					<option value="" selected>전체</option>
+	                  					</select>
+	                				</span>
+	                				<span class="selectFinWrap2">
+	                  					<select name="" id="searchStaffSelect" class="selectpicker">
+						                    <option value="">전체</option>
+	                  					</select>
+	                				</span>
+	                				<span class="selectFinWrap2">
+	                  					<select name="" id="searchDemandSelect" class="selectpicker">
+					                   		<option value="uname" selected>광고주명</option>
+						                    <option value="uid">광고주 ID</option>
+	                  					</select>
+	                				</span>
+	                				<span class="grSearch">
+	                  					<input type="search" id="searchInput" data-src="demandList" data-act="inputSearch">
+	                  					<button type="button" class="btn-sm" data-src="demandList" data-act="getSearch">검색</button>
+	                				</span>
+	              				</fieldset>
+	              				<div class="management_acc">
+	                				<a href="/agency/member/demand/add">
+	                					<button type="button" class="btn-sm btn-dark">
+	                    					새 광고주 계정 생성
+	                					</button>
+	                				</a>
+	            				</div>
+	            			</form>
+	          			</div>
+	          			<!-- 테이블 / 시작 -->
+	          			<div class="tableWrap">
+	            			<div class="tableInner">
+	              				<table class="table approval advTable10">
+	                				<colgroup>
+					                  	<col width="45px">
+					                  	<col width="130px">
+					                  	<col width="130px">
+					                  	<col width="130px">
+					                  	<col width="130px">
+					                  	<col width="350px">
+					                  	<col width="*">
+	                				</colgroup>
+	                				<thead>
+			                  			<tr>
+			                    			<th>
+			                      				<span class="chk"><input type="checkbox" name="chk_p" id="allChk" data-src="demandList" data-act="allChk"><label for="allChk"></label></span>
+			                    			</th>
+						                    <th>광고주명</th>
+						                    <th>아이디</th>
+						                    <th>담당자</th>
+						                    <th>계정등록 일자</th>
+						                    <th>수정 이력</th>
+						                    <th>더보기</th>
+			                  			</tr>
+	                				</thead>
+	               					<tbody id="demandList">
+                					</tbody>
+	              				</table>
+            				</div>
+	          			</div>
+	          			<div class="management_acc1">
+	            			<button type="button" class="btn-lg btn-clear" id="delete-btn" data-src="demandList" data-act="removeRemoveBtn">계정 삭제</button>
+	            			<button type="button" class="btn-lg btn-dark" id="delete-btn2" data-src="demandList" data-act="modifyContactStaffModal">담당 수정</button>
+	          			</div>
+				        <!-- 전체 / 끝 -->
+				        <!-- 페이지네이션 / 시작 -->
+				        <nav aria-label="Page navigation">
+           					<ul class="pagination justify-content-center" id = "listPage">
+            				</ul>
+          				</nav>
+          				<!-- 페이지네이션 / 끝 -->
+        			</div>
+        		</div>
+      		</div>
+      		<!--계정 삭제 모달-->
+    		<div class="modal fade depoModal" id="depo2" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      			<div class="modal-dialog">
+        			<div class="modal-content cutomerAcc">
+          				<div class="modal-header">
+            				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              					<span aria-hidden="true">&times;</span>
+            				</button>
+          				</div>
+          				<div class="modal-body">
+            				<form action="" onsubmit="return false">
+              					<fieldset>
+                					<div class="modalSearchBox">
+                  						<label for="modalSearch">비밀번호</label>
+                  						<input type="password" id="modalPassword" placeholder="">
+                					</div>
+                					<div class="vdSetWrap depo">
+                  						<textarea class="commonTextarea" cols="100" rows="5" id="modalReason" placeholder="사유입력"></textarea>
+                					</div>
+              					</fieldset>
+            				</form>
+          				</div>
+          				<div class="modal-footer">
+            				<button type="button" class="btn btn-sm btn-clear" data-dismiss="modal" >취소</button>
+            				<button type="button" class="btn btn-sm btn-dark" id="password-btn" data-src="demandList" data-act="removeDemandChk">확인</button>
+          				</div>
+        			</div>
+      			</div>
+    		</div>
+   			<!--담당 수정 모달-->
+    		<div class="modal fade depoModal" id="depo1" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      			<div class="modal-dialog cutomerAcc3">
+   		 			<div class="modal-content cutomerAcc3">
+                        <div class="modal-header">
+                           <h5 class="modal-title">담당 수정</h5>
+               				  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                 			    <span aria-hidden="true">&times;</span>
+               				  </button>
+                        </div>
+                        <div class="modal-body cutomerAcc3">
+                           <form action="" onsubmit="return false">
+                              <ul class="vdSetWrap depo tep select">
+                                 <li class="depoName_chk">
+                                    <label for="depoName">선택된 담당자</label>
+                                       <div class="depoName_in02" id="demandAccessStaffBody">
+                                       </div>                  
+                                 </li>
+                              </ul>
+           					  <ul class="vdSetWrap depo tep select">
+                                 <li>
+                                    <div class="deop-select">
+                                       <div class="deop-selectFinWrap">
+                                          <label for="depoName">구분</label>
+                                          <span class="selectFinWrap">
+                                             <select name="" id="modalRoleSelect" class="selectpicker" data-src="demandList" data-act="changeModalSelectRole">
+                                             </select>
+                                          </span>
+                                       </div>
+                                    </div>
+                                    <div class="depoName_in">
+                                       <div id="roleStaffListBody">
+                                       </div>
+                                    </div>
+                                 </li>
+                              </ul>
+               				</form>
+          				</div>
+          				<div class="modal-footer">
+               				<button type="button" class="btn btn-sm btn-clear" data-dismiss="modal">취소</button>
+               				<button type="button" class="btn btn-sm btn-dark" id="modifyDemandAccessStaffBtn" data-src="demandList" data-act="modifyDemandAccessStaff">담당 저장</button>
+          				</div>
+       				</div>
+      			</div>
+    		</div>
+    		<!--더보기 모달-->
+    		<div class="modal fade" id="view-btn" data-keyboard="false" tabindex="-1" aria-labelledby="allCategoryLabel" aria-hidden="true">
+      			<div class="modal-dialog view">
+        			<div class="modal-content view">
+          				<div class="modal-header">
+            				<h2 class="modal-title">수정 이력</h2>
+            				<h3 id = "modifyHistoryModalId"></h3>
+          				</div>
+          				<div class="modal-body">
+            				<div class="ModalSearchBox" id="modifyHistoryListBody">
+            				</div>
+        				</div>
+      				</div>
+    			</div>      
+  			</div>
+		</main>    
+	</th:block>
+	<th:block layout:fragment="script">
+		<script th:src="@{/js/page/agency/member/demand/list.js}"></script>
+		<script type="text/javascript">
+			layout.setCallback(demandList.init);
+		</script>
+	</th:block>
+</html>

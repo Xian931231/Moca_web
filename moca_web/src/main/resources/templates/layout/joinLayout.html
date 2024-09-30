@@ -1,0 +1,35 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-4.dtd">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+    <head>
+        <!-- 공통 헤더 -->
+        <th:block th:replace="fragments/header :: commonHeaderFragment"></th:block>
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" th:href="@{/assets/bootstrap/css/bootstrap.min.css}">
+        <link rel="stylesheet" th:href="@{/assets/bootstrap/css/bootstrap-select.min.css}">
+        <link rel="stylesheet" th:href="@{/assets/bootstrap/css/bootstrap-datepicker3.min.css}">
+        <!-- only css -->
+        <link href="https://cdn.jsdelivr.net/npm/reset-css@5.0.1/reset.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" th:href="@{/assets/css/common.css}">
+        <link rel="stylesheet" type="text/css" th:href="@{/assets/css/login.css}">
+        <!-- 페이지별 css, title -->
+        <th:block layout:fragment="css"></th:block>
+    </head>
+    <body>
+        <div>
+            <!-- 로딩 -->
+            <th:block th:replace="fragments/loading :: loadingFragment"></th:block>
+            <!-- join header -->
+            <th:block th:replace="fragments/header :: joinHeaderFragment"></th:block>
+            <!-- content -->
+            <th:block layout:fragment="joinContent"></th:block>
+            <!-- footer -->
+            <th:block th:replace="fragments/footer :: joinFooterFragment"></th:block>
+        </div>
+    </body>
+    <!-- 공통 스크립트 -->
+    <th:block th:replace="fragments/footerScript :: footerScriptFragment"></th:block>
+    <!-- 모카페 플랫폼 스크립트 -->
+    <th:block th:replace="fragments/footerScript :: platformFooterScriptFragment"></th:block>
+    <!-- 페이지별 스크립트 -->
+    <th:block layout:fragment="script"></th:block>
+</html>
